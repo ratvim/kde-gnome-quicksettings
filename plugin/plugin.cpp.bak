@@ -1,0 +1,133 @@
+#include <QObject>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QQmlEngine>
+#include <QQmlExtensionPlugin>
+#include <KWindowEffects>
+#include <QPainter>
+#include <QBitmap>
+#include <QRegion>
+#include <QPointer>
+#include <QDebug>
+
+class WindowHelper : public QObject {
+    Q_OBJECT
+public:
+    explicit WindowHelper(QObject *parent = nullptr) : QObject(parent) {}
+
+    Q_INVOKABLE void disableBlur(QQuickItem *item) {
+        if (!item) return;
+        QQuickWindow *win = item->window();
+        if (!win) return;
+        KWindowEffects::enableBlurBehind(win, false);
+        KWindowEffects::enableBackgroundContrast(win, false);
+    }
+
+    Q_INVOKABLE void applyMask(QQuickItem *item, double radius, bool blurInside = false) {
+        if (!item) return;
+        m_item = item;
+        m_radius = radius;
+        m_blurInside = blurInside;
+
+        QQuickWindow *win = item->window();
+        if (win && m_win != win) {
+            if (m_win) {
+                disconnect(m_win, nullptr, this, nullptr);
+            }
+            m_win = win;
+            connect(win, &QQuickWindow::widthChanged, this, &WindowHelper::reapplyMask);
+            connect(win, &QQuickWindow::heightChanged, this, &WindowHelper::reapplyMask);
+            connect(win, &QQuickWindow::visibleChanged, this, &WindowHelper::reapplyMask);
+        }
+
+        if (m_item && !m_itemHooked) {
+            m_itemHooked = true;
+            connect(item, &QQuickItem::widthChanged, this, &WindowHelper::reapplyMask);
+            connect(item, &QQuickItem::heightChanged, this, &WindowHelper::reapplyMask);
+        }
+
+        reapplyMask();
+    }
+
+    Q_INVOKABLE void reapplyMask() {
+        if (!m_item) return;
+        QQuickWindow *win = m_win ? m_win.data() : m_item->window();
+        if (win) {
+            std::function<void(QQuickItem*, int)> printTree = [&](QQuickItem* it, int depth) {
+                if (!it) return;
+                QString indent(depth * 2, ' ');
+                qWarning().noquote() << QString("%1[%2] name='%3' vis=%4 op=%5 geo=(%6,%7 %8x%9)")
+                    .arg(indent)
+                    .arg(it->metaObject()->className())
+                    .arg(it->objectName())
+                    .arg(it->isVisible())
+                    .arg(it->opacity())
+                    .arg(it->x()).arg(it->y()).arg(it->width()).arg(it->height());
+                for (QQuickItem *ch : it->childItems()) {
+                    printTree(ch, depth + 1);
+                }
+            };
+            if (win->contentItem()) {
+                qWarning() << "--- SCENE GRAPH TREE ---";
+                printTree(win->contentItem(), 0);
+            }
+            qWarning() << "[WindowHelper] win class:" << win->metaObject()->className()
+                       << "backgroundHints:" << win->property("backgroundHints")
+                       << "color:" << win->color()
+                       << "size:" << win->size()
+                       << "item size:" << (m_item ? m_item->size() : QSizeF());
+        }
+        if (!win) return;
+        if (!m_win) m_win = win;
+
+        int winW = win->width();
+        int winH = win->height();
+        if (winW <= 0 || winH <= 0) return;
+
+        int w = m_item->width() > 0 ? (int)m_item->width() : winW;
+        int h = m_item->height() > 0 ? (int)m_item->height() : winH;
+
+        QPointF posInWin = m_item->mapToScene(QPointF(0, 0));
+        int x = (int)posInWin.x();
+        int y = (int)posInWin.y();
+
+        QBitmap bmp(winW, winH);
+        bmp.fill(Qt::color0);
+        QPainter p(&bmp);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(Qt::color1);
+        p.setPen(Qt::NoPen);
+        p.drawRoundedRect(x, y, w, h, m_radius, m_radius);
+        p.end();
+
+        QRegion r(bmp);
+        win->setMask(r);
+
+        if (m_blurInside) {
+            KWindowEffects::enableBlurBehind(win, true, r);
+            KWindowEffects::enableBackgroundContrast(win, false);
+        } else {
+            KWindowEffects::enableBlurBehind(win, false);
+            KWindowEffects::enableBackgroundContrast(win, false);
+        }
+    }
+
+private:
+    QPointer<QQuickItem> m_item;
+    QPointer<QQuickWindow> m_win;
+    double m_radius = 24.0;
+    bool m_blurInside = false;
+    bool m_itemHooked = false;
+};
+
+class GnomeQuickSettingsPlugin : public QQmlExtensionPlugin {
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QQmlExtensionInterface")
+public:
+    void registerTypes(const char *uri) override {
+        qmlRegisterType<WindowHelper>(uri, 1, 0, "WindowHelper");
+    }
+};
+
+#include "plugin.moc"
+

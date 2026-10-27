@@ -1,0 +1,668 @@
+/* ==============================================================================
+   style.css - GNOME 43+ Quick Settings Theme for KDE Plasma Simulator
+   Features:
+     - Curved-edge capsule pill toggles (radius: 20px)
+     - Curved continuous pill sliders (radius: 22px)
+     - Deep glassmorphism & backdrop blur
+     - Smooth animations & light/dark mode transitions
+============================================================================== */
+
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cantarell", "Noto Sans", sans-serif;
+  --accent-blue: #3584e4;
+  --accent-blue-hover: #2674d6;
+  --panel-radius: 28px;
+  --pill-radius: 20px;
+  --slider-radius: 22px;
+  --transition-speed: 0.18s;
+  
+  /* Dark Mode Variables (Default) */
+  --bg-panel: rgba(30, 30, 34, 0.88);
+  --bg-panel-border: rgba(255, 255, 255, 0.12);
+  --bg-pill-inactive: rgba(255, 255, 255, 0.08);
+  --bg-pill-hover: rgba(255, 255, 255, 0.13);
+  --bg-pill-active: var(--accent-blue);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-active-primary: #ffffff;
+  --text-active-secondary: rgba(255, 255, 255, 0.85);
+  --icon-bg-inactive: rgba(255, 255, 255, 0.12);
+  --icon-bg-active: rgba(255, 255, 255, 0.24);
+  --divider-color: rgba(255, 255, 255, 0.15);
+  --slider-bg: rgba(255, 255, 255, 0.1);
+  --slider-fill: var(--accent-blue);
+  --media-bg: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-light {
+  --bg-panel: rgba(246, 248, 250, 0.92);
+  --bg-panel-border: rgba(0, 0, 0, 0.1);
+  --bg-pill-inactive: rgba(0, 0, 0, 0.06);
+  --bg-pill-hover: rgba(0, 0, 0, 0.1);
+  --bg-pill-active: var(--accent-blue);
+  --text-primary: #1a1a1a;
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --text-active-primary: #ffffff;
+  --text-active-secondary: rgba(255, 255, 255, 0.85);
+  --icon-bg-inactive: rgba(0, 0, 0, 0.08);
+  --icon-bg-active: rgba(255, 255, 255, 0.24);
+  --divider-color: rgba(0, 0, 0, 0.1);
+  --slider-bg: rgba(0, 0, 0, 0.08);
+  --slider-fill: var(--accent-blue);
+  --media-bg: rgba(0, 0, 0, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family);
+  height: 100vh;
+  overflow: hidden;
+  background-color: #111;
+  color: var(--text-primary);
+}
+
+/* Desktop Wallpaper */
+.desktop-wallpaper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 75% 25%, #2a3d52 0%, #171c26 60%, #0d1117 100%);
+  overflow: hidden;
+}
+
+/* Night Light warm orange tint */
+.night-light-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 140, 0, 0);
+  pointer-events: none;
+  transition: background-color 0.4s ease;
+  z-index: 10;
+}
+.night-light-overlay.active {
+  background-color: rgba(255, 140, 0, 0.16);
+}
+
+/* Screen Brightness dimmer overlay */
+.brightness-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  z-index: 11;
+  transition: background-color 0.05s linear;
+}
+
+/* Top Bar */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background: rgba(18, 18, 20, 0.7);
+  backdrop-filter: blur(20px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 100;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.desktop-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.desktop-clock {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Status Pill in Panel (Compact Representation) */
+.status-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  padding: 3px 12px;
+  color: #fff;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+.status-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.status-pill-btn.active {
+  background: var(--accent-blue);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.icon-indicator {
+  font-size: 0.85rem;
+}
+
+.battery-pct {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Desktop Center Mockup */
+.desktop-center {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.welcome-card {
+  text-align: center;
+  max-width: 520px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+}
+.welcome-card h1 {
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+}
+.welcome-card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+.hint-pill {
+  display: inline-block;
+  background: rgba(53, 132, 228, 0.2);
+  color: #78aeed;
+  border: 1px solid rgba(53, 132, 228, 0.4);
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Popout GNOME Quick Settings Panel */
+.quick-settings-panel {
+  position: absolute;
+  top: 48px;
+  right: 16px;
+  width: 420px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(36px);
+  -webkit-backdrop-filter: blur(36px);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 200;
+  transform-origin: top right;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.quick-settings-panel.hidden {
+  opacity: 0;
+  transform: scale(0.92) translateY(-10px);
+  pointer-events: none;
+}
+
+/* Panel Header: Battery Chip & Session Actions */
+.panel-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.battery-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.session-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.round-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--bg-panel-border);
+  background: var(--bg-pill-inactive);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all var(--transition-speed);
+}
+.round-action-btn:hover {
+  background: var(--bg-pill-hover);
+  transform: scale(1.05);
+}
+
+/* Toggles Grid (2 Columns of Curved Pill Capsules) */
+.toggles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Pill Toggle (Curved Edges) */
+.pill-toggle {
+  display: flex;
+  align-items: center;
+  height: 54px;
+  border-radius: var(--pill-radius); /* Curved Edges */
+  background: var(--bg-pill-inactive);
+  border: 1px solid var(--bg-panel-border);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.pill-toggle:hover {
+  background: var(--bg-pill-hover);
+  transform: translateY(-1px);
+}
+.pill-toggle:active {
+  transform: scale(0.97);
+}
+
+/* Active Pill State */
+.pill-toggle.active {
+  background: var(--bg-pill-active);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(53, 132, 228, 0.35);
+}
+
+.pill-main-click {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Circular Icon Badge inside the Pill */
+.pill-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--icon-bg-inactive);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  transition: all var(--transition-speed);
+}
+
+.pill-toggle.active .pill-icon-badge {
+  background: var(--icon-bg-active);
+  color: var(--text-active-primary);
+}
+
+.pill-text-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.pill-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-speed);
+}
+
+.pill-toggle.active .pill-title {
+  color: var(--text-active-primary);
+}
+
+.pill-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-speed);
+}
+
+.pill-toggle.active .pill-subtitle {
+  color: var(--text-active-secondary);
+}
+
+/* Split Chevron Button on Expandable Toggles */
+.pill-chevron-btn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--divider-color);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  height: 100%;
+  width: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: all var(--transition-speed);
+  border-top-right-radius: var(--pill-radius);
+  border-bottom-right-radius: var(--pill-radius);
+}
+.pill-chevron-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Sliders Section */
+.sliders-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.curved-slider-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  background: var(--slider-bg);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: var(--slider-radius); /* Curved Capsule Slider */
+  padding: 4px 14px;
+}
+
+.slider-icon-btn, .slider-icon-static {
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.slider-track-container {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.slider-fill-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--slider-fill);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: width 0.05s linear;
+}
+
+.curved-range-input {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.slider-value-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* MPRIS Media Player Card */
+.media-player-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--media-bg);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 18px;
+  padding: 10px 14px;
+}
+
+.media-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e17055, #d63031);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.media-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.media-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-artist {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.media-progress-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 2px;
+}
+
+.media-controls-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.media-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: transform var(--transition-speed);
+}
+.media-ctrl-btn:hover {
+  transform: scale(1.15);
+}
+.media-ctrl-btn.play-btn {
+  font-size: 1.1rem;
+}
+
+/* Sub-View Drawers (Wi-Fi & Bluetooth) */
+.subview-drawer {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-panel);
+  border-radius: var(--panel-radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 250;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subview-drawer.hidden {
+  opacity: 0;
+  transform: translateX(20px);
+  pointer-events: none;
+}
+
+.subview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bg-panel-border);
+}
+
+.subview-back-btn, .subview-action-btn {
+  background: var(--bg-pill-inactive);
+  border: 1px solid var(--bg-panel-border);
+  color: var(--text-primary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.subview-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.subview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 340px;
+}
+
+.subview-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-pill-inactive);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  transition: background var(--transition-speed);
+}
+.subview-item:hover {
+  background: var(--bg-pill-hover);
+}
+.subview-item.connected {
+  border-color: rgba(53, 132, 228, 0.4);
+  background: rgba(53, 132, 228, 0.15);
+}
+
+.item-icon {
+  font-size: 1.1rem;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-meta {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.item-check {
+  color: var(--accent-blue);
+  font-weight: 700;
+}
+
+.item-connect-btn, .item-disconnect-btn {
+  background: var(--bg-pill-hover);
+  border: 1px solid var(--bg-panel-border);
+  color: var(--text-primary);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.item-connect-btn:hover {
+  background: var(--accent-blue);
+  color: #fff;
+}

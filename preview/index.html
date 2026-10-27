@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNOME Quick Settings for KDE Plasma — Live Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <!-- Desktop Environment Mockup -->
+  <div class="desktop-wallpaper" id="wallpaper">
+    <div class="night-light-overlay" id="nightLightOverlay"></div>
+    <div class="brightness-overlay" id="brightnessOverlay"></div>
+
+    <!-- Top Status Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="desktop-badge">KDE Plasma 6 (GNOME Shell Theme)</span>
+        <span class="desktop-clock" id="topClock">Mon Oct 19 09:50</span>
+      </div>
+      <div class="top-bar-right">
+        <!-- Compact Status Pill (Click to toggle Quick Settings) -->
+        <button class="status-pill-btn active" id="statusPillBtn" title="Click to toggle GNOME Quick Settings">
+          <span class="icon-indicator" id="trayWifiIcon">📶</span>
+          <span class="icon-indicator" id="trayVolumeIcon">🔊</span>
+          <span class="icon-indicator" id="trayBatteryIcon">🔋</span>
+          <span class="battery-pct" id="trayBatteryPct">88%</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Desktop Center Content -->
+    <main class="desktop-center">
+      <div class="welcome-card">
+        <h1>GNOME Quick Settings for KDE Plasma</h1>
+        <p>Curved-edge capsule toggles (pill shape) inspired by GNOME 43+ Quick Settings.</p>
+        <div class="hint-pill">👉 Click the pill indicator on the top-right corner to open/close the Quick Settings menu!</div>
+      </div>
+    </main>
+
+    <!-- Popout GNOME Quick Settings Control Center -->
+    <aside class="quick-settings-panel" id="quickSettingsPanel">
+      <!-- Top Action / Session Row -->
+      <div class="panel-header-row">
+        <div class="battery-status-chip">
+          <span class="chip-icon">🔋</span>
+          <span class="chip-label" id="batteryStatusLabel">88% (3 hr 45 min remaining)</span>
+        </div>
+        <div class="session-btn-group">
+          <button class="round-action-btn" id="lockBtn" title="Lock Screen">🔒</button>
+          <button class="round-action-btn" id="settingsBtn" title="System Settings">⚙</button>
+          <button class="round-action-btn" id="powerBtn" title="Power / Log Out">⏻</button>
+        </div>
+      </div>
+
+      <!-- Main Toggles Grid (Curved Pill / Capsule Buttons) -->
+      <div class="toggles-grid" id="togglesGrid">
+        <!-- Wi-Fi Toggle -->
+        <div class="pill-toggle active" id="toggleWifi" data-toggle="wifi">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">📶</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Wi-Fi</span>
+              <span class="pill-subtitle" id="wifiSubtitle">Jainam_5G</span>
+            </div>
+          </div>
+          <button class="pill-chevron-btn" id="wifiChevronBtn" title="View available Wi-Fi networks">›</button>
+        </div>
+
+        <!-- Bluetooth Toggle -->
+        <div class="pill-toggle active" id="toggleBluetooth" data-toggle="bluetooth">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">ᛒ</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Bluetooth</span>
+              <span class="pill-subtitle" id="bluetoothSubtitle">Sony WH-1000XM5</span>
+            </div>
+          </div>
+          <button class="pill-chevron-btn" id="bluetoothChevronBtn" title="View Bluetooth devices">›</button>
+        </div>
+
+        <!-- Dark Style Toggle -->
+        <div class="pill-toggle active" id="toggleDarkStyle" data-toggle="darkstyle">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">🌙</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Dark Style</span>
+              <span class="pill-subtitle" id="darkStyleSubtitle">On</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Night Light Toggle -->
+        <div class="pill-toggle" id="toggleNightLight" data-toggle="nightlight">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">🌅</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Night Light</span>
+              <span class="pill-subtitle" id="nightLightSubtitle">Off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Airplane Mode Toggle -->
+        <div class="pill-toggle" id="toggleAirplane" data-toggle="airplane">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">✈</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Airplane Mode</span>
+              <span class="pill-subtitle" id="airplaneSubtitle">Off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Do Not Disturb Toggle -->
+        <div class="pill-toggle" id="toggleDND" data-toggle="dnd">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">🔕</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Do Not Disturb</span>
+              <span class="pill-subtitle" id="dndSubtitle">Off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hotspot Toggle -->
+        <div class="pill-toggle" id="toggleHotspot" data-toggle="hotspot">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">📡</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Hotspot</span>
+              <span class="pill-subtitle" id="hotspotSubtitle">Off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Power Saver Toggle -->
+        <div class="pill-toggle" id="togglePowerSaver" data-toggle="powersaver">
+          <div class="pill-main-click">
+            <div class="pill-icon-badge">🍃</div>
+            <div class="pill-text-col">
+              <span class="pill-title">Power Saver</span>
+              <span class="pill-subtitle" id="powerSaverSubtitle">Balanced</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sliders Section (Curved Continuous Capsule Tracks) -->
+      <div class="sliders-section">
+        <!-- Volume Slider -->
+        <div class="curved-slider-card">
+          <button class="slider-icon-btn" id="muteToggleBtn" title="Toggle Mute">🔊</button>
+          <div class="slider-track-container">
+            <div class="slider-fill-bar" id="volumeFill" style="width: 72%;"></div>
+            <input type="range" class="curved-range-input" id="volumeRange" min="0" max="100" value="72">
+          </div>
+          <span class="slider-value-text" id="volumeValText">72%</span>
+        </div>
+
+        <!-- Brightness Slider -->
+        <div class="curved-slider-card">
+          <span class="slider-icon-static">🔆</span>
+          <div class="slider-track-container">
+            <div class="slider-fill-bar" id="brightnessFill" style="width: 85%;"></div>
+            <input type="range" class="curved-range-input" id="brightnessRange" min="10" max="100" value="85">
+          </div>
+          <span class="slider-value-text" id="brightnessValText">85%</span>
+        </div>
+      </div>
+
+      <!-- MPRIS Media Player Card -->
+      <div class="media-player-card" id="mediaCard">
+        <div class="media-art" id="mediaArt">🎵</div>
+        <div class="media-info-col">
+          <div class="media-title" id="mediaTitle">Midnight City</div>
+          <div class="media-artist" id="mediaArtist">M83 — Hurry Up, We're Dreaming</div>
+          <div class="media-progress-track">
+            <div class="media-progress-fill" id="mediaProgressFill" style="width: 44%;"></div>
+          </div>
+        </div>
+        <div class="media-controls-col">
+          <button class="media-ctrl-btn" id="prevTrackBtn" title="Previous Track">⏮</button>
+          <button class="media-ctrl-btn play-btn" id="playPauseBtn" title="Play / Pause">⏸</button>
+          <button class="media-ctrl-btn" id="nextTrackBtn" title="Next Track">⏭</button>
+        </div>
+      </div>
+
+      <!-- Sub-Drawer for Wi-Fi Networks -->
+      <div class="subview-drawer hidden" id="wifiDrawer">
+        <div class="subview-header">
+          <button class="subview-back-btn" id="wifiBackBtn">‹</button>
+          <span class="subview-title">Wi-Fi Networks</span>
+          <button class="subview-action-btn" id="wifiRefreshBtn" title="Scan">🔄</button>
+        </div>
+        <div class="subview-list">
+          <div class="subview-item connected">
+            <span class="item-icon">📶</span>
+            <div class="item-info">
+              <span class="item-name">Jainam_5G</span>
+              <span class="item-meta">Connected · 5 GHz · Strong</span>
+            </div>
+            <span class="item-check">✓</span>
+          </div>
+          <div class="subview-item">
+            <span class="item-icon">📶</span>
+            <div class="item-info">
+              <span class="item-name">Airtel_Fiber_Ultra</span>
+              <span class="item-meta">Secured · 5 GHz</span>
+            </div>
+            <button class="item-connect-btn">Connect</button>
+          </div>
+          <div class="subview-item">
+            <span class="item-icon">📶</span>
+            <div class="item-info">
+              <span class="item-name">Office_Guest_Network</span>
+              <span class="item-meta">Open · 2.4 GHz</span>
+            </div>
+            <button class="item-connect-btn">Connect</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-Drawer for Bluetooth Devices -->
+      <div class="subview-drawer hidden" id="bluetoothDrawer">
+        <div class="subview-header">
+          <button class="subview-back-btn" id="bluetoothBackBtn">‹</button>
+          <span class="subview-title">Bluetooth Devices</span>
+          <button class="subview-action-btn" id="bluetoothRefreshBtn" title="Scan">🔄</button>
+        </div>
+        <div class="subview-list">
+          <div class="subview-item connected">
+            <span class="item-icon">🎧</span>
+            <div class="item-info">
+              <span class="item-name">Sony WH-1000XM5</span>
+              <span class="item-meta">Connected · Battery: 90%</span>
+            </div>
+            <button class="item-disconnect-btn">Disconnect</button>
+          </div>
+          <div class="subview-item">
+            <span class="item-icon">⌨</span>
+            <div class="item-info">
+              <span class="item-name">Logitech MX Keys</span>
+              <span class="item-meta">Paired</span>
+            </div>
+            <button class="item-connect-btn">Connect</button>
+          </div>
+          <div class="subview-item">
+            <span class="item-icon">🖱</span>
+            <div class="item-info">
+              <span class="item-name">MX Master 3S</span>
+              <span class="item-meta">Paired</span>
+            </div>
+            <button class="item-connect-btn">Connect</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

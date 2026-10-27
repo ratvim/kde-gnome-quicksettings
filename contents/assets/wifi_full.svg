@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Bold, solid complete filled Wi-Fi Fan -->
+  <path fill="currentColor" d="M 12 3 C 7.31 3 3.07 4.9 0 7.98 L 2.12 10.1 C 4.7 7.5 8.17 5.9 12 5.9 C 15.83 5.9 19.3 7.5 21.88 10.1 L 24 7.98 C 20.93 4.9 16.69 3 12 3 Z"/>
+  <path fill="currentColor" d="M 12 8 C 8.69 8 5.71 9.34 3.54 11.51 L 5.66 13.63 C 7.29 12.01 9.51 11 12 11 C 14.49 11 16.71 12.01 18.34 13.63 L 20.46 11.51 C 18.29 9.34 15.31 8 12 8 Z"/>
+  <path fill="currentColor" d="M 12 13 C 10.13 13 8.44 13.76 7.21 14.99 L 9.33 17.11 C 10.02 16.42 10.97 16 12 16 C 13.03 16 13.98 16.42 14.67 17.11 L 16.79 14.99 C 15.56 13.76 13.87 13 12 13 Z"/>
+  <circle fill="currentColor" cx="12" cy="19.5" r="1.75"/>
+</svg>

@@ -1,0 +1,23 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KPlugin": {
+        "Id": "org.kde.plasma.gnomequicksettings",
+        "Name": "GNOME Quick Settings",
+        "Description": "GNOME Quick Settings-style control center for KDE Plasma featuring curved pill toggles",
+        "Icon": "preferences-system",
+        "Authors": [
+            {
+                "Name": "Vimlesh Raturi",
+                "Email": "vimleshraturi@gmail.com"
+            }
+        ],
+        "Category": "System Information",
+        "License": "GPL-3.0-or-later",
+        "Version": "1.0.0",
+        "Website": "https://store.kde.org"
+    },
+    "X-Plasma-Provides": [
+        "org.kde.plasma.trayitem"
+    ]
+}

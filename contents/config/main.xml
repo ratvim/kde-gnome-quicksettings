@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <!-- Panel Status Icons -->
+    <entry name="showVolume" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showBattery" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showBatteryPercent" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showWifi" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showBluetooth" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showVolumePercent" type="Bool">
+      <default>false</default>
+    </entry>
+
+    <!-- Panel Status Capsule Toggle Icons (Visible when active) -->
+    <entry name="panelShowWifi" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowBluetooth" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowNightLight" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowAirplane" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowDnd" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowHotspot" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowDarkTheme" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowPowerProfile" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowLocation" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowCamera" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowMic" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelShowKdeConnect" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <!-- Icon Sizing -->
+    <entry name="panelIconSize" type="Int">
+      <default>15</default>
+    </entry>
+    <entry name="tileIconSize" type="Int">
+      <default>20</default>
+    </entry>
+
+    <!-- Quick Settings Tiles Visibility -->
+    <entry name="tileShowWifi" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowBluetooth" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowNightLight" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowAirplane" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowDnd" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowHotspot" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowDarkTheme" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowPowerSaver" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowLocation" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowCamera" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowMic" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="tileShowKdeConnect" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="isDarkTheme" type="Bool">
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

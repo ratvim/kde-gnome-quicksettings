@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <defs>
+    <!-- Zero margins so plasma window has no extra inset -->
+    <rect id="hint-top-margin" x="24" y="0" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-bottom-margin" x="24" y="56" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-left-margin" x="0" y="24" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-right-margin" x="56" y="24" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-top-inset" x="24" y="0" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-bottom-inset" x="24" y="56" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-left-inset" x="0" y="24" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-right-inset" x="56" y="24" width="0.01" height="0.01" fill="none"/>
+    <rect id="hint-tile-center" x="0" y="0" width="1" height="1" fill="none"/>
+  </defs>
+
+  <!-- Transparent visual elements: FrameSvg draws nothing, allowing FullRepresentation to draw the single clean card -->
+  <g id="topleft"><path d="M 0,24 A 24,24 0 0,1 24,0 L 24,24 L 0,24 Z" fill="none"/></g>
+  <g id="top"><rect x="24" y="0" width="32" height="24" fill="none"/></g>
+  <g id="topright"><path d="M 56,0 A 24,24 0 0,1 80,24 L 56,24 L 56,0 Z" fill="none"/></g>
+  <g id="left"><rect x="0" y="24" width="24" height="32" fill="none"/></g>
+  <g id="center"><rect x="24" y="24" width="32" height="32" fill="none"/></g>
+  <g id="right"><rect x="56" y="24" width="24" height="32" fill="none"/></g>
+  <g id="bottomleft"><path d="M 24,80 A 24,24 0 0,1 0,56 L 24,56 L 24,80 Z" fill="none"/></g>
+  <g id="bottom"><rect x="24" y="56" width="32" height="24" fill="none"/></g>
+  <g id="bottomright"><path d="M 80,56 A 24,24 0 0,1 56,80 L 56,56 L 80,56 Z" fill="none"/></g>
+
+  <!-- Mask elements with exact 24px radius corners for KWindowEffects blur and window clipping -->
+  <path id="mask-topleft" d="M 0,24 A 24,24 0 0,1 24,0 L 24,24 L 0,24 Z" fill="#000000"/>
+  <rect id="mask-top" x="24" y="0" width="32" height="24" fill="#000000"/>
+  <path id="mask-topright" d="M 56,0 A 24,24 0 0,1 80,24 L 56,24 L 56,0 Z" fill="#000000"/>
+  <rect id="mask-left" x="0" y="24" width="24" height="32" fill="#000000"/>
+  <rect id="mask-center" x="24" y="24" width="32" height="32" fill="#000000"/>
+  <rect id="mask-right" x="56" y="24" width="24" height="32" fill="#000000"/>
+  <path id="mask-bottomleft" d="M 24,80 A 24,24 0 0,1 0,56 L 24,56 L 24,80 Z" fill="#000000"/>
+  <rect id="mask-bottom" x="24" y="56" width="32" height="24" fill="#000000"/>
+  <path id="mask-bottomright" d="M 80,56 A 24,24 0 0,1 56,80 L 56,56 L 80,56 Z" fill="#000000"/>
+</svg>
+
