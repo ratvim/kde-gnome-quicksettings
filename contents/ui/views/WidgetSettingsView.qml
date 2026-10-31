@@ -359,6 +359,86 @@ Rectangle {
                             item.checkedState = Qt.binding(function() { return backend ? backend.showBattery : true })
                         }
                     }
+
+                    Loader {
+                        Layout.fillWidth: true
+                        sourceComponent: settingToggleRow
+                        onLoaded: {
+                            item.title = "LocalSend Indicator"
+                            item.subtitle = "Show LocalSend icon on panel capsule when active"
+                            item.configKey = "panelShowLocalSend"
+                            item.checkedState = Qt.binding(function() { return backend ? backend.panelShowLocalSend : false })
+                        }
+                    }
+                }
+
+                // Section 2: Screenshot Tool Configuration
+                Text {
+                    text: "Screenshot Tool"
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    color: root.accentColor
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: screenshotBoxCol.implicitHeight + 24
+                    radius: 12
+                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)
+
+                    ColumnLayout {
+                        id: screenshotBoxCol
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 10
+
+                        readonly property bool anyAvailable: Boolean(backend && (backend.hasSpectacle || backend.hasFlameshot))
+
+                        Text {
+                            text: "Select Screenshot Application:"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: screenshotBoxCol.anyAvailable ? (root.isDarkTheme ? "#ffffff" : "#1a1a1a") : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.35) : Qt.rgba(0, 0, 0, 0.35))
+                        }
+
+                        Text {
+                            visible: !screenshotBoxCol.anyAvailable
+                            text: "Neither Spectacle nor Flameshot is installed. Install one to enable screenshot captures."
+                            font.pixelSize: 11
+                            color: "#e74c3c"
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            spacing: 14
+                            enabled: screenshotBoxCol.anyAvailable
+                            opacity: screenshotBoxCol.anyAvailable ? 1.0 : 0.4
+
+                            RadioButton {
+                                id: rbAuto
+                                text: "Auto"
+                                checked: (!backend || backend.screenshotTool === "auto" || backend.screenshotTool === "")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "auto")
+                            }
+
+                            RadioButton {
+                                id: rbSpectacle
+                                text: "Spectacle"
+                                enabled: Boolean(backend && backend.hasSpectacle)
+                                checked: Boolean(backend && backend.screenshotTool === "spectacle")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "spectacle")
+                            }
+
+                            RadioButton {
+                                id: rbFlameshot
+                                text: "Flameshot"
+                                enabled: Boolean(backend && backend.hasFlameshot)
+                                checked: Boolean(backend && backend.screenshotTool === "flameshot")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "flameshot")
+                            }
+                        }
+                    }
                 }
 
                 // Section 2: Quick Settings Tiles Visibility
@@ -576,6 +656,16 @@ Rectangle {
                             item.title = "KDE Connect Tile"
                             item.configKey = "tileShowKdeConnect"
                             item.checkedState = Qt.binding(function() { return backend ? backend.tileShowKdeConnect : true })
+                        }
+                    }
+
+                    Loader {
+                        Layout.fillWidth: true
+                        sourceComponent: settingToggleRow
+                        onLoaded: {
+                            item.title = "LocalSend Tile"
+                            item.configKey = "tileShowLocalSend"
+                            item.checkedState = Qt.binding(function() { return backend ? backend.tileShowLocalSend : true })
                         }
                     }
                 }

@@ -8,6 +8,7 @@ import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import "./components"
 import "./views"
+import "./plugin"
 
 /**
  * FullRepresentation.qml - GNOME Quick Settings Control Center for KDE Plasma (Plasma 6)
@@ -32,6 +33,37 @@ Rectangle {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground
+
+    WindowHelper {
+        id: winHelper
+    }
+
+    property var _winHelperInstance: null
+
+    function applyWindowMaskAndBlur() {
+        var helper = null
+        if (typeof winHelper !== "undefined" && winHelper) {
+            helper = winHelper
+        } else if (root._winHelperInstance) {
+            helper = root._winHelperInstance
+        } else {
+            try {
+                root._winHelperInstance = Qt.createQmlObject('import GnomeQuickSettingsPlugin; WindowHelper {}', root, "winHelperDynamic")
+                helper = root._winHelperInstance
+            } catch (e1) {
+                try {
+                    root._winHelperInstance = Qt.createQmlObject('import GnomeQuickSettingsPlugin 1.0; WindowHelper {}', root, "winHelperDynamic")
+                    helper = root._winHelperInstance
+                } catch (e2) {}
+            }
+        }
+
+        if (helper) {
+            try {
+                helper.applyMask(root, 24, true)
+            } catch (e) {}
+        }
+    }
 
     function getCardBgSvgPath() {
         var p = ""
@@ -202,11 +234,13 @@ Rectangle {
                     if (win.widthChanged) {
                         win.widthChanged.connect(function() {
                             root.removePlasmaBackground()
+                            root.applyWindowMaskAndBlur()
                         })
                     }
                     if (win.heightChanged) {
                         win.heightChanged.connect(function() {
                             root.removePlasmaBackground()
+                            root.applyWindowMaskAndBlur()
                         })
                     }
                 }
@@ -280,6 +314,8 @@ Rectangle {
                 }
             } catch (e) {}
         }
+
+        root.applyWindowMaskAndBlur()
     }
 
     function syncWindowGeometry() {
@@ -299,13 +335,7 @@ Rectangle {
             }
         }
         removePlasmaBackground()
-
-        if (typeof winHelper !== "undefined" && winHelper) {
-            try {
-                winHelper.disableBlur(root)
-                winHelper.applyMask(root, 24, false)
-            } catch (e) {}
-        }
+        applyWindowMaskAndBlur()
     }
 
     function restartBackgroundFixTimers() {
@@ -321,11 +351,15 @@ Rectangle {
         if (powerOverlay) {
             powerOverlay.visible = false
         }
+        if (typeof togglesSwipeView !== "undefined" && togglesSwipeView) {
+            togglesSwipeView.currentIndex = 0
+        }
         root.activeView = "main"
     }
 
     Component.onCompleted: {
         resetToFreshMainView()
+        updateTogglePages()
         syncWindowGeometry()
         removePlasmaBackground()
         restartBackgroundFixTimers()
@@ -389,6 +423,7 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
@@ -399,6 +434,7 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
@@ -409,6 +445,7 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
@@ -419,6 +456,7 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
@@ -429,6 +467,7 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
@@ -439,23 +478,40 @@ Rectangle {
         onTriggered: {
             root.syncWindowGeometry()
             root.removePlasmaBackground()
+            root.applyWindowMaskAndBlur()
         }
     }
 
-    // Dynamic Height Calculation: Background and border adapt strictly to the last row of visible toggles
+    // Dynamic Height Calculation: Configurable toggle rows per page (min 3, max 8)
+    readonly property int maxRowsPerPage: (backend && backend.toggleRowsPerPage) ? Math.max(3, Math.min(8, backend.toggleRowsPerPage)) : 4
+    readonly property int tilesPerPage: maxRowsPerPage * 2
+    readonly property int togglePageCount: Math.max(1, Math.ceil(activeTileKeys.length / tilesPerPage))
+    readonly property int visibleRowsOnPage: {
+        var totalTiles = activeTileKeys.length
+        if (totalTiles === 0) return 0
+        if (totalTiles >= tilesPerPage) return maxRowsPerPage
+        return Math.ceil(totalTiles / 2)
+    }
+
+    onMaxRowsPerPageChanged: {
+        updateTogglePages()
+    }
+    onTogglePageCountChanged: {
+        updateTogglePages()
+    }
+
     readonly property real mainCalculatedHeight: {
-        var visibleTiles = activeTileKeys.length
-        var rows = Math.ceil(visibleTiles / 2)
         var tileH = (backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : 56
-        var togglesH = rows > 0 ? (rows * tileH + (rows - 1) * 10) : 0
+        var togglesH = visibleRowsOnPage > 0 ? (visibleRowsOnPage * tileH + Math.max(0, visibleRowsOnPage - 1) * 10) : 0
+        var dotsH = (togglePageCount > 1) ? 18 : 0
         var hasMedia = (backend && backend.mediaTitle && backend.mediaTitle !== "")
         var mediaH = hasMedia ? (14 + 70) : 0
-        // Top bar (32) + Gap (14) + Sliders (56) + (Gap 14 if toggles) + togglesH + mediaH + Margins (28)
-        var exactH = 32 + 14 + 56 + (rows > 0 ? (14 + togglesH) : 0) + mediaH + 28
+        // Top bar (32) + Gap (14) + Sliders (56) + (Gap 14 if toggles) + togglesH + dotsH + mediaH + Margins (28)
+        var exactH = 32 + 14 + 56 + (visibleRowsOnPage > 0 ? (14 + togglesH) : 0) + dotsH + mediaH + 28
         if (mainCol && mainCol.implicitHeight > 0) {
-            return Math.max(180, Math.min(Math.max(exactH, mainCol.implicitHeight + 28), 720))
+            return Math.max(180, Math.min(Math.max(exactH, mainCol.implicitHeight + 28), 950))
         }
-        return Math.max(180, Math.min(exactH, 720))
+        return Math.max(180, Math.min(exactH, 950))
     }
 
     readonly property real currentContentHeight: {
@@ -473,31 +529,146 @@ Rectangle {
     onCurrentContentHeightChanged: {
         syncWindowGeometry()
         removePlasmaBackground()
+        applyWindowMaskAndBlur()
         restartBackgroundFixTimers()
     }
 
-    // Track active toggles to calculate rows
+    function isTileEnabled(k) {
+        if (!backend) return true
+        switch (k) {
+        case "wifi": return backend.tileShowWifi
+        case "bluetooth": return backend.tileShowBluetooth
+        case "location": return backend.tileShowLocation
+        case "mic": return backend.tileShowMic
+        case "camera": return backend.tileShowCamera
+        case "kdeconnect": return backend.tileShowKdeConnect
+        case "dark": return backend.tileShowDarkTheme
+        case "night": return backend.tileShowNightLight
+        case "airplane": return backend.tileShowAirplane
+        case "dnd": return backend.tileShowDnd
+        case "hotspot": return backend.tileShowHotspot
+        case "power": return backend.tileShowPowerSaver
+        default: return true
+        }
+    }
+
+    readonly property var orderedTileKeys: {
+        var str = (backend && backend.tilesOrder && backend.tilesOrder.length > 0) ? backend.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
+        var parts = str.split(",")
+        var res = []
+        var valid = allToggleKeys
+        for (var i = 0; i < parts.length; ++i) {
+            var k = parts[i].trim()
+            if (valid.indexOf(k) !== -1 && res.indexOf(k) === -1) {
+                res.push(k)
+            }
+        }
+        for (var j = 0; j < valid.length; ++j) {
+            if (res.indexOf(valid[j]) === -1) {
+                res.push(valid[j])
+            }
+        }
+        return res
+    }
+
+    // Track active toggles in customized order to calculate rows & pages
     readonly property var activeTileKeys: {
         var list = []
-        if (!backend || backend.tileShowWifi) list.push("wifi")
-        if (!backend || backend.tileShowBluetooth) list.push("bluetooth")
-        if (!backend || backend.tileShowLocation) list.push("location")
-        if (!backend || backend.tileShowMic) list.push("mic")
-        if (!backend || backend.tileShowCamera) list.push("camera")
-        if (!backend || backend.tileShowKdeConnect) list.push("kdeconnect")
-        if (!backend || backend.tileShowDarkTheme) list.push("dark")
-        if (!backend || backend.tileShowNightLight) list.push("night")
-        if (!backend || backend.tileShowAirplane) list.push("airplane")
-        if (!backend || backend.tileShowDnd) list.push("dnd")
-        if (!backend || backend.tileShowHotspot) list.push("hotspot")
-        if (!backend || backend.tileShowPowerSaver) list.push("power")
+        var order = orderedTileKeys
+        for (var i = 0; i < order.length; ++i) {
+            var k = order[i]
+            if (isTileEnabled(k)) {
+                list.push(k)
+            }
+        }
         return list
+    }
+
+    onActiveTileKeysChanged: {
+        updateTogglePages()
     }
 
     // Standard fixed half-width for toggles: 2 per row. Odd toggle remains half-width, leaving the right slot empty.
     function tileWidth() {
-        var w = (togglesFlow && togglesFlow.width > 0) ? togglesFlow.width : 362
-        return Math.floor((w - 10) / 2)
+        return 176
+    }
+
+    function getToggleByKey(k) {
+        switch (k) {
+        case "wifi": return toggleWifi
+        case "bluetooth": return toggleBt
+        case "location": return toggleLocation
+        case "mic": return toggleMic
+        case "camera": return toggleCamera
+        case "kdeconnect": return toggleKde
+        case "dark": return toggleDark
+        case "night": return toggleNight
+        case "airplane": return toggleAir
+        case "dnd": return toggleDnd
+        case "hotspot": return toggleHotspot
+        case "power": return togglePower
+        default: return null
+        }
+    }
+
+    readonly property var allToggleKeys: ["wifi", "bluetooth", "location", "mic", "camera", "kdeconnect", "dark", "night", "airplane", "dnd", "hotspot", "power"]
+
+    function syncSwipePages() {
+        if (typeof togglesSwipeView === "undefined" || !togglesSwipeView || typeof page2Item === "undefined" || typeof page3Item === "undefined" || typeof hiddenPagesContainer === "undefined") return
+        var count = root.togglePageCount // 1, 2, or 3
+        
+        // Page 2
+        var hasPage2 = (togglesSwipeView.count >= 2 && togglesSwipeView.itemAt(1) === page2Item)
+        if (count >= 2) {
+            if (!hasPage2) togglesSwipeView.addItem(page2Item)
+        } else {
+            if (hasPage2) {
+                var p2 = togglesSwipeView.takeItem(1)
+                if (p2) p2.parent = hiddenPagesContainer
+            }
+        }
+        
+        // Page 3
+        var hasPage3 = (togglesSwipeView.count >= 3 && togglesSwipeView.itemAt(2) === page3Item)
+        if (count >= 3) {
+            if (!hasPage3) togglesSwipeView.addItem(page3Item)
+        } else {
+            if (hasPage3) {
+                var p3 = togglesSwipeView.takeItem(2)
+                if (p3) p3.parent = hiddenPagesContainer
+            }
+        }
+    }
+
+    function updateTogglePages() {
+        if (typeof page1Flow === "undefined" || !page1Flow || typeof hiddenTogglesContainer === "undefined" || !hiddenTogglesContainer) {
+            return
+        }
+        syncSwipePages()
+        var keys = root.activeTileKeys
+        // 1. Move all toggles into hidden container to reset ordering
+        for (var a = 0; a < allToggleKeys.length; ++a) {
+            var item = getToggleByKey(allToggleKeys[a])
+            if (item) {
+                item.visible = false
+                item.parent = hiddenTogglesContainer
+            }
+        }
+        // 2. Re-attach active toggles in exact sequence to target flow pages
+        for (var i = 0; i < keys.length; ++i) {
+            var t = getToggleByKey(keys[i])
+            if (t) {
+                t.visible = true
+                var pageIdx = Math.floor(i / root.tilesPerPage)
+                var targetParent = page1Flow
+                if (pageIdx === 1 && typeof page2Flow !== "undefined") targetParent = page2Flow
+                else if (pageIdx >= 2 && typeof page3Flow !== "undefined") targetParent = page3Flow
+                t.parent = targetParent
+            }
+        }
+        if (typeof togglesSwipeView !== "undefined" && togglesSwipeView && togglesSwipeView.currentIndex >= root.togglePageCount) {
+            togglesSwipeView.currentIndex = Math.max(0, root.togglePageCount - 1)
+        }
     }
 
     Layout.preferredWidth: 390
@@ -755,27 +926,44 @@ Rectangle {
                         ToolTip.text: i18n("Open System Settings")
                     }
 
-                    // Screen Lock Button
+                    // Screenshot Button (triggers Spectacle or Flameshot based on configuration)
                     Rectangle {
+                        id: screenshotBtnRect
                         width: 32
                         height: 32
                         radius: 16
-                        color: lockMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
+                        readonly property bool hasTools: Boolean(backend && (backend.hasSpectacle || backend.hasFlameshot))
+                        opacity: hasTools ? 1.0 : 0.4
+                        color: (hasTools && screenshotMouse.containsMouse) ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
                         Kirigami.Icon {
                             anchors.centerIn: parent
                             width: 16
                             height: 16
-                            source: "system-lock-screen-symbolic"
+                            source: Qt.resolvedUrl("../assets/screenshot-symbolic.svg")
+                            fallback: "camera-photo-symbolic"
                             isMask: true
                             color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
                         }
                         MouseArea {
-                            id: lockMouse
+                            id: screenshotMouse
                             anchors.fill: parent
+                            enabled: screenshotBtnRect.hasTools
                             hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: if (backend) backend.lockScreen()
+                            cursorShape: screenshotBtnRect.hasTools ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                if (backend && backend.triggerScreenshot) {
+                                    backend.triggerScreenshot()
+                                }
+                            }
+                        }
+
+                        ToolTip.visible: screenshotMouse.containsMouse
+                        ToolTip.delay: 400
+                        ToolTip.text: {
+                            if (!screenshotBtnRect.hasTools) return i18n("No screenshot tool found (install Spectacle or Flameshot)")
+                            var toolName = (backend && backend.screenshotTool === "flameshot") ? "Flameshot" : ((backend && backend.screenshotTool === "spectacle") ? "Spectacle" : (backend.hasFlameshot && !backend.hasSpectacle ? "Flameshot" : "Spectacle"))
+                            return i18n("Take Screenshot (%1)", toolName)
                         }
                     }
 
@@ -841,14 +1029,126 @@ Rectangle {
                     }
                 }
 
-                // 3. Flow of Curved Pill Toggles (Dynamic adaptive layout based on settings)
-                Flow {
-                    id: togglesFlow
+                // 3. Paged Curved Pill Toggles (restricted to at most 4 rows = 8 toggles per page)
+                Item {
+                    id: togglesContainer
                     Layout.fillWidth: true
-                    spacing: 10
+                    implicitHeight: togglesSwipeView.implicitHeight + (pageDotsRow.visible ? (pageDotsRow.implicitHeight + 10) : 0)
 
-                    // 1. Wi-Fi (Symbolic complete filled fan icon)
+                    SwipeView {
+                        id: togglesSwipeView
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        implicitHeight: root.visibleRowsOnPage > 0 ? (root.visibleRowsOnPage * ((backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : 56) + Math.max(0, root.visibleRowsOnPage - 1) * 10) : 0
+                        height: implicitHeight
+                        clip: true
+                        currentIndex: 0
+                        interactive: root.togglePageCount > 1
+
+                        Item {
+                            id: page1Item
+                            width: togglesSwipeView.width
+                            height: togglesSwipeView.height
+                            Flow {
+                                id: page1Flow
+                                anchors.fill: parent
+                                spacing: 10
+                            }
+                        }
+                    }
+
+                    // Offscreen holding area for pages 2 & 3 before dynamic addition to SwipeView
+                    Item {
+                        id: hiddenPagesContainer
+                        visible: false
+                        width: 0
+                        height: 0
+
+                        Item {
+                            id: page2Item
+                            width: togglesSwipeView.width
+                            height: togglesSwipeView.height
+                            Flow {
+                                id: page2Flow
+                                anchors.fill: parent
+                                spacing: 10
+                            }
+                        }
+
+                        Item {
+                            id: page3Item
+                            width: togglesSwipeView.width
+                            height: togglesSwipeView.height
+                            Flow {
+                                id: page3Flow
+                                anchors.fill: parent
+                                spacing: 10
+                            }
+                        }
+                    }
+
+                    WheelHandler {
+                        target: togglesSwipeView
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: function(event) {
+                            if (event.angleDelta.y < 0 && togglesSwipeView.currentIndex < root.togglePageCount - 1) {
+                                togglesSwipeView.currentIndex++
+                            } else if (event.angleDelta.y > 0 && togglesSwipeView.currentIndex > 0) {
+                                togglesSwipeView.currentIndex--
+                            }
+                        }
+                    }
+
+                    // Dots indicator at the bottom (shows if more than 1 page)
+                    RowLayout {
+                        id: pageDotsRow
+                        anchors.top: togglesSwipeView.bottom
+                        anchors.topMargin: 10
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: root.togglePageCount > 1
+                        spacing: 8
+
+                        Repeater {
+                            model: root.togglePageCount
+                            delegate: Rectangle {
+                                id: dotRect
+                                readonly property bool isCurrent: togglesSwipeView.currentIndex === index
+                                implicitWidth: isCurrent ? 20 : 6
+                                implicitHeight: 6
+                                radius: 3
+                                color: isCurrent
+                                       ? ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a"))
+                                       : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.35) : Qt.rgba(0, 0, 0, 0.25))
+
+                                Behavior on implicitWidth {
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
+                                Behavior on color {
+                                    ColorAnimation { duration: 200 }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -4
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: togglesSwipeView.currentIndex = index
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Invisible container for storing instantiated toggles before pagination parenting
+                Item {
+                    id: hiddenTogglesContainer
+                    visible: false
+                    width: 0
+                    height: 0
+
+                    // 1. Wi-Fi
                     PillToggle {
+                        id: toggleWifi
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowWifi : true
                         title: "Wi-Fi"
@@ -866,6 +1166,7 @@ Rectangle {
 
                     // 2. Bluetooth
                     PillToggle {
+                        id: toggleBt
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowBluetooth : true
                         title: "Bluetooth"
@@ -876,13 +1177,14 @@ Rectangle {
                         isDarkTheme: root.isDarkTheme
                         onToggled: if (backend) backend.toggleBluetooth(newState)
                         onMenuClicked: {
-                            if (backend) backend.scanBluetooth()
+                            if (backend) backend.refreshBluetoothDevices()
                             root.activeView = "bluetooth"
                         }
                     }
 
                     // 3. Location Services
                     PillToggle {
+                        id: toggleLocation
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowLocation : true
                         title: "Location"
@@ -906,6 +1208,7 @@ Rectangle {
 
                     // 4. Microphone Mute / Privacy
                     PillToggle {
+                        id: toggleMic
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowMic : true
                         title: "Microphone"
@@ -929,6 +1232,7 @@ Rectangle {
 
                     // 5. Camera Privacy
                     PillToggle {
+                        id: toggleCamera
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowCamera : true
                         title: "Camera"
@@ -952,6 +1256,7 @@ Rectangle {
 
                     // 6. KDE Connect
                     PillToggle {
+                        id: toggleKde
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowKdeConnect : true
                         title: "KDE Connect"
@@ -969,6 +1274,7 @@ Rectangle {
 
                     // 7. Dark Style / Light Theme
                     PillToggle {
+                        id: toggleDark
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowDarkTheme : true
                         title: "Dark Style"
@@ -982,6 +1288,7 @@ Rectangle {
 
                     // 8. Night Light (Color Temp)
                     PillToggle {
+                        id: toggleNight
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowNightLight : true
                         title: "Night Light"
@@ -995,6 +1302,7 @@ Rectangle {
 
                     // 9. Airplane Mode
                     PillToggle {
+                        id: toggleAir
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowAirplane : true
                         title: "Airplane Mode"
@@ -1008,6 +1316,7 @@ Rectangle {
 
                     // 10. Do Not Disturb (DND)
                     PillToggle {
+                        id: toggleDnd
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowDnd : true
                         title: "Do Not Disturb"
@@ -1027,6 +1336,7 @@ Rectangle {
 
                     // 11. Hotspot
                     PillToggle {
+                        id: toggleHotspot
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowHotspot : true
                         title: "Hotspot"
@@ -1044,6 +1354,7 @@ Rectangle {
 
                     // 12. Power Mode (Performance, Balanced, Optimise)
                     PillToggle {
+                        id: togglePower
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowPowerSaver : true
                         title: "Power"
@@ -1178,6 +1489,12 @@ Rectangle {
             Item { height: 4; Layout.fillWidth: true }
 
             PowerMenuItem {
+                iconSrc: "system-lock-screen-symbolic"
+                label: "Lock"
+                onActionTriggered: if (backend) backend.lockScreen()
+            }
+
+            PowerMenuItem {
                 iconSrc: "system-suspend-symbolic"
                 label: "Suspend"
                 onActionTriggered: if (backend) backend.suspendSystem()
@@ -1243,11 +1560,14 @@ Rectangle {
         visible: root.activeView === "bluetooth"
         isDarkTheme: root.isDarkTheme
         btEnabled: backend ? backend.btEnabled : true
+        isScanning: backend ? backend.btScanning : false
         devicesModel: (backend && backend.btDevices) ? backend.btDevices : []
         onBackClicked: root.activeView = "main"
         onToggleBt: if (backend) backend.toggleBluetooth(enabled)
         onToggleConnectDevice: if (backend) backend.toggleBtDevice(mac, currentlyConnected)
-        onScanClicked: if (backend) backend.scanBluetooth()
+        onPairClicked: function(mac) { if (backend) backend.pairBtDevice(mac) }
+        onOpenSettingsClicked: if (backend) backend.openBluetoothSettings()
+        onScanClicked: if (backend) backend.refreshBluetoothDevices()
     }
 
     // KDE Connect Sub-View Container

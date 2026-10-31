@@ -14,8 +14,8 @@
         ],
         "Category": "System Information",
         "License": "GPL-3.0-or-later",
-        "Version": "1.0.0",
-        "Website": "https://store.kde.org"
+        "Version": "1.1.1",
+        "Website": "https://store.kde.org/p/2380429"
     },
     "X-Plasma-Provides": [
         "org.kde.plasma.trayitem"

@@ -1035,6 +1035,11 @@ get_all_status() {
     local air_info
     air_info=$(get_airplane_status)
 
+    local has_spec="false"
+    local has_flame="false"
+    command -v spectacle >/dev/null 2>&1 && has_spec="true"
+    command -v flameshot >/dev/null 2>&1 && has_flame="true"
+
     cat <<EOF
 {
   "mic_muted": $mic_muted,
@@ -1046,9 +1051,27 @@ get_all_status() {
   "kdeconnect": $kde_status,
   "user": $uinfo,
   "dnd": $dnd_info,
-  "airplane_mode": $air_info
+  "airplane_mode": $air_info,
+  "has_spectacle": $has_spec,
+  "has_flameshot": $has_flame
 }
 EOF
+}
+
+trigger_screenshot() {
+    local tool="${1:-auto}"
+    (
+        sleep 0.25
+        if [ "$tool" = "flameshot" ] && command -v flameshot >/dev/null 2>&1; then
+            flameshot gui >/dev/null 2>&1 &
+        elif [ "$tool" = "spectacle" ] && command -v spectacle >/dev/null 2>&1; then
+            spectacle >/dev/null 2>&1 &
+        elif command -v spectacle >/dev/null 2>&1; then
+            spectacle >/dev/null 2>&1 &
+        elif command -v flameshot >/dev/null 2>&1; then
+            flameshot gui >/dev/null 2>&1 &
+        fi
+    ) &
 }
 
 case "$CMD" in
@@ -1141,6 +1164,16 @@ case "$CMD" in
         ;;
     kdeconnect_refresh)
         refresh_kdeconnect
+        ;;
+    screenshot)
+        trigger_screenshot "${2:-auto}"
+        ;;
+    check_screenshot_tools)
+        has_spec="false"
+        has_flame="false"
+        command -v spectacle >/dev/null 2>&1 && has_spec="true"
+        command -v flameshot >/dev/null 2>&1 && has_flame="true"
+        echo "{\"has_spectacle\": $has_spec, \"has_flameshot\": $has_flame}"
         ;;
     *)
         echo "Usage: $0 {status|camera_status|toggle_camera|dnd_status|toggle_dnd|user_info|open_user_management|mic_status|toggle_mic|location_status|toggle_location|kdeconnect_status|kdeconnect_devices|kdeconnect_open|kdeconnect_ring|kdeconnect_ping|kdeconnect_share|kdeconnect_sms|kdeconnect_browse|kdeconnect_pair|kdeconnect_unpair|kdeconnect_refresh}"

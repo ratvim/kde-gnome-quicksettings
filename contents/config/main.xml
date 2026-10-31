@@ -109,6 +109,17 @@
     <entry name="tileShowKdeConnect" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="tilesOrder" type="String">
+      <default>wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power</default>
+    </entry>
+    <entry name="toggleRowsPerPage" type="Int">
+      <default>4</default>
+      <min>3</min>
+      <max>8</max>
+    </entry>
+    <entry name="screenshotTool" type="String">
+      <default>auto</default>
+    </entry>
 
     <entry name="isDarkTheme" type="Bool">
       <default>true</default>

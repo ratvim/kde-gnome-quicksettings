@@ -3,10 +3,25 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.0.0-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.1.1-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
 
 A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet built natively for **KDE Plasma 6**. Featuring glassmorphic 24px curved cards, uniform capsule pill toggles, smooth rounded sliders, expandable sub-drawers, user profile header, and dedicated C++ compositor effect management for zero background blur bleed.
+
+---
+
+## 🚀 What's New in v1.1.1
+
+- ᛒ **Direct Native Bluetooth Device Pairing**:
+  - Replaced in-drawer scanning with a streamlined **"Pair New Device"** action in the Bluetooth sub-drawer.
+  - Directly invokes KDE Plasma's native Bluetooth pairing wizard, ensuring proper PIN code confirmation, two-way mobile device pairing verification, and persistent connection stability.
+- 🧹 **Removed LocalSend Integration**:
+  - Removed LocalSend tile toggle and panel status capsule indicator to focus Quick Settings strictly on native desktop and hardware controls.
+  - Cleaned up configuration XML, general settings, and appearance reordering lists.
+- ⚙️ **Standardized Default 12-Toggle Layout**:
+  - Cleaned up default toggle ordering for a balanced 2-column grid: Wi-Fi, Bluetooth, Location, Microphone, Camera, KDE Connect, Dark Style, Night Light, Airplane Mode, Do Not Disturb, Hotspot, and Power Profiles.
+- 💎 **Panel Capsule Indicator Refinements**:
+  - Optimized indicator visibility checks and contrast in the panel capsule pill.
 
 ---
 
@@ -174,7 +189,7 @@ Right-click the panel icon and choose **"Configure GNOME Quick Settings..."**:
 
 ```
 kde_gnome_tray/
-├── metadata.json                          # Plasma 6 applet metadata (version 1.0.0)
+├── metadata.json                          # Plasma 6 applet metadata (version 1.1.1)
 ├── install.sh                             # Automated installer with dependency preflight
 ├── package.sh                             # Builds C++ plugin & packages .plasmoid
 ├── org.kde.plasma.gnomequicksettings.plasmoid # Distributable Plasma 6 package

@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2b36"/>
+      <stop offset="100%" stop-color="#181820"/>
+    </linearGradient>
+
+    <!-- Active Accent Gradient -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3584e4"/>
+      <stop offset="100%" stop-color="#1c71d8"/>
+    </linearGradient>
+
+    <!-- Inactive Pill Gradient -->
+    <linearGradient id="inactiveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3a3c48"/>
+      <stop offset="100%" stop-color="#2d2f3a"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadow -->
+    <filter id="shadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+
+    <filter id="pillShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Squircle Base -->
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#bgGrad)" filter="url(#shadow)" stroke="rgba(255,255,255,0.12)" stroke-width="3"/>
+
+  <!-- Subtle Inner Border Highlight -->
+  <rect x="26" y="26" width="460" height="460" rx="102" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+
+  <!-- Row 1: Two Large GNOME Quick Settings Pill Toggles -->
+  <!-- Left Pill (Wi-Fi, Active) -->
+  <g filter="url(#pillShadow)">
+    <rect x="68" y="80" width="176" height="100" rx="32" fill="url(#accentGrad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- Icon circle -->
+    <circle cx="118" cy="130" r="24" fill="rgba(255,255,255,0.22)"/>
+    <!-- Wi-Fi Waves -->
+    <path d="M 104 122 C 112 114 124 114 132 122" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 109 127 C 114 122 122 122 127 127" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="118" cy="135" r="2.5" fill="#ffffff"/>
+    <!-- Subtitle lines -->
+    <rect x="156" y="118" width="64" height="10" rx="5" fill="#ffffff"/>
+    <rect x="156" y="134" width="44" height="8" rx="4" fill="rgba(255,255,255,0.7)"/>
+  </g>
+
+  <!-- Right Pill (Bluetooth, Active) -->
+  <g filter="url(#pillShadow)">
+    <rect x="268" y="80" width="176" height="100" rx="32" fill="url(#accentGrad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- Icon circle -->
+    <circle cx="318" cy="130" r="24" fill="rgba(255,255,255,0.22)"/>
+    <!-- Bluetooth Icon -->
+    <path d="M 314 120 L 322 126 L 316 130 L 322 134 L 314 140 M 318 116 L 318 144" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Subtitle lines -->
+    <rect x="356" y="118" width="60" height="10" rx="5" fill="#ffffff"/>
+    <rect x="356" y="134" width="40" height="8" rx="4" fill="rgba(255,255,255,0.7)"/>
+  </g>
+
+  <!-- Row 2: Volume Slider Capsule -->
+  <g filter="url(#pillShadow)">
+    <rect x="68" y="210" width="376" height="54" rx="27" fill="url(#inactiveGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+    <!-- Filled Portion -->
+    <rect x="68" y="210" width="248" height="54" rx="27" fill="url(#accentGrad)"/>
+    <!-- Speaker Icon inside slider -->
+    <path d="M 100 232 L 106 232 L 114 225 L 114 249 L 106 242 L 100 242 Z" fill="#ffffff"/>
+    <path d="M 119 231 C 122 234 122 240 119 243" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 124 227 C 129 232 129 242 124 247" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Row 3: Brightness Slider Capsule -->
+  <g filter="url(#pillShadow)">
+    <rect x="68" y="286" width="376" height="54" rx="27" fill="url(#inactiveGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+    <!-- Filled Portion -->
+    <rect x="68" y="286" width="290" height="54" rx="27" fill="url(#accentGrad)"/>
+    <!-- Sun / Brightness Icon inside slider -->
+    <circle cx="107" cy="313" r="7" fill="#ffffff"/>
+    <path d="M 107 301 L 107 303 M 107 323 L 107 325 M 95 313 L 97 313 M 117 313 L 119 313 M 98 304 L 100 306 M 114 320 L 116 322 M 98 322 L 100 320 M 114 306 L 116 304" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Row 4: Two Secondary Toggles -->
+  <!-- Left Pill (Night Light) -->
+  <g filter="url(#pillShadow)">
+    <rect x="68" y="362" width="176" height="74" rx="26" fill="url(#inactiveGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+    <!-- Moon Icon -->
+    <path d="M 110 388 C 117 388 123 394 123 401 C 123 408 117 414 110 414 C 108 414 106 413 105 412 C 109 410 112 405 112 401 C 112 396 109 392 105 390 C 106 389 108 388 110 388 Z" fill="#f6f8fa"/>
+    <rect x="138" y="394" width="76" height="10" rx="5" fill="#f6f8fa"/>
+  </g>
+
+  <!-- Right Pill (Dark Style) -->
+  <g filter="url(#pillShadow)">
+    <rect x="268" y="362" width="176" height="74" rx="26" fill="url(#inactiveGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+    <!-- Contrast / Theme Icon -->
+    <circle cx="308" cy="399" r="14" fill="none" stroke="#f6f8fa" stroke-width="2.5"/>
+    <path d="M 308 385 A 14 14 0 0 1 308 413 Z" fill="#f6f8fa"/>
+    <rect x="338" y="394" width="76" height="10" rx="5" fill="#f6f8fa"/>
+  </g>
+</svg>

@@ -68,8 +68,10 @@ public:
         // 1. Enforce fully transparent window clear color
         win->setColor(QColor(Qt::transparent));
 
-        // 2. Disable all borders on PlasmaWindow (removes native frame/shadows)
+        // 2. Disable all borders and enforce NoBackground on PlasmaWindow (removes native frame/shadows)
         win->setProperty("borders", 0);
+        win->setProperty("backgroundHints", 0);
+        win->setProperty("userBackgroundHints", 0);
 
         // 3. Keep root.parent aligned at (0, 0) matching item dimensions
         QQuickItem *parentItem = m_item->parentItem();
@@ -89,13 +91,7 @@ public:
             neutralizeItems(win->contentItem());
         }
 
-        // 5. Disable KWin compositor blur behind window
-        if (!m_blurInside) {
-            KWindowEffects::enableBlurBehind(win, false);
-            KWindowEffects::enableBackgroundContrast(win, false);
-        }
-
-        // 6. Synchronize geometry and mask
+        // 5. Synchronize geometry, mask, and restrict KWin blur region strictly to rounded card
         int winW = win->width();
         int winH = win->height();
         if (winW > 0 && winH > 0) {
@@ -117,10 +113,10 @@ public:
             QRegion r(bmp);
             win->setMask(r);
 
-            if (m_blurInside) {
-                KWindowEffects::enableBlurBehind(win, true, r);
-                KWindowEffects::enableBackgroundContrast(win, false);
-            }
+            // Setting blur-behind with the exact rounded region 'r' guarantees that KWin
+            // will NEVER blur the 4 corner areas outside the curved card.
+            KWindowEffects::enableBlurBehind(win, true, r);
+            KWindowEffects::enableBackgroundContrast(win, false);
         }
 
         m_inReapply = false;
@@ -132,7 +128,7 @@ protected:
 
         if (watched == m_win) {
             QEvent::Type t = event->type();
-            if (t == QEvent::Resize || t == QEvent::Show || t == QEvent::WindowStateChange) {
+            if (t == QEvent::Resize || t == QEvent::Show || t == QEvent::WindowStateChange || t == QEvent::Expose) {
                 QMetaObject::invokeMethod(this, &WindowHelper::reapplyMask, Qt::QueuedConnection);
             }
         }

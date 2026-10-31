@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import "./components"
 
@@ -126,6 +127,54 @@ Item {
         return ""
     }
 
+    // Check if any indicators or battery/volume are currently visible in the capsule
+    readonly property bool hasVisibleIndicators: {
+        if (root.showBattery) return true
+        if (root.showVolume) return true
+        if (root.panelShowWifi && Boolean(mainItem && !mainItem.hotspotEnabled && (mainItem.wifiConnected || mainItem.wifiEnabled))) return true
+        if (root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))) return true
+        if (root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)) return true
+        if (root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)) return true
+        if (root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))) return true
+        if (root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)) return true
+        if (root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)) return true
+        if (root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)) return true
+        if (root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)) return true
+        if (root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)) return true
+        if (root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)) return true
+        if (root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)) return true
+        return false
+    }
+
+    // Panel orientation tracking for directional arrow
+    readonly property int panelLocation: {
+        if (typeof plasmoid !== "undefined" && plasmoid.location !== undefined) {
+            return plasmoid.location
+        }
+        if (typeof Plasmoid !== "undefined" && Plasmoid.location !== undefined) {
+            return Plasmoid.location
+        }
+        return PlasmaCore.Types.BottomEdge
+    }
+
+    readonly property real arrowRotation: {
+        var baseAngle = 180 // BottomEdge default: pointing UP
+        if (panelLocation === PlasmaCore.Types.TopEdge) {
+            baseAngle = 0 // TopEdge: pointing DOWN
+        } else if (panelLocation === PlasmaCore.Types.BottomEdge) {
+            baseAngle = 180 // BottomEdge: pointing UP
+        } else if (panelLocation === PlasmaCore.Types.LeftEdge) {
+            baseAngle = 270 // LeftEdge: pointing RIGHT
+        } else if (panelLocation === PlasmaCore.Types.RightEdge) {
+            baseAngle = 90 // RightEdge: pointing LEFT
+        }
+
+        if (mainItem && mainItem.expanded) {
+            return baseAngle + 180
+        }
+        return baseAngle
+    }
+
     // Plasma Panel Layout sizing & safety margins
     Layout.fillWidth: false
     Layout.fillHeight: true
@@ -145,7 +194,7 @@ Item {
     Rectangle {
         id: pillRect
         anchors.centerIn: parent
-        implicitWidth: contentRow.implicitWidth + 24
+        implicitWidth: root.hasVisibleIndicators ? (contentRow.implicitWidth + 24) : Math.max(30, contentRow.implicitWidth + 18)
         implicitHeight: Math.max(30, root.panelIconSize + 14)
         width: implicitWidth
         height: implicitHeight
@@ -166,6 +215,27 @@ Item {
             spacing: 8
 
             // ========================================================
+            // UNIVERSAL FALLBACK ARROW (SHOWN WHEN ALL INDICATORS REMOVED)
+            // Points DOWN on top panel, UP on bottom panel
+            // ========================================================
+            Kirigami.Icon {
+                id: fallbackArrow
+                visible: !root.hasVisibleIndicators
+                implicitWidth: Math.max(12, root.panelIconSize - 2)
+                implicitHeight: Math.max(12, root.panelIconSize - 2)
+                source: Qt.resolvedUrl("../assets/arrow-down-symbolic.svg")
+                fallback: "go-down-symbolic"
+                isMask: true
+                color: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+                rotation: root.arrowRotation
+                Layout.alignment: Qt.AlignVCenter
+
+                Behavior on rotation {
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                }
+            }
+
+            // ========================================================
             // ACTIVE TOGGLE ICONS (LEFT TO RIGHT)
             // Visible only when the toggle is enabled / active AND
             // user configuration allows it to be shown in the panel.
@@ -180,27 +250,27 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            // 2. Camera (in-use or blocked)
+            // 2. Camera (appears ONLY when some app is actively using the camera)
             Kirigami.Icon {
-                visible: root.panelShowCamera && Boolean(mainItem && (mainItem.cameraBlocked || (mainItem.cameraApps && mainItem.cameraApps.length > 0)))
+                visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
+                source: "camera-web-symbolic"
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            // 3. Microphone (in-use or muted)
+            // 3. Microphone (appears ONLY when some app is actively using the microphone)
             Kirigami.Icon {
-                visible: root.panelShowMic && Boolean(mainItem && (mainItem.micMuted || (mainItem.micApps && mainItem.micApps.length > 0)))
+                visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                source: "audio-input-microphone-symbolic"
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            // 4. Location (when enabled / in-use)
+            // 4. Location (appears ONLY when some app is actively accessing location)
             Kirigami.Icon {
-                visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationEnabled)
+                visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "find-location-symbolic"

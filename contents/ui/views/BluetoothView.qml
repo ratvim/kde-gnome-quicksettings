@@ -13,6 +13,7 @@ Rectangle {
     property bool isDarkTheme: true
     property bool btEnabled: true
     property var devicesModel: []
+    property bool isScanning: false
 
     readonly property color accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
     readonly property color accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
@@ -20,7 +21,19 @@ Rectangle {
     signal backClicked()
     signal toggleBt(bool enabled)
     signal toggleConnectDevice(string mac, bool currentlyConnected)
+    signal pairClicked(string mac)
+    signal openSettingsClicked()
     signal scanClicked()
+
+    function handleDeviceClick(mac, connected, paired) {
+        if (connected) {
+            root.toggleConnectDevice(mac, true)
+        } else if (paired) {
+            root.toggleConnectDevice(mac, false)
+        } else {
+            root.pairClicked(mac)
+        }
+    }
 
     color: "transparent"
 
@@ -109,6 +122,7 @@ Rectangle {
                     height: 18
                     source: {
                         if (modelData.type === "audio-headphones") return "audio-headphones-symbolic"
+                        if (modelData.type === "phone") return "phone-symbolic"
                         if (modelData.type === "input-mouse") return "input-mouse-symbolic"
                         if (modelData.type === "input-keyboard") return "input-keyboard-symbolic"
                         if (modelData.type === "audio-speakers") return "audio-volume-high-symbolic"
@@ -118,7 +132,7 @@ Rectangle {
                     color: modelData.connected ? root.accentColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
                 }
 
-                // 2. Right Action Button (Connect / Disconnect) - locked rigidly to parent.right
+                // 2. Right Action Button (Connect / Disconnect / Pair) - locked rigidly to parent.right
                 Rectangle {
                     id: devActionBtn
                     anchors.right: parent.right
@@ -132,7 +146,7 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.connected ? "Disconnect" : "Connect"
+                        text: modelData.connected ? "Disconnect" : (modelData.paired ? "Connect" : "Pair")
                         font.pixelSize: 11
                         font.weight: Font.Medium
                         color: btnMouse.containsMouse ? root.accentTextColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
@@ -143,7 +157,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.toggleConnectDevice(modelData.mac, modelData.connected)
+                        onClicked: root.handleDeviceClick(modelData.mac, modelData.connected, modelData.paired)
                     }
                 }
 
@@ -170,7 +184,7 @@ Rectangle {
                         spacing: 5
 
                         Text {
-                            text: modelData.connected ? "Connected" : "Not connected"
+                            text: modelData.connected ? "Connected" : (modelData.paired ? "Paired" : "Available")
                             font.pixelSize: 11
                             font.weight: modelData.connected ? Font.Medium : Font.Normal
                             color: modelData.connected ? root.accentColor : (root.isDarkTheme ? "#9aa0a6" : "#606770")
@@ -215,7 +229,7 @@ Rectangle {
                     anchors.rightMargin: 94
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.toggleConnectDevice(modelData.mac, modelData.connected)
+                    onClicked: root.handleDeviceClick(modelData.mac, modelData.connected, modelData.paired)
                 }
             }
         }
@@ -223,7 +237,8 @@ Rectangle {
         // Empty state message when list is empty
         Text {
             visible: root.btEnabled && (!root.devicesModel || root.devicesModel.length === 0)
-            text: "No paired Bluetooth devices found"
+            text: "No paired Bluetooth devices found\nClick 'Pair New Device' to add a device"
+            horizontalAlignment: Text.AlignHCenter
             font.pixelSize: 12
             color: root.isDarkTheme ? "#9aa0a6" : "#606770"
             Layout.alignment: Qt.AlignHCenter
@@ -236,8 +251,10 @@ Rectangle {
 
             Button {
                 Layout.fillWidth: true
-                text: "Scan for Devices"
-                onClicked: root.scanClicked()
+                text: "Pair New Device"
+                icon.name: "list-add-symbolic"
+                enabled: root.btEnabled
+                onClicked: root.openSettingsClicked()
             }
         }
     }

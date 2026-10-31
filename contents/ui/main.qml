@@ -15,13 +15,11 @@ PlasmoidItem {
     id: mainItem
 
     preferredRepresentation: compactRepresentation
-    Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
-    Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground
 
     Layout.fillWidth: false
     Layout.fillHeight: true
-    Layout.preferredWidth: compactRepresentationItem ? compactRepresentationItem.implicitWidth : 160
-    Layout.minimumWidth: compactRepresentationItem ? compactRepresentationItem.Layout.minimumWidth : 120
+    Layout.preferredWidth: compactRepresentationItem ? compactRepresentationItem.implicitWidth : 36
+    Layout.minimumWidth: compactRepresentationItem ? compactRepresentationItem.Layout.minimumWidth : 36
     Layout.alignment: Qt.AlignVCenter
     Layout.leftMargin: 2
     Layout.rightMargin: 8
@@ -87,6 +85,8 @@ PlasmoidItem {
     property bool tileShowCamera: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowCamera !== undefined) ? plasmoid.configuration.tileShowCamera : true
     property bool tileShowMic: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowMic !== undefined) ? plasmoid.configuration.tileShowMic : true
     property bool tileShowKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowKdeConnect !== undefined) ? plasmoid.configuration.tileShowKdeConnect : true
+    property string tilesOrder: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tilesOrder !== undefined && plasmoid.configuration.tilesOrder.length > 0) ? plasmoid.configuration.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
+    property int toggleRowsPerPage: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleRowsPerPage !== undefined) ? Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) : 4
 
     // Keep visibility properties synced when configuration changes
     Connections {
@@ -103,6 +103,8 @@ PlasmoidItem {
         function onTileShowCameraChanged() { mainItem.tileShowCamera = plasmoid.configuration.tileShowCamera }
         function onTileShowMicChanged() { mainItem.tileShowMic = plasmoid.configuration.tileShowMic }
         function onTileShowKdeConnectChanged() { mainItem.tileShowKdeConnect = plasmoid.configuration.tileShowKdeConnect }
+        function onTilesOrderChanged() { mainItem.tilesOrder = plasmoid.configuration.tilesOrder }
+        function onToggleRowsPerPageChanged() { mainItem.toggleRowsPerPage = Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) }
 
         function onPanelShowWifiChanged() { mainItem.panelShowWifi = plasmoid.configuration.panelShowWifi }
         function onPanelShowBluetoothChanged() { mainItem.panelShowBluetooth = plasmoid.configuration.panelShowBluetooth }
@@ -200,6 +202,8 @@ PlasmoidItem {
     property string btDeviceMac: ""
     property int btBattery: 0
     property var btDevices: []
+    property bool btScanning: false
+    property string btPairingMac: ""
 
     // Display & Sound
     property int volume: 50
@@ -242,6 +246,11 @@ PlasmoidItem {
     property string mediaAlbumArt: ""
     property bool mediaPlaying: false
     property real mediaProgress: 0.0
+
+    // Screenshot Tool
+    property bool hasSpectacle: false
+    property bool hasFlameshot: false
+    property string screenshotTool: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.screenshotTool !== undefined && plasmoid.configuration.screenshotTool !== "") ? plasmoid.configuration.screenshotTool : "auto"
 
     // Executable DataEngine to run system scripts natively in Plasma 6
     Plasma5Support.DataSource {
@@ -298,11 +307,22 @@ PlasmoidItem {
                     mainItem.btDeviceName = bt.device_name || ""
                     mainItem.btDeviceMac = bt.device_mac || ""
                     mainItem.btBattery = parseInt(bt.battery) || 0
-                } else if (source.indexOf("bluetooth.sh' devices") !== -1 || source.indexOf("bluetooth.sh devices") !== -1) {
-                    var bList = JSON.parse(stdout)
-                    if (Array.isArray(bList)) {
-                        mainItem.btDevices = bList
+                } else if (source.indexOf("bluetooth.sh' devices") !== -1 || source.indexOf("bluetooth.sh devices") !== -1 || source.indexOf("bluetooth.sh' scan") !== -1 || source.indexOf("bluetooth.sh scan") !== -1) {
+                    try {
+                        var bList = JSON.parse(stdout)
+                        if (Array.isArray(bList)) {
+                            mainItem.btDevices = bList
+                            if (mainItem.btPairingMac) {
+                                var dev = bList.find(function(d) { return d.mac === mainItem.btPairingMac })
+                                if (dev && (dev.paired || dev.connected)) {
+                                    mainItem.btPairingMac = ""
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Could not parse Bluetooth devices JSON:", e)
                     }
+                    mainItem.btScanning = false
                 } else if (source.indexOf("power.sh") !== -1) {
                     var bat = JSON.parse(stdout)
                     if (bat.percentage !== undefined) {
@@ -351,6 +371,8 @@ PlasmoidItem {
                     if (dev.airplane_mode !== undefined) {
                         mainItem.airplaneMode = !!dev.airplane_mode
                     }
+                    if (dev.has_spectacle !== undefined) mainItem.hasSpectacle = !!dev.has_spectacle
+                    if (dev.has_flameshot !== undefined) mainItem.hasFlameshot = !!dev.has_flameshot
                 }
             } catch (e) {
                 // Ignore parse errors from background notifications
@@ -455,8 +477,13 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' toggle " + (enabled ? "on" : "off"))
     }
 
-    function scanBluetooth() {
+    function refreshBluetoothDevices() {
         executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
+    }
+
+    function scanBluetooth() {
+        mainItem.btScanning = true
+        executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' scan")
     }
 
     function toggleBtDevice(mac, currentlyConnected) {
@@ -465,6 +492,23 @@ PlasmoidItem {
         } else {
             executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' connect '" + mac + "'")
         }
+        btRefreshTimer.start()
+    }
+
+    Timer {
+        id: btRefreshTimer
+        interval: 1500
+        repeat: false
+        onTriggered: refreshBluetoothDevices()
+    }
+
+    function pairBtDevice(mac) {
+        openBluetoothSettings()
+    }
+
+    function openBluetoothSettings() {
+        executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' open_settings")
+        closePopup()
     }
 
     function setVolume(val) {
@@ -705,6 +749,16 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("power.sh") + "' shutdown")
     }
 
+    function triggerScreenshot() {
+        closePopup()
+        var tool = mainItem.screenshotTool
+        if (tool === "auto") {
+            if (mainItem.hasFlameshot && !mainItem.hasSpectacle) tool = "flameshot"
+            else tool = "spectacle"
+        }
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' screenshot '" + tool + "'")
+    }
+
     function toggleMediaPlay() {
         mainItem.mediaPlaying = !mainItem.mediaPlaying
     }
@@ -836,17 +890,4 @@ PlasmoidItem {
             mainItem.showVolumePercent = !mainItem.showVolumePercent
         }
     }
-
-    Plasmoid.contextualActions: [
-        PlasmaCore.Action {
-            text: mainItem.showBatteryPercent ? i18n("Hide Battery Percentage on Panel") : i18n("Show Battery Percentage on Panel")
-            icon.name: "battery"
-            onTriggered: mainItem.toggleBatteryPercent()
-        },
-        PlasmaCore.Action {
-            text: mainItem.showVolumePercent ? i18n("Hide Volume Percentage on Panel") : i18n("Show Volume Percentage on Panel")
-            icon.name: "audio-volume-high"
-            onTriggered: mainItem.toggleVolumePercent()
-        }
-    ]
 }

@@ -44,6 +44,8 @@ KCM.SimpleKCM {
     property alias cfg_tileShowMic: tileMicCheck.checked
     property alias cfg_tileShowKdeConnect: tileKdeCheck.checked
 
+    property alias cfg_screenshotTool: screenshotToolCombo.currentValue
+
     Kirigami.FormLayout {
         // --- 1. Panel Status Capsule Section ---
         Kirigami.Separator {
@@ -133,23 +135,41 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: panelLocationCheck
-                text: i18n("Location Services (when on)")
+                text: i18n("Location Services (when in use by an app)")
             }
 
             CheckBox {
                 id: panelCameraCheck
-                text: i18n("Camera (when in use or blocked)")
+                text: i18n("Camera (when in use by an app)")
             }
 
             CheckBox {
                 id: panelMicCheck
-                text: i18n("Microphone (when in use or muted)")
+                text: i18n("Microphone (when in use by an app)")
             }
 
             CheckBox {
                 id: panelKdeCheck
                 text: i18n("KDE Connect (when connected)")
             }
+        }
+
+        // --- Screenshot Tool Section ---
+        Kirigami.Separator {
+            Kirigami.FormData.label: i18n("Screenshot Tool")
+            Kirigami.FormData.isSection: true
+        }
+
+        ComboBox {
+            id: screenshotToolCombo
+            Kirigami.FormData.label: i18n("Default Application:")
+            textRole: "text"
+            valueRole: "value"
+            model: [
+                { text: i18n("Auto Detect (Spectacle or Flameshot)"), value: "auto" },
+                { text: i18n("Spectacle (KDE Default)"), value: "spectacle" },
+                { text: i18n("Flameshot"), value: "flameshot" }
+            ]
         }
 
         // --- 3. Quick Settings Tiles Section ---
