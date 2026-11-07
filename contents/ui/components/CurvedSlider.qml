@@ -23,8 +23,10 @@ Rectangle {
     property color accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
     property color accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
     property color trackColor: isDarkTheme ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08)
-    property color fillColor: isMuted ? (isDarkTheme ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(0, 0, 0, 0.25)) : accentColor
+    property color fillColor: effectiveMuted ? (isDarkTheme ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(0, 0, 0, 0.25)) : accentColor
     property color iconColor: isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+
+    readonly property bool effectiveMuted: isMuted && !dragArea.pressed
 
     // Decouple visual fill from backend binding to allow 60 FPS smooth dragging
     property real visualValue: value
@@ -51,10 +53,10 @@ Rectangle {
     Rectangle {
         id: fillRect
         height: parent.height
-        width: (root.isMuted || root.visualValue <= root.from) ? 0 : Math.max(parent.height, (root.visualValue - root.from) / (root.to - root.from) * parent.width)
+        width: (root.effectiveMuted || root.visualValue <= root.from) ? 0 : Math.max(parent.height, (root.visualValue - root.from) / (root.to - root.from) * parent.width)
         radius: parent.radius
         color: root.fillColor
-        opacity: root.isMuted ? 0.6 : 1.0
+        opacity: root.effectiveMuted ? 0.6 : 1.0
 
         // Disable width animation while dragging so slider sticks directly to mouse cursor
         Behavior on width {
@@ -69,10 +71,9 @@ Rectangle {
     // Leading Icon Button (Inside the slider)
     Rectangle {
         id: iconBtn
-        width: parent.height - 4
-        height: parent.height - 4
+        width: parent.height
+        height: parent.height
         anchors.left: parent.left
-        anchors.leftMargin: 2
         anchors.verticalCenter: parent.verticalCenter
         radius: height / 2
         color: iconMouse.containsMouse ? Qt.rgba(0, 0, 0, 0.15) : "transparent"
@@ -84,7 +85,7 @@ Rectangle {
             height: 14
             source: root.iconName
             isMask: true
-            color: (root.visualValue > 15 && !root.isMuted) ? root.accentTextColor : root.iconColor
+            color: (root.visualValue > 15 && !root.effectiveMuted) ? root.accentTextColor : root.iconColor
         }
 
         MouseArea {
@@ -175,10 +176,10 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
-        text: root.isMuted ? "Muted" : (Math.round(root.visualValue) + "%")
+        text: root.effectiveMuted ? "Muted" : (Math.round(root.visualValue) + "%")
         font.pixelSize: 10
         font.weight: Font.DemiBold
-        color: (root.visualValue > 85 && !root.isMuted) ? root.accentTextColor : (root.isDarkTheme ? "#9aa0a6" : "#606770")
+        color: (root.visualValue > 85 && !root.effectiveMuted) ? root.accentTextColor : (root.isDarkTheme ? "#9aa0a6" : "#606770")
         z: 2
     }
 }

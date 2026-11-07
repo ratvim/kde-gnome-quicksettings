@@ -957,7 +957,11 @@ open_user_management() {
 get_dnd_status() {
     local muted="false"
     if command -v kreadconfig6 >/dev/null 2>&1; then
-        muted=$(kreadconfig6 --file plasmanotifyrc --group DoNotDisturb --key NotificationSoundsMuted 2>/dev/null || echo "false")
+        local read_val
+        read_val=$(kreadconfig6 --file plasmanotifyrc --group DoNotDisturb --key NotificationSoundsMuted 2>/dev/null || true)
+        if [[ "$read_val" == "true" ]]; then
+            muted="true"
+        fi
     fi
     echo "{\"dnd_enabled\": $muted}"
 }
@@ -1037,8 +1041,24 @@ get_all_status() {
 
     local has_spec="false"
     local has_flame="false"
+    local has_gnome="false"
+    local has_ksnip="false"
+    local has_xfce="false"
+    local has_scrot="false"
+    local has_grim="false"
+    local any_tool="false"
+
     command -v spectacle >/dev/null 2>&1 && has_spec="true"
     command -v flameshot >/dev/null 2>&1 && has_flame="true"
+    command -v gnome-screenshot >/dev/null 2>&1 && has_gnome="true"
+    command -v ksnip >/dev/null 2>&1 && has_ksnip="true"
+    command -v xfce4-screenshooter >/dev/null 2>&1 && has_xfce="true"
+    command -v scrot >/dev/null 2>&1 && has_scrot="true"
+    (command -v grimblast >/dev/null 2>&1 || command -v grim >/dev/null 2>&1) && has_grim="true"
+
+    if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
+        any_tool="true"
+    fi
 
     cat <<EOF
 {
@@ -1053,25 +1073,113 @@ get_all_status() {
   "dnd": $dnd_info,
   "airplane_mode": $air_info,
   "has_spectacle": $has_spec,
-  "has_flameshot": $has_flame
+  "has_flameshot": $has_flame,
+  "has_gnome_screenshot": $has_gnome,
+  "has_ksnip": $has_ksnip,
+  "has_xfce_screenshooter": $has_xfce,
+  "has_scrot": $has_scrot,
+  "has_grim": $has_grim,
+  "has_screenshot_tool": $any_tool
 }
 EOF
 }
 
 trigger_screenshot() {
     local tool="${1:-auto}"
-    (
-        sleep 0.25
-        if [ "$tool" = "flameshot" ] && command -v flameshot >/dev/null 2>&1; then
-            flameshot gui >/dev/null 2>&1 &
-        elif [ "$tool" = "spectacle" ] && command -v spectacle >/dev/null 2>&1; then
-            spectacle >/dev/null 2>&1 &
-        elif command -v spectacle >/dev/null 2>&1; then
-            spectacle >/dev/null 2>&1 &
-        elif command -v flameshot >/dev/null 2>&1; then
-            flameshot gui >/dev/null 2>&1 &
-        fi
-    ) &
+    # Use detached nohup subshell so it survives devices.sh script termination
+    nohup bash -c '
+        tool="'"$tool"'"
+        sleep 0.35
+
+        launch() {
+            if command -v "$1" >/dev/null 2>&1; then
+                "$@" >/dev/null 2>&1 &
+                return 0
+            fi
+            return 1
+        }
+
+        take_spectacle() {
+            launch spectacle -r || launch spectacle -g || launch spectacle
+        }
+
+        take_flameshot() {
+            launch flameshot gui || launch flameshot
+        }
+
+        take_gnome() {
+            launch gnome-screenshot -i || launch gnome-screenshot -a || launch gnome-screenshot
+        }
+
+        take_ksnip() {
+            launch ksnip -r || launch ksnip
+        }
+
+        take_xfce() {
+            launch xfce4-screenshooter -r || launch xfce4-screenshooter
+        }
+
+        take_scrot() {
+            local out_dir="${HOME}/Pictures"
+            mkdir -p "$out_dir" 2>/dev/null || out_dir="/tmp"
+            launch scrot -s "$out_dir/Screenshot_%Y-%m-%d_%H-%M-%S.png" || launch scrot
+        }
+
+        take_grim() {
+            if command -v grimblast >/dev/null 2>&1; then
+                launch grimblast copy area
+            elif command -v slurp >/dev/null 2>&1 && command -v grim >/dev/null 2>&1; then
+                local out_dir="${HOME}/Pictures"
+                mkdir -p "$out_dir" 2>/dev/null || out_dir="/tmp"
+                slurp 2>/dev/null | grim -g - "$out_dir/Screenshot_$(date +%Y%m%d_%H%M%S).png" >/dev/null 2>&1 &
+            fi
+        }
+
+        case "$tool" in
+            spectacle)
+                take_spectacle || take_flameshot || take_gnome || take_ksnip || take_xfce || take_scrot || take_grim
+                ;;
+            flameshot)
+                take_flameshot || take_spectacle || take_gnome || take_ksnip || take_xfce || take_scrot || take_grim
+                ;;
+            gnome-screenshot|gnome)
+                take_gnome || take_spectacle || take_flameshot || take_ksnip || take_xfce || take_scrot || take_grim
+                ;;
+            ksnip)
+                take_ksnip || take_spectacle || take_flameshot || take_gnome || take_xfce || take_scrot || take_grim
+                ;;
+            xfce4-screenshooter|xfce)
+                take_xfce || take_spectacle || take_flameshot || take_gnome || take_ksnip || take_scrot || take_grim
+                ;;
+            scrot)
+                take_scrot || take_spectacle || take_flameshot || take_gnome || take_ksnip || take_xfce || take_grim
+                ;;
+            grim|grimblast)
+                take_grim || take_spectacle || take_flameshot || take_gnome || take_ksnip || take_xfce || take_scrot
+                ;;
+            auto|*)
+                if [[ "${XDG_CURRENT_DESKTOP:-}" =~ (KDE|Plasma) ]] && command -v spectacle >/dev/null 2>&1; then
+                    take_spectacle
+                elif [[ "${XDG_CURRENT_DESKTOP:-}" =~ (GNOME|Ubuntu) ]] && command -v gnome-screenshot >/dev/null 2>&1; then
+                    take_gnome
+                elif command -v spectacle >/dev/null 2>&1; then
+                    take_spectacle
+                elif command -v flameshot >/dev/null 2>&1; then
+                    take_flameshot
+                elif command -v gnome-screenshot >/dev/null 2>&1; then
+                    take_gnome
+                elif command -v ksnip >/dev/null 2>&1; then
+                    take_ksnip
+                elif command -v xfce4-screenshooter >/dev/null 2>&1; then
+                    take_xfce
+                elif command -v grimblast >/dev/null 2>&1 || (command -v grim >/dev/null 2>&1 && command -v slurp >/dev/null 2>&1); then
+                    take_grim
+                elif command -v scrot >/dev/null 2>&1; then
+                    take_scrot
+                fi
+                ;;
+        esac
+    ' >/dev/null 2>&1 &
 }
 
 case "$CMD" in
@@ -1171,9 +1279,34 @@ case "$CMD" in
     check_screenshot_tools)
         has_spec="false"
         has_flame="false"
+        has_gnome="false"
+        has_ksnip="false"
+        has_xfce="false"
+        has_scrot="false"
+        has_grim="false"
+        any_tool="false"
         command -v spectacle >/dev/null 2>&1 && has_spec="true"
         command -v flameshot >/dev/null 2>&1 && has_flame="true"
-        echo "{\"has_spectacle\": $has_spec, \"has_flameshot\": $has_flame}"
+        command -v gnome-screenshot >/dev/null 2>&1 && has_gnome="true"
+        command -v ksnip >/dev/null 2>&1 && has_ksnip="true"
+        command -v xfce4-screenshooter >/dev/null 2>&1 && has_xfce="true"
+        command -v scrot >/dev/null 2>&1 && has_scrot="true"
+        (command -v grimblast >/dev/null 2>&1 || command -v grim >/dev/null 2>&1) && has_grim="true"
+        if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
+            any_tool="true"
+        fi
+        cat <<EOF
+{
+  "has_spectacle": $has_spec,
+  "has_flameshot": $has_flame,
+  "has_gnome_screenshot": $has_gnome,
+  "has_ksnip": $has_ksnip,
+  "has_xfce_screenshooter": $has_xfce,
+  "has_scrot": $has_scrot,
+  "has_grim": $has_grim,
+  "has_screenshot_tool": $any_tool
+}
+EOF
         ;;
     *)
         echo "Usage: $0 {status|camera_status|toggle_camera|dnd_status|toggle_dnd|user_info|open_user_management|mic_status|toggle_mic|location_status|toggle_location|kdeconnect_status|kdeconnect_devices|kdeconnect_open|kdeconnect_ring|kdeconnect_ping|kdeconnect_share|kdeconnect_sms|kdeconnect_browse|kdeconnect_pair|kdeconnect_unpair|kdeconnect_refresh}"

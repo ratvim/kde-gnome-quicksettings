@@ -44,7 +44,7 @@ KCM.SimpleKCM {
     property alias cfg_tileShowMic: tileMicCheck.checked
     property alias cfg_tileShowKdeConnect: tileKdeCheck.checked
 
-    property alias cfg_screenshotTool: screenshotToolCombo.currentValue
+    property string cfg_screenshotTool: "auto"
 
     Kirigami.FormLayout {
         // --- 1. Panel Status Capsule Section ---
@@ -166,10 +166,24 @@ KCM.SimpleKCM {
             textRole: "text"
             valueRole: "value"
             model: [
-                { text: i18n("Auto Detect (Spectacle or Flameshot)"), value: "auto" },
-                { text: i18n("Spectacle (KDE Default)"), value: "spectacle" },
-                { text: i18n("Flameshot"), value: "flameshot" }
+                { text: i18n("Auto Detect (Desktop Default)"), value: "auto" },
+                { text: i18n("Spectacle (KDE)"), value: "spectacle" },
+                { text: i18n("Flameshot (Universal)"), value: "flameshot" },
+                { text: i18n("GNOME Screenshot"), value: "gnome-screenshot" },
+                { text: i18n("Ksnip (Qt Universal)"), value: "ksnip" },
+                { text: i18n("XFCE Screenshooter"), value: "xfce4-screenshooter" },
+                { text: i18n("Scrot (Lightweight CLI)"), value: "scrot" },
+                { text: i18n("Grim / Slurp (Wayland)"), value: "grim" }
             ]
+            currentIndex: {
+                for (var i = 0; i < model.length; i++) {
+                    if (model[i].value === cfg_screenshotTool) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                cfg_screenshotTool = currentValue
+            }
         }
 
         // --- 3. Quick Settings Tiles Section ---

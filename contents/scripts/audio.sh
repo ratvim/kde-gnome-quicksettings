@@ -60,10 +60,24 @@ set_volume() {
         local float_val
         float_val=$(awk -v v="$val" 'BEGIN { printf "%.2f", v / 100 }')
         wpctl set-volume @DEFAULT_AUDIO_SINK@ "$float_val" >/dev/null 2>&1 || true
+        if (( val > 0 )); then
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 >/dev/null 2>&1 || true
+        else
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ 1 >/dev/null 2>&1 || true
+        fi
     elif command -v pactl >/dev/null 2>&1; then
         pactl set-sink-volume @DEFAULT_SINK@ "${val}%" >/dev/null 2>&1 || true
+        if (( val > 0 )); then
+            pactl set-sink-mute @DEFAULT_SINK@ 0 >/dev/null 2>&1 || true
+        else
+            pactl set-sink-mute @DEFAULT_SINK@ 1 >/dev/null 2>&1 || true
+        fi
     elif command -v amixer >/dev/null 2>&1; then
-        amixer sset Master "${val}%" >/dev/null 2>&1 || true
+        if (( val > 0 )); then
+            amixer sset Master "${val}%" unmute >/dev/null 2>&1 || true
+        else
+            amixer sset Master 0% mute >/dev/null 2>&1 || true
+        fi
     fi
     get_audio_status
 }

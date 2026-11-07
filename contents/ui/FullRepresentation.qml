@@ -926,13 +926,13 @@ Rectangle {
                         ToolTip.text: i18n("Open System Settings")
                     }
 
-                    // Screenshot Button (triggers Spectacle or Flameshot based on configuration)
+                    // Screenshot Button (triggers configured screenshot tool with universal OS support)
                     Rectangle {
                         id: screenshotBtnRect
                         width: 32
                         height: 32
                         radius: 16
-                        readonly property bool hasTools: Boolean(backend && (backend.hasSpectacle || backend.hasFlameshot))
+                        readonly property bool hasTools: Boolean(backend && (backend.hasScreenshotTool || backend.hasSpectacle || backend.hasFlameshot || backend.hasGnomeScreenshot || backend.hasKsnip || backend.hasXfceScreenshooter || backend.hasScrot || backend.hasGrim || (backend.screenshotTool && backend.screenshotTool !== "auto")))
                         opacity: hasTools ? 1.0 : 0.4
                         color: (hasTools && screenshotMouse.containsMouse) ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
@@ -961,8 +961,21 @@ Rectangle {
                         ToolTip.visible: screenshotMouse.containsMouse
                         ToolTip.delay: 400
                         ToolTip.text: {
-                            if (!screenshotBtnRect.hasTools) return i18n("No screenshot tool found (install Spectacle or Flameshot)")
-                            var toolName = (backend && backend.screenshotTool === "flameshot") ? "Flameshot" : ((backend && backend.screenshotTool === "spectacle") ? "Spectacle" : (backend.hasFlameshot && !backend.hasSpectacle ? "Flameshot" : "Spectacle"))
+                            if (!screenshotBtnRect.hasTools) return i18n("No screenshot tool found (install Spectacle, Flameshot, GNOME Screenshot, or Ksnip)")
+                            var toolName = "Screenshot"
+                            if (backend) {
+                                if (backend.screenshotTool === "flameshot") toolName = "Flameshot"
+                                else if (backend.screenshotTool === "spectacle") toolName = "Spectacle"
+                                else if (backend.screenshotTool === "gnome-screenshot" || backend.screenshotTool === "gnome") toolName = "GNOME Screenshot"
+                                else if (backend.screenshotTool === "ksnip") toolName = "Ksnip"
+                                else if (backend.screenshotTool === "xfce4-screenshooter" || backend.screenshotTool === "xfce") toolName = "XFCE Screenshooter"
+                                else if (backend.screenshotTool === "scrot") toolName = "Scrot"
+                                else if (backend.hasSpectacle) toolName = "Spectacle"
+                                else if (backend.hasFlameshot) toolName = "Flameshot"
+                                else if (backend.hasGnomeScreenshot) toolName = "GNOME Screenshot"
+                                else if (backend.hasKsnip) toolName = "Ksnip"
+                                else if (backend.hasXfceScreenshooter) toolName = "XFCE Screenshooter"
+                            }
                             return i18n("Take Screenshot (%1)", toolName)
                         }
                     }

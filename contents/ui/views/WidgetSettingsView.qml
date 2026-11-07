@@ -392,7 +392,7 @@ Rectangle {
                         anchors.margins: 12
                         spacing: 10
 
-                        readonly property bool anyAvailable: Boolean(backend && (backend.hasSpectacle || backend.hasFlameshot))
+                        readonly property bool anyAvailable: Boolean(backend && (backend.hasScreenshotTool || backend.hasSpectacle || backend.hasFlameshot || backend.hasGnomeScreenshot || backend.hasKsnip || backend.hasXfceScreenshooter || backend.hasScrot || backend.hasGrim))
 
                         Text {
                             text: "Select Screenshot Application:"
@@ -403,21 +403,21 @@ Rectangle {
 
                         Text {
                             visible: !screenshotBoxCol.anyAvailable
-                            text: "Neither Spectacle nor Flameshot is installed. Install one to enable screenshot captures."
+                            text: "No screenshot utility detected. Install Spectacle, Flameshot, GNOME Screenshot, or Ksnip to capture screenshots."
                             font.pixelSize: 11
                             color: "#e74c3c"
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
 
-                        RowLayout {
-                            spacing: 14
-                            enabled: screenshotBoxCol.anyAvailable
-                            opacity: screenshotBoxCol.anyAvailable ? 1.0 : 0.4
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 12
+                            enabled: screenshotBoxCol.anyAvailable || (!backend || backend.screenshotTool === "auto")
 
                             RadioButton {
                                 id: rbAuto
-                                text: "Auto"
+                                text: "Auto Detect"
                                 checked: (!backend || backend.screenshotTool === "auto" || backend.screenshotTool === "")
                                 onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "auto")
                             }
@@ -425,7 +425,7 @@ Rectangle {
                             RadioButton {
                                 id: rbSpectacle
                                 text: "Spectacle"
-                                enabled: Boolean(backend && backend.hasSpectacle)
+                                visible: !backend || backend.hasSpectacle
                                 checked: Boolean(backend && backend.screenshotTool === "spectacle")
                                 onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "spectacle")
                             }
@@ -433,9 +433,33 @@ Rectangle {
                             RadioButton {
                                 id: rbFlameshot
                                 text: "Flameshot"
-                                enabled: Boolean(backend && backend.hasFlameshot)
+                                visible: !backend || backend.hasFlameshot
                                 checked: Boolean(backend && backend.screenshotTool === "flameshot")
                                 onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "flameshot")
+                            }
+
+                            RadioButton {
+                                id: rbGnome
+                                text: "GNOME"
+                                visible: !backend || backend.hasGnomeScreenshot
+                                checked: Boolean(backend && (backend.screenshotTool === "gnome-screenshot" || backend.screenshotTool === "gnome"))
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "gnome-screenshot")
+                            }
+
+                            RadioButton {
+                                id: rbKsnip
+                                text: "Ksnip"
+                                visible: !backend || backend.hasKsnip
+                                checked: Boolean(backend && backend.screenshotTool === "ksnip")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "ksnip")
+                            }
+
+                            RadioButton {
+                                id: rbXfce
+                                text: "XFCE"
+                                visible: !backend || backend.hasXfceScreenshooter
+                                checked: Boolean(backend && backend.screenshotTool === "xfce4-screenshooter")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("screenshotTool", "xfce4-screenshooter")
                             }
                         }
                     }

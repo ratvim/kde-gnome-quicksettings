@@ -248,8 +248,14 @@ PlasmoidItem {
     property real mediaProgress: 0.0
 
     // Screenshot Tool
+    property bool hasScreenshotTool: false
     property bool hasSpectacle: false
     property bool hasFlameshot: false
+    property bool hasGnomeScreenshot: false
+    property bool hasKsnip: false
+    property bool hasXfceScreenshooter: false
+    property bool hasScrot: false
+    property bool hasGrim: false
     property string screenshotTool: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.screenshotTool !== undefined && plasmoid.configuration.screenshotTool !== "") ? plasmoid.configuration.screenshotTool : "auto"
 
     // Executable DataEngine to run system scripts natively in Plasma 6
@@ -373,6 +379,12 @@ PlasmoidItem {
                     }
                     if (dev.has_spectacle !== undefined) mainItem.hasSpectacle = !!dev.has_spectacle
                     if (dev.has_flameshot !== undefined) mainItem.hasFlameshot = !!dev.has_flameshot
+                    if (dev.has_gnome_screenshot !== undefined) mainItem.hasGnomeScreenshot = !!dev.has_gnome_screenshot
+                    if (dev.has_ksnip !== undefined) mainItem.hasKsnip = !!dev.has_ksnip
+                    if (dev.has_xfce_screenshooter !== undefined) mainItem.hasXfceScreenshooter = !!dev.has_xfce_screenshooter
+                    if (dev.has_scrot !== undefined) mainItem.hasScrot = !!dev.has_scrot
+                    if (dev.has_grim !== undefined) mainItem.hasGrim = !!dev.has_grim
+                    if (dev.has_screenshot_tool !== undefined) mainItem.hasScreenshotTool = !!dev.has_screenshot_tool
                 }
             } catch (e) {
                 // Ignore parse errors from background notifications
@@ -513,7 +525,11 @@ PlasmoidItem {
 
     function setVolume(val) {
         mainItem.volume = val
-        if (val > 0) mainItem.isMuted = false
+        if (val > 0) {
+            mainItem.isMuted = false
+        } else {
+            mainItem.isMuted = true
+        }
         executable.exec("bash '" + getScriptPath("audio.sh") + "' set_volume " + val)
     }
 
@@ -751,11 +767,7 @@ PlasmoidItem {
 
     function triggerScreenshot() {
         closePopup()
-        var tool = mainItem.screenshotTool
-        if (tool === "auto") {
-            if (mainItem.hasFlameshot && !mainItem.hasSpectacle) tool = "flameshot"
-            else tool = "spectacle"
-        }
+        var tool = mainItem.screenshotTool || "auto"
         executable.exec("bash '" + getScriptPath("devices.sh") + "' screenshot '" + tool + "'")
     }
 

@@ -20,6 +20,13 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
   - Cleaned up configuration XML, general settings, and appearance reordering lists.
 - ⚙️ **Standardized Default 12-Toggle Layout**:
   - Cleaned up default toggle ordering for a balanced 2-column grid: Wi-Fi, Bluetooth, Location, Microphone, Camera, KDE Connect, Dark Style, Night Light, Airplane Mode, Do Not Disturb, Hotspot, and Power Profiles.
+- 🔊 **Volume Slider Track & Unmute Behavior**:
+  - Clicking or dragging anywhere on the volume slider track while muted now immediately un-mutes the audio and sets the volume to that percentage instead of snapping back to 0%.
+  - Clicking the speaker icon on the extreme left continues to cleanly toggle mute/unmute and restore the previous volume level.
+- 📸 **Universal Screenshot Tool Integration**:
+  - Added quick screenshot capture button in the expanded Quick Settings header.
+  - Supports configurable and auto-detected screenshot utilities across all Linux distributions (Spectacle on KDE, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp on Wayland).
+  - Background processes are cleanly detached with automatic fallbacks so captures work reliably regardless of desktop environment or OS version.
 - 💎 **Panel Capsule Indicator Refinements**:
   - Optimized indicator visibility checks and contrast in the panel capsule pill.
 
