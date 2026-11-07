@@ -773,6 +773,7 @@ Rectangle {
                                             width: 16
                                             height: 16
                                             source: "user-identity"
+                                            isMask: true
                                             color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
                                         }
                                     }
@@ -871,6 +872,9 @@ Rectangle {
                                 implicitWidth: 16
                                 implicitHeight: 16
                                 source: backend ? backend.batteryIconName : "battery-080"
+                                fallback: (backend && backend.batteryCharging) ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
+                                isMask: true
+                                color: (backend && backend.batteryLevel <= 20 && !backend.batteryCharging) ? "#e74c3c" : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
                                 Layout.alignment: Qt.AlignVCenter
                             }
                             Text {
@@ -1167,6 +1171,7 @@ Rectangle {
                         title: "Wi-Fi"
                         subtitle: (backend && backend.wifiConnected) ? (backend.wifiSsid || "Connected") : ((backend && backend.wifiEnabled) ? "Disconnected" : ((backend && backend.hotspotEnabled) ? "Hotspot Active" : "Off"))
                         iconName: (backend && backend.wifiIconName) ? backend.wifiIconName : "network-wireless-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
                         checked: backend ? (!backend.hotspotEnabled && (backend.wifiConnected || backend.wifiEnabled)) : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1185,6 +1190,7 @@ Rectangle {
                         title: "Bluetooth"
                         subtitle: (backend && backend.btConnected) ? ((backend.btDeviceName || "Connected") + (backend.btBattery > 0 ? " • " + backend.btBattery + "%" : "")) : ((backend && backend.btEnabled) ? "On" : "Off")
                         iconName: (backend && backend.btIconName) ? backend.btIconName : "preferences-system-bluetooth"
+                        iconFallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
                         checked: backend ? backend.btEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1209,6 +1215,7 @@ Rectangle {
                             return "Enabled"
                         }
                         iconName: "find-location-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
                         checked: backend ? backend.locationEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1233,6 +1240,7 @@ Rectangle {
                             return "Active"
                         }
                         iconName: (backend && backend.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                        iconFallback: (backend && backend.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
                         checked: backend ? !backend.micMuted : true
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1257,6 +1265,7 @@ Rectangle {
                             return "Available"
                         }
                         iconName: (backend && backend.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
                         checked: backend ? !backend.cameraBlocked : true
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1275,6 +1284,7 @@ Rectangle {
                         title: "KDE Connect"
                         subtitle: (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || "Connected") : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : "Disconnected")
                         iconName: "kdeconnect-tray-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
                         checked: backend ? backend.kdeConnectConnected : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1293,6 +1303,7 @@ Rectangle {
                         title: "Dark Style"
                         subtitle: root.isDarkTheme ? "Dark Mode" : "Light Mode"
                         iconName: "contrast-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
                         checked: root.isDarkTheme
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
@@ -1307,6 +1318,7 @@ Rectangle {
                         title: "Night Light"
                         subtitle: (backend && backend.nightLightEnabled) ? "3400 K" : "Off"
                         iconName: "redshift-status-on-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
                         checked: backend ? backend.nightLightEnabled : false
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
@@ -1321,6 +1333,7 @@ Rectangle {
                         title: "Airplane Mode"
                         subtitle: (backend && backend.airplaneMode) ? "Enabled" : "Off"
                         iconName: "network-flightmode-on-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/airplane-mode-symbolic.svg")
                         checked: backend ? backend.airplaneMode : false
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
@@ -1338,6 +1351,7 @@ Rectangle {
                             return backend.dndUntilText || "On"
                         }
                         iconName: (backend && backend.dndEnabled) ? "notifications-disabled-symbolic" : "notifications-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/notifications-symbolic.svg")
                         checked: backend ? backend.dndEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1355,6 +1369,7 @@ Rectangle {
                         title: "Hotspot"
                         subtitle: (backend && backend.hotspotEnabled) ? (backend.hotspotSsid || "Active") : "Off"
                         iconName: "network-wireless-hotspot-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
                         checked: backend ? (backend.hotspotEnabled && !backend.wifiConnected && !backend.wifiEnabled) : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
@@ -1378,6 +1393,7 @@ Rectangle {
                             return "Balanced"
                         }
                         iconName: (backend && backend.powerProfileIconName) ? backend.powerProfileIconName : "battery-profile-balanced-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/power-profile-balanced-symbolic.svg")
                         checked: backend ? (backend.powerProfile !== "balanced") : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme

@@ -24,6 +24,9 @@ Item {
     }
     property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : systemIsDark
 
+    readonly property color activeIndicatorColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+    readonly property color inactiveIndicatorColor: root.isDarkTheme ? Qt.rgba(246/255, 248/255, 250/255, 0.45) : Qt.rgba(26/255, 26/255, 26/255, 0.40)
+
     // System states
     property bool wifiEnabled: mainItem ? mainItem.wifiEnabled : true
     property bool wifiConnected: mainItem ? mainItem.wifiConnected : true
@@ -247,6 +250,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "kdeconnect-tray-symbolic"
+                fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -255,7 +261,10 @@ Item {
                 visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "camera-web-symbolic"
+                source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
+                fallback: Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
+                isMask: true
+                color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -264,7 +273,10 @@ Item {
                 visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "audio-input-microphone-symbolic"
+                source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                fallback: (mainItem && mainItem.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
+                isMask: true
+                color: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -274,6 +286,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "find-location-symbolic"
+                fallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
+                isMask: true
+                color: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -283,6 +298,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "contrast-symbolic"
+                fallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -292,6 +310,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "notifications-disabled-symbolic"
+                fallback: Qt.resolvedUrl("../icons/notifications-disabled-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -301,6 +322,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "redshift-status-on-symbolic"
+                fallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -310,6 +334,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: root.powerProfileIconName
+                fallback: (mainItem && mainItem.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -319,6 +346,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "network-wireless-hotspot-symbolic"
+                fallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -328,6 +358,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: "network-flightmode-on-symbolic"
+                fallback: Qt.resolvedUrl("../icons/airplane-mode-symbolic.svg")
+                isMask: true
+                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -337,6 +370,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: root.btIconName
+                fallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
+                isMask: true
+                color: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -346,6 +382,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: root.wifiIconName
+                fallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
+                isMask: true
+                color: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -357,6 +396,9 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: root.volumeIconName
+                fallback: root.isMuted ? Qt.resolvedUrl("../icons/audio-volume-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-volume-high-symbolic.svg")
+                isMask: true
+                color: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -372,6 +414,9 @@ Item {
                     implicitWidth: root.panelIconSize
                     implicitHeight: root.panelIconSize
                     source: root.batteryIconName
+                    fallback: root.batteryCharging ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
+                    isMask: true
+                    color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
                     Layout.alignment: Qt.AlignVCenter
                 }
 

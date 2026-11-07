@@ -22,6 +22,11 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
   - Implemented detached, non-blocking background process spawning (`nohup`) so screenshot commands reliably survive popup window closure.
   - Added universal application support and fallback chains across all Linux desktop environments (Spectacle on KDE, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp).
   - Enhanced both Plasma configuration (`ConfigGeneral.qml`) and in-app settings (`WidgetSettingsView.qml`) to select any installed screenshot tool with automatic fallback.
+- **Panel Status Capsule & Toggle Icon Masking (Eliminated Black Dot Glitch)**:
+  - Fixed an issue where indicators and toggles in light theme or missing system icon packs rendered as unmasked solid black dots / dark silhouettes.
+  - Enabled `isMask: true` on all Kirigami.Icon elements across the panel status capsule and Quick Settings toggles, ensuring icons strictly inherit theme colors instead of hardcoded SVG fill colors.
+  - Styled inactive/unset settings with soft, light-greyed tones (`inactiveIndicatorColor` and `inactiveIconColor`) identical to Quick Settings toggles.
+  - Added robust local bundled SVG fallbacks (`contents/icons/`) for all 12 system toggles and status indicators (including `contrast-symbolic.svg`, `location-services-active-symbolic.svg`, camera, mic, network, and battery) ensuring compatibility across all Linux distros and custom icon packs.
 - **Volume Slider Click & Unmute Behavior**:
   - Fixed an issue where clicking on the volume slider track while muted would slide back to 0% and remain muted; clicking or dragging anywhere on the slider now immediately un-mutes the audio and sets the volume to that percentage.
   - Clicking the speaker icon on the extreme left continues to cleanly toggle mute/unmute and restore the previous volume level.

@@ -19,6 +19,7 @@ Rectangle {
     property string title: "Toggle"
     property string subtitle: "Off"
     property string iconName: "dialog-information"
+    property string iconFallback: ""
     property bool checked: false
     property bool hasMenu: false
     property bool isDarkTheme: true
@@ -29,6 +30,7 @@ Rectangle {
     property color inactiveSubtextColor: isDarkTheme ? "#9aa0a6" : "#606770"
     property color inactiveIconBg: isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)
     property color activeIconBg: Qt.rgba(1, 1, 1, 0.22)
+    property color inactiveIconColor: isDarkTheme ? Qt.rgba(255, 255, 255, 0.65) : Qt.rgba(0, 0, 0, 0.45)
     property real pillRadius: 20
     property int iconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileIconSize !== undefined) ? plasmoid.configuration.tileIconSize : 20
 
@@ -78,7 +80,8 @@ Rectangle {
                 implicitWidth: root.iconSize
                 implicitHeight: root.iconSize
                 source: root.iconName
-                color: root.checked ? root.activeTextColor : root.inactiveTextColor
+                fallback: root.iconFallback
+                color: root.checked ? root.activeTextColor : root.inactiveIconColor
                 isMask: true
             }
         }
