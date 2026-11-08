@@ -5,7 +5,8 @@ import org.kde.kirigami as Kirigami
 
 /**
  * HotspotView.qml - GNOME-style Mobile Hotspot Sub-View (Plasma 6)
- * Displays Hotspot active status, SSID, password, and quick-jump to system settings.
+ * Displays Hotspot active status, SSID, password, bidirectional editing,
+ * and seamless synchronization with KDE Global Settings (~/.config/plasma-nm).
  */
 Rectangle {
     id: root
@@ -16,28 +17,76 @@ Rectangle {
     property string hotspotPassword: ""
     property bool showPassword: false
 
+    // Inline credential editor state
+    property bool isEditing: false
+    property string editSsid: ""
+    property string editPassword: ""
+    property string validationError: ""
+
     readonly property color accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
 
     signal backClicked()
     signal toggleHotspot()
     signal refreshClicked()
     signal openSettingsClicked()
+    signal configureHotspot(string ssid, string password)
+
+    // Keep editing fields synchronized when external updates arrive
+    onHotspotSsidChanged: {
+        if (!root.isEditing) {
+            root.editSsid = root.hotspotSsid
+        }
+    }
+    onHotspotPasswordChanged: {
+        if (!root.isEditing) {
+            root.editPassword = root.hotspotPassword
+        }
+    }
+
+    function startEditing() {
+        root.editSsid = root.hotspotSsid || ""
+        root.editPassword = root.hotspotPassword || ""
+        root.validationError = ""
+        root.isEditing = true
+    }
+
+    function validate() {
+        if (!root.editSsid || root.editSsid.trim().length === 0) {
+            root.validationError = "Network name (SSID) cannot be empty."
+            return false
+        }
+        if (!root.editPassword || root.editPassword.length < 8) {
+            root.validationError = "Password must be at least 8 characters (WPA2 requirement)."
+            return false
+        }
+        root.validationError = ""
+        return true
+    }
+
+    function saveCredentials() {
+        if (validate()) {
+            root.configureHotspot(root.editSsid.trim(), root.editPassword)
+            root.isEditing = false
+        }
+    }
 
     color: "transparent"
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
-        spacing: 12
+        spacing: 10
 
-        // Header with Back button & Master Hotspot Switch
+        // ============================================================
+        // Header: Back button & Master Hotspot Switch
+        // ============================================================
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
             Rectangle {
-                width: 32
-                height: 32
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 32
                 radius: 16
                 color: backMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
@@ -55,7 +104,13 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.backClicked()
+                    onClicked: {
+                        if (root.isEditing) {
+                            root.isEditing = false
+                        } else {
+                            root.backClicked()
+                        }
+                    }
                 }
             }
 
@@ -77,7 +132,7 @@ Rectangle {
         // Divider
         Rectangle {
             Layout.fillWidth: true
-            height: 1
+            Layout.preferredHeight: 1
             color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.08)
         }
 
@@ -88,25 +143,25 @@ Rectangle {
                 if (root.hotspotEnabled) {
                     return "Broadcasting Wi-Fi network. Other devices can connect using the credentials below:"
                 }
-                return "Share your internet connection with other devices over Wi-Fi. (Client Wi-Fi will pause while broadcasting)."
+                return "Share your internet connection with other devices over Wi-Fi. (Client Wi-Fi pauses while broadcasting)."
             }
             font.pixelSize: 11
             color: root.isDarkTheme ? "#9aa0a6" : "#606770"
             wrapMode: Text.WordWrap
         }
 
-        // Active State Details Cards (SSID and Password)
+        // ============================================================
+        // MODE A: VIEW MODE (Displays SSID & Password Cards)
+        // ============================================================
         ColumnLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: visible
-            Layout.preferredHeight: visible ? -1 : 0
-            visible: root.hotspotEnabled
+            visible: !root.isEditing
             spacing: 8
 
             // 1. Network Name (SSID) Card
             Rectangle {
                 Layout.fillWidth: true
-                height: 56
+                Layout.preferredHeight: 56
                 radius: 14
                 color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.03)
                 border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.08)
@@ -125,24 +180,27 @@ Rectangle {
 
                     Kirigami.Icon {
                         anchors.centerIn: parent
-                        width: 22
-                        height: 22
+                        width: 20
+                        height: 20
                         source: "network-wireless-hotspot-symbolic"
-                        fallback: "network-wireless-symbolic"
+                        fallback: Qt.resolvedUrl("../../icons/network-wireless-hotspot-symbolic.svg")
+                        isMask: true
+                        color: root.hotspotEnabled ? "#2ec27e" : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
                     }
                 }
 
-                // Right Status Badge
+                // Right Status Badge (Active or Inactive)
                 Rectangle {
                     id: activeBadge
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 64
+                    width: root.hotspotEnabled ? 68 : 72
                     height: 28
                     radius: 14
-                    color: root.isDarkTheme ? Qt.rgba(46, 194, 126, 0.15) : Qt.rgba(46, 194, 126, 0.12)
-                    border.color: "#2ec27e"
+                    color: root.hotspotEnabled ? (root.isDarkTheme ? Qt.rgba(46/255, 194/255, 126/255, 0.16) : Qt.rgba(46/255, 194/255, 126/255, 0.12))
+                                               : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05))
+                    border.color: root.hotspotEnabled ? "#2ec27e" : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(0, 0, 0, 0.12))
                     border.width: 1
 
                     Row {
@@ -154,15 +212,15 @@ Rectangle {
                             width: 6
                             height: 6
                             radius: 3
-                            color: "#2ec27e"
+                            color: root.hotspotEnabled ? "#2ec27e" : (root.isDarkTheme ? "#888888" : "#999999")
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Active"
+                            text: root.hotspotEnabled ? "Active" : "Inactive"
                             font.pixelSize: 11
                             font.weight: Font.DemiBold
-                            color: "#2ec27e"
+                            color: root.hotspotEnabled ? "#2ec27e" : (root.isDarkTheme ? "#9aa0a6" : "#606770")
                         }
                     }
                 }
@@ -198,7 +256,7 @@ Rectangle {
             // 2. Wi-Fi Password Card
             Rectangle {
                 Layout.fillWidth: true
-                height: 56
+                Layout.preferredHeight: 56
                 radius: 14
                 color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.03)
                 border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.08)
@@ -220,7 +278,9 @@ Rectangle {
                         width: 20
                         height: 20
                         source: "system-lock-screen-symbolic"
-                        fallback: "system-lock-screen-symbolic"
+                        fallback: Qt.resolvedUrl("../../icons/system-lock-screen-symbolic.svg")
+                        isMask: true
+                        color: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
                     }
                 }
 
@@ -286,65 +346,191 @@ Rectangle {
                     }
                 }
             }
-        }
 
-        // Inactive State Card (when Hotspot is off)
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: visible
-            Layout.preferredHeight: visible ? -1 : 0
-            visible: !root.hotspotEnabled
-            color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.02)
-            radius: 14
-            border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
-            border.width: 1
-
-            ColumnLayout {
-                anchors.centerIn: parent
+            // 3. Quick Action Buttons: Configure & System Settings
+            RowLayout {
+                Layout.fillWidth: true
                 spacing: 8
 
-                Kirigami.Icon {
-                    Layout.alignment: Qt.AlignHCenter
-                    width: 36
-                    height: 36
-                    source: "network-wireless-hotspot-symbolic"
-                    isMask: true
-                    color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
-                    opacity: 0.35
+                Button {
+                    Layout.fillWidth: true
+                    text: "Configure Hotspot..."
+                    icon.name: "document-edit-symbolic"
+                    onClicked: root.startEditing()
                 }
 
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "Hotspot is Inactive"
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
-                    opacity: 0.8
-                }
-
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: root.hotspotSsid ? ("Configured network: " + root.hotspotSsid) : "Flip the switch above to start broadcasting."
-                    font.pixelSize: 11
-                    color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                Button {
+                    Layout.fillWidth: true
+                    text: "Global Settings..."
+                    icon.name: "settings-configure-symbolic"
+                    onClicked: root.openSettingsClicked()
                 }
             }
         }
 
-        // Footer Actions: Open KDE Hotspot System Settings
+        // ============================================================
+        // MODE B: EDIT MODE (Inline Hotspot Credentials Editor)
+        // ============================================================
+        Rectangle {
+            Layout.fillWidth: true
+            visible: root.isEditing
+            radius: 14
+            color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.03)
+            border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.1)
+            border.width: 1
+            implicitHeight: editCol.implicitHeight + 24
+
+            ColumnLayout {
+                id: editCol
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 10
+
+                Text {
+                    text: "Configure Hotspot Credentials"
+                    font.pixelSize: 13
+                    font.weight: Font.Bold
+                    color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Changes synchronize directly with KDE Global Settings (~/.config/plasma-nm) and NetworkManager."
+                    font.pixelSize: 10
+                    color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                    wrapMode: Text.WordWrap
+                }
+
+                // SSID Input
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Text {
+                        text: "Network Name (SSID):"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        color: root.isDarkTheme ? "#cccccc" : "#333333"
+                    }
+
+                    TextField {
+                        id: ssidInput
+                        Layout.fillWidth: true
+                        text: root.editSsid
+                        placeholderText: "Enter hotspot network name"
+                        onTextChanged: {
+                            root.editSsid = text
+                            root.validate()
+                        }
+                    }
+                }
+
+                // Password Input
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Text {
+                        text: "Wi-Fi Password (minimum 8 characters):"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        color: root.isDarkTheme ? "#cccccc" : "#333333"
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        TextField {
+                            id: passInput
+                            Layout.fillWidth: true
+                            text: root.editPassword
+                            echoMode: root.showPassword ? TextInput.Normal : TextInput.Password
+                            placeholderText: "Enter password (min 8 characters)"
+                            onTextChanged: {
+                                root.editPassword = text
+                                root.validate()
+                            }
+                        }
+
+                        Button {
+                            text: root.showPassword ? "Hide" : "Show"
+                            onClicked: root.showPassword = !root.showPassword
+                        }
+                    }
+                }
+
+                // Validation / Status Error Warning
+                Text {
+                    Layout.fillWidth: true
+                    visible: root.validationError.length > 0 || (root.editPassword.length > 0 && root.editPassword.length < 8)
+                    text: {
+                        if (root.validationError.length > 0) return root.validationError
+                        if (root.editPassword.length > 0 && root.editPassword.length < 8) {
+                            return "Password must have at least 8 characters (current: " + root.editPassword.length + ")."
+                        }
+                        return ""
+                    }
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                    color: "#e74c3c"
+                    wrapMode: Text.WordWrap
+                }
+
+                // Edit Action Buttons
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Button {
+                        Layout.fillWidth: true
+                        text: "Cancel"
+                        onClicked: {
+                            root.isEditing = false
+                            root.validationError = ""
+                        }
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        text: "Save & Synchronize"
+                        highlighted: true
+                        enabled: root.editSsid.trim().length > 0 && root.editPassword.length >= 8
+                        onClicked: root.saveCredentials()
+                    }
+                }
+            }
+        }
+
+        // ============================================================
+        // Footer: KDE System Sync Badge
+        // ============================================================
+        Item {
+            Layout.fillHeight: true
+        }
+
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 6
+            opacity: 0.75
 
-            Button {
+            Kirigami.Icon {
+                implicitWidth: 14
+                implicitHeight: 14
+                source: "emblem-ok-symbolic"
+                fallback: Qt.resolvedUrl("../../icons/emblem-ok-symbolic.svg")
+                isMask: true
+                color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+            }
+
+            Text {
+                text: "Global Settings: ~/.config/plasma-nm"
+                font.pixelSize: 10
+                color: root.isDarkTheme ? "#9aa0a6" : "#606770"
                 Layout.fillWidth: true
-                text: "Hotspot Configuration..."
-                icon.name: "settings-configure-symbolic"
-                onClicked: root.openSettingsClicked()
             }
         }
     }
 
     Component.onCompleted: root.refreshClicked()
 }
-

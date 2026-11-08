@@ -667,6 +667,13 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("network.sh") + "' hotspot_status")
     }
 
+    function configureHotspot(ssid, password) {
+        if (!ssid || !password) return
+        mainItem.hotspotSsid = ssid
+        mainItem.hotspotPassword = password
+        executable.exec("bash '" + getScriptPath("network.sh") + "' set_hotspot_credentials '" + ssid.replace(/'/g, "'\\''") + "' '" + password.replace(/'/g, "'\\''") + "'")
+    }
+
     function openHotspotSettings() {
         executable.exec("bash '" + getScriptPath("network.sh") + "' open_hotspot_settings")
     }

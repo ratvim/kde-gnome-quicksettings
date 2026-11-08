@@ -46,26 +46,139 @@ def get_active_wireless():
         active_hotspot = None
     return active_hotspot, active_client
 
+def get_plasma_nm_config_path():
+    config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    return os.path.join(config_dir, "plasma-nm")
+
+def read_plasma_nm_hotspot():
+    cfg_file = get_plasma_nm_config_path()
+    name = ""
+    password = ""
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("HotspotName="):
+                        name = line.split("=", 1)[1].strip()
+                    elif line.startswith("HotspotPassword="):
+                        password = line.split("=", 1)[1].strip()
+        except Exception:
+            pass
+    return name, password
+
+def write_plasma_nm_hotspot(name, password):
+    cfg_file = get_plasma_nm_config_path()
+    try:
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+    except Exception:
+        pass
+    lines = []
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except Exception:
+            lines = []
+
+    new_lines = []
+    in_general = False
+    found_general = False
+    name_written = False
+    pass_written = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if in_general:
+                if not name_written and name:
+                    new_lines.append(f"HotspotName={name}\n")
+                    name_written = True
+                if not pass_written and password:
+                    new_lines.append(f"HotspotPassword={password}\n")
+                    pass_written = True
+            in_general = (stripped.lower() == "[general]")
+            if in_general:
+                found_general = True
+            new_lines.append(line)
+            continue
+
+        if in_general:
+            if stripped.startswith("HotspotName="):
+                new_lines.append(f"HotspotName={name}\n")
+                name_written = True
+                continue
+            elif stripped.startswith("HotspotPassword="):
+                new_lines.append(f"HotspotPassword={password}\n")
+                pass_written = True
+                continue
+        new_lines.append(line)
+
+    if in_general:
+        if not name_written and name:
+            new_lines.append(f"HotspotName={name}\n")
+            name_written = True
+        if not pass_written and password:
+            new_lines.append(f"HotspotPassword={password}\n")
+            pass_written = True
+
+    if not found_general:
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines.append("\n")
+        new_lines.append("[General]\n")
+        if name:
+            new_lines.append(f"HotspotName={name}\n")
+        if password:
+            new_lines.append(f"HotspotPassword={password}\n")
+
+    try:
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+        return True
+    except Exception:
+        return False
+
 def get_hotspot_info(active_hotspot=None):
-    hs_ssid = ""
-    hs_pass = ""
+    plasma_ssid, plasma_pass = read_plasma_nm_hotspot()
+
+    nm_ssid = ""
+    nm_pass = ""
     target_hs = active_hotspot["uuid"] if active_hotspot else "Hotspot"
     try:
         s_out = run_cmd(["nmcli", "-s", "-g", "802-11-wireless.ssid,802-11-wireless-security.psk", "c", "show", target_hs]).splitlines()
-        if len(s_out) >= 1: hs_ssid = s_out[0].strip()
-        if len(s_out) >= 2: hs_pass = s_out[1].strip()
+        if len(s_out) >= 1: nm_ssid = s_out[0].strip()
+        if len(s_out) >= 2: nm_pass = s_out[1].strip()
     except Exception:
         pass
-    if not hs_ssid:
+
+    # Authoritative resolution:
+    # 1. If KDE Global Settings (~/.config/plasma-nm) has credentials, they are authoritative
+    if plasma_ssid or plasma_pass:
+        authoritative_ssid = plasma_ssid or nm_ssid
+        authoritative_pass = plasma_pass or nm_pass
+        # Keep NetworkManager profile synchronized with plasma-nm
+        if (nm_ssid and nm_ssid != authoritative_ssid) or (nm_pass and nm_pass != authoritative_pass):
+            run_cmd(["nmcli", "connection", "modify", target_hs,
+                     "802-11-wireless.ssid", authoritative_ssid,
+                     "802-11-wireless-security.psk", authoritative_pass])
+    elif nm_ssid or nm_pass:
+        # 2. If plasma-nm was empty but NM profile exists, populate plasma-nm
+        authoritative_ssid = nm_ssid
+        authoritative_pass = nm_pass
+        write_plasma_nm_hotspot(authoritative_ssid, authoritative_pass)
+    else:
+        # 3. Default fallback
         try:
             h = socket.gethostname()
         except Exception:
             h = "Linux"
-        hs_ssid = f"{h}-Hotspot"
+        authoritative_ssid = f"{h}-Hotspot"
+        authoritative_pass = "hotspot12345"
+
     return {
         "hotspot_enabled": active_hotspot is not None,
-        "ssid": hs_ssid,
-        "password": hs_pass,
+        "ssid": authoritative_ssid,
+        "password": authoritative_pass,
         "con_name": active_hotspot["name"] if active_hotspot else "Hotspot"
     }
 
@@ -191,6 +304,12 @@ def toggle_hotspot(target="toggle"):
             time.sleep(0.2)
         run_cmd(["nmcli", "radio", "wifi", "on"])
         time.sleep(0.2)
+
+        # Retrieve authoritative credentials from plasma-nm
+        hs_info = get_hotspot_info()
+        ssid = hs_info["ssid"]
+        password = hs_info["password"]
+
         # Ensure Hotspot profile exists with autoconnect explicitly disabled
         conns = run_cmd(["nmcli", "-t", "-f", "NAME,UUID", "c", "show"])
         has_hs_profile = False
@@ -198,19 +317,20 @@ def toggle_hotspot(target="toggle"):
             if line.startswith("Hotspot:"):
                 has_hs_profile = True
                 break
+        wlan = get_wlan_device()
         if not has_hs_profile:
-            wlan = get_wlan_device()
-            try:
-                h = socket.gethostname()
-            except Exception:
-                h = "Linux"
-            ssid = f"{h}-Hotspot"
             run_cmd(["nmcli", "connection", "add", "type", "wifi", "ifname", wlan or "*",
                      "con-name", "Hotspot", "autoconnect", "no", "ssid", ssid,
                      "802-11-wireless.mode", "ap",
                      "802-11-wireless-security.key-mgmt", "wpa-psk",
-                     "802-11-wireless-security.psk", "hotspot12345",
+                     "802-11-wireless-security.psk", password,
                      "ipv4.method", "shared"])
+        else:
+            run_cmd(["nmcli", "connection", "modify", "Hotspot",
+                     "802-11-wireless.ssid", ssid,
+                     "802-11-wireless-security.psk", password,
+                     "connection.autoconnect", "no",
+                     "connection.autoconnect-priority", "-999"])
         # Always enforce autoconnect = no and low priority before bringing up
         run_cmd(["nmcli", "connection", "modify", "Hotspot", "connection.autoconnect", "no", "connection.autoconnect-priority", "-999"])
         run_cmd(["nmcli", "connection", "up", "Hotspot"])
@@ -231,6 +351,48 @@ def toggle_hotspot(target="toggle"):
             run_cmd(["nmcli", "dev", "connect", wlan])
 
     time.sleep(0.6)
+    return get_status()
+
+def set_hotspot_credentials(new_ssid, new_password):
+    if not new_ssid or not new_ssid.strip():
+        return {"success": False, "error": "SSID cannot be empty"}
+    new_ssid = new_ssid.strip()
+
+    if not new_password or len(new_password) < 8:
+        return {"success": False, "error": "Password must be at least 8 characters"}
+
+    # 1. Update KDE Plasma Global Settings (~/.config/plasma-nm)
+    write_plasma_nm_hotspot(new_ssid, new_password)
+
+    # 2. Update NetworkManager profile
+    conns = run_cmd(["nmcli", "-t", "-f", "NAME,UUID", "c", "show"])
+    has_hs_profile = False
+    for line in conns.splitlines():
+        if line.startswith("Hotspot:"):
+            has_hs_profile = True
+            break
+
+    wlan = get_wlan_device()
+    if not has_hs_profile:
+        run_cmd(["nmcli", "connection", "add", "type", "wifi", "ifname", wlan or "*",
+                 "con-name", "Hotspot", "autoconnect", "no", "ssid", new_ssid,
+                 "802-11-wireless.mode", "ap",
+                 "802-11-wireless-security.key-mgmt", "wpa-psk",
+                 "802-11-wireless-security.psk", new_password,
+                 "ipv4.method", "shared"])
+    else:
+        run_cmd(["nmcli", "connection", "modify", "Hotspot",
+                 "802-11-wireless.ssid", new_ssid,
+                 "802-11-wireless-security.psk", new_password,
+                 "connection.autoconnect", "no",
+                 "connection.autoconnect-priority", "-999"])
+
+    # 3. If Hotspot is currently active, re-apply/reactivate so the new SSID/password take effect immediately
+    active_hotspot, _ = get_active_wireless()
+    if active_hotspot:
+        run_cmd(["nmcli", "connection", "up", "Hotspot"])
+
+    time.sleep(0.3)
     return get_status()
 
 def list_wifi(rescan=False):
@@ -332,6 +494,8 @@ elif cmd == "hotspot_status":
     print(json.dumps(get_hotspot_info(get_active_wireless()[0])))
 elif cmd == "toggle_hotspot":
     print(json.dumps(toggle_hotspot(arg2 or "toggle")))
+elif cmd == "set_hotspot_credentials":
+    print(json.dumps(set_hotspot_credentials(arg2, arg3)))
 elif cmd == "open_hotspot_settings":
     print(json.dumps(open_hotspot_settings()))
 else:

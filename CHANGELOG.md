@@ -30,6 +30,11 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
 - **Volume Slider Click & Unmute Behavior**:
   - Fixed an issue where clicking on the volume slider track while muted would slide back to 0% and remain muted; clicking or dragging anywhere on the slider now immediately un-mutes the audio and sets the volume to that percentage.
   - Clicking the speaker icon on the extreme left continues to cleanly toggle mute/unmute and restore the previous volume level.
+- **Hotspot Configuration & KDE Global Settings Bidirectional Synchronization**:
+  - Resolved credential desynchronization between KDE Global Settings (`kcm_mobile_hotspot` / `~/.config/plasma-nm`) and Quick Settings / NetworkManager.
+  - Automatically queries and prioritizes authoritative Hotspot credentials (`HotspotName`, `HotspotPassword`) from `~/.config/plasma-nm` whenever status is polled or displayed, immediately keeping NetworkManager's profile aligned.
+  - Added an inline credential editor to `HotspotView.qml` allowing users to configure both SSID and Password directly within Quick Settings whether the Hotspot is currently active or inactive.
+  - Saving changes via `set_hotspot_credentials` atomically updates `~/.config/plasma-nm`, modifies the NetworkManager `Hotspot` connection, and dynamically reapplies settings if broadcasting is active.
 - **Panel Status Capsule**:
   - Optimized indicator visibility checks and contrast in the panel capsule pill.
 

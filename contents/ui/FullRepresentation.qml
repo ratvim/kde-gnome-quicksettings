@@ -1703,6 +1703,9 @@ Rectangle {
         onToggleHotspot: if (backend) backend.toggleHotspot(!backend.hotspotEnabled)
         onRefreshClicked: if (backend) backend.refreshHotspot()
         onOpenSettingsClicked: if (backend) backend.openHotspotSettings()
+        onConfigureHotspot: function(ssid, password) {
+            if (backend && backend.configureHotspot) backend.configureHotspot(ssid, password)
+        }
     }
 
     // Widget Settings Sub-View Container
