@@ -1169,10 +1169,10 @@ Rectangle {
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowWifi : true
                         title: "Wi-Fi"
-                        subtitle: (backend && backend.wifiConnected) ? (backend.wifiSsid || "Connected") : ((backend && backend.wifiEnabled) ? "Disconnected" : ((backend && backend.hotspotEnabled) ? "Hotspot Active" : "Off"))
+                        subtitle: (backend && backend.wifiConnected) ? (backend.wifiSsid || "Connected") : ((backend && backend.wifiEnabled) ? "Disconnected" : "Off")
                         iconName: (backend && backend.wifiIconName) ? backend.wifiIconName : "network-wireless-symbolic"
                         iconFallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
-                        checked: backend ? (!backend.hotspotEnabled && (backend.wifiConnected || backend.wifiEnabled)) : false
+                        checked: backend ? (backend.wifiConnected || backend.wifiEnabled) : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
                         onToggled: if (backend) backend.toggleWifi(newState)
@@ -1370,7 +1370,7 @@ Rectangle {
                         subtitle: (backend && backend.hotspotEnabled) ? (backend.hotspotSsid || "Active") : "Off"
                         iconName: "network-wireless-hotspot-symbolic"
                         iconFallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
-                        checked: backend ? (backend.hotspotEnabled && !backend.wifiConnected && !backend.wifiEnabled) : false
+                        checked: backend ? backend.hotspotEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
                         onToggled: if (backend) backend.toggleHotspot(!backend.hotspotEnabled)

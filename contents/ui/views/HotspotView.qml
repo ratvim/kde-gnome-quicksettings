@@ -143,7 +143,7 @@ Rectangle {
                 if (root.hotspotEnabled) {
                     return "Broadcasting Wi-Fi network. Other devices can connect using the credentials below:"
                 }
-                return "Share your internet connection with other devices over Wi-Fi. (Client Wi-Fi pauses while broadcasting)."
+                return "Share your internet connection with other devices over Wi-Fi. Simultaneous Wi-Fi client and Hotspot are supported on multi-interface and concurrency-capable hardware."
             }
             font.pixelSize: 11
             color: root.isDarkTheme ? "#9aa0a6" : "#606770"

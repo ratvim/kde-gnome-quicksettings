@@ -134,7 +134,7 @@ Item {
     readonly property bool hasVisibleIndicators: {
         if (root.showBattery) return true
         if (root.showVolume) return true
-        if (root.panelShowWifi && Boolean(mainItem && !mainItem.hotspotEnabled && (mainItem.wifiConnected || mainItem.wifiEnabled))) return true
+        if (root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))) return true
         if (root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))) return true
         if (root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)) return true
         if (root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)) return true
@@ -378,7 +378,7 @@ Item {
 
             // 12. Wi-Fi (when enabled or connected)
             Kirigami.Icon {
-                visible: root.panelShowWifi && Boolean(mainItem && !mainItem.hotspotEnabled && (mainItem.wifiConnected || mainItem.wifiEnabled))
+                visible: root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: root.wifiIconName

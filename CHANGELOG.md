@@ -30,6 +30,11 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
 - **Volume Slider Click & Unmute Behavior**:
   - Fixed an issue where clicking on the volume slider track while muted would slide back to 0% and remain muted; clicking or dragging anywhere on the slider now immediately un-mutes the audio and sets the volume to that percentage.
   - Clicking the speaker icon on the extreme left continues to cleanly toggle mute/unmute and restore the previous volume level.
+- **Concurrent Wi-Fi Client & Hotspot Coexistence Support**:
+  - Removed artificial mutual exclusivity between Wi-Fi Station and Hotspot across `network.sh`, `main.qml`, `FullRepresentation.qml`, and `CompactRepresentation.qml`.
+  - Added smart multi-interface detection (`get_wifi_devices()`, `get_hotspot_device()`). On multi-adapter systems or setups with virtual AP interfaces, Wi-Fi client and Hotspot operate concurrently without terminating each other.
+  - Updated `CompactRepresentation.qml` to display both Wi-Fi and Hotspot icons simultaneously in the top bar capsule pill when both are active.
+  - Updated `FullRepresentation.qml` so both the Wi-Fi tile and the Hotspot tile can remain active and display their independent connection details simultaneously.
 - **Hotspot Configuration & KDE Global Settings Bidirectional Synchronization**:
   - Resolved credential desynchronization between KDE Global Settings (`kcm_mobile_hotspot` / `~/.config/plasma-nm`) and Quick Settings / NetworkManager.
   - Automatically queries and prioritizes authoritative Hotspot credentials (`HotspotName`, `HotspotPassword`) from `~/.config/plasma-nm` whenever status is polled or displayed, immediately keeping NetworkManager's profile aligned.

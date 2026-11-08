@@ -467,16 +467,10 @@ PlasmoidItem {
     // Actions & Methods connected directly to system scripts
     function toggleWifi(enabled) {
         mainItem.wifiEnabled = enabled
-        if (enabled && mainItem.hotspotEnabled) {
-            mainItem.hotspotEnabled = false
-        }
         executable.exec("bash '" + getScriptPath("network.sh") + "' toggle " + (enabled ? "on" : "off"))
     }
 
     function connectWifi(ssid) {
-        if (mainItem.hotspotEnabled) {
-            mainItem.hotspotEnabled = false
-        }
         executable.exec("bash '" + getScriptPath("network.sh") + "' connect '" + ssid + "'")
     }
 
@@ -653,12 +647,10 @@ PlasmoidItem {
 
     function toggleHotspot(active) {
         var arg = (active !== undefined) ? (active ? "on" : "off") : "toggle"
-        if (active || (active === undefined && !mainItem.hotspotEnabled)) {
-            mainItem.wifiEnabled = false
-            mainItem.wifiConnected = false
-            mainItem.hotspotEnabled = true
+        if (active !== undefined) {
+            mainItem.hotspotEnabled = active
         } else {
-            mainItem.hotspotEnabled = false
+            mainItem.hotspotEnabled = !mainItem.hotspotEnabled
         }
         executable.exec("bash '" + getScriptPath("network.sh") + "' toggle_hotspot " + arg)
     }

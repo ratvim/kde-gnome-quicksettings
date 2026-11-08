@@ -18,13 +18,29 @@ def run_cmd(args):
     except Exception:
         return ""
 
-def get_wlan_device():
-    out = run_cmd(["nmcli", "-t", "-f", "DEVICE,TYPE", "dev"])
+def get_wifi_devices():
+    out = run_cmd(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "dev"])
+    devs = []
     for line in out.splitlines():
         parts = line.split(":")
         if len(parts) >= 2 and parts[1] == "wifi":
-            return parts[0]
-    return "wlan0"
+            devs.append({"device": parts[0], "state": parts[2] if len(parts) > 2 else ""})
+    return devs
+
+def get_wlan_device():
+    devs = get_wifi_devices()
+    return devs[0]["device"] if devs else "wlan0"
+
+def get_hotspot_device(active_client=None):
+    devs = get_wifi_devices()
+    if not devs:
+        return "wlan0"
+    client_dev = active_client.get("device", "") if active_client else ""
+    # If a separate or idle/virtual Wi-Fi device exists, prefer it for Hotspot
+    for d in devs:
+        if d["device"] != client_dev:
+            return d["device"]
+    return client_dev or devs[0]["device"]
 
 def get_active_wireless():
     active_hotspot = None
@@ -41,9 +57,6 @@ def get_active_wireless():
                 active_hotspot = {"uuid": uuid, "name": name, "device": dev}
             else:
                 active_client = {"uuid": uuid, "name": name, "device": dev}
-    # Enforce strict mutual exclusivity: if actively connected to Wi-Fi client, Hotspot is OFF
-    if active_client:
-        active_hotspot = None
     return active_hotspot, active_client
 
 def get_plasma_nm_config_path():
@@ -202,20 +215,8 @@ def get_status():
     radio_out = run_cmd(["nmcli", "radio", "wifi"]).strip()
     radio_on = (radio_out == "enabled")
 
-    if active_hotspot:
-        # Hotspot is actively broadcasting -> Client Wi-Fi is disabled
-        hs_info = get_hotspot_info(active_hotspot)
-        hs_info["hotspot_enabled"] = True
-        return {
-            "wifi_enabled": False,
-            "connected": False,
-            "ssid": "",
-            "signal": 0,
-            "hotspot": hs_info
-        }
-
-    hs_info = get_hotspot_info(None)
-    hs_info["hotspot_enabled"] = False
+    hs_info = get_hotspot_info(active_hotspot)
+    hs_info["hotspot_enabled"] = (active_hotspot is not None)
 
     connected = (active_client is not None)
     ssid = ""
@@ -249,7 +250,7 @@ def get_status():
             signal = 80
 
     return {
-        "wifi_enabled": radio_on,
+        "wifi_enabled": radio_on and (connected or active_hotspot is None or len(get_wifi_devices()) > 1),
         "connected": connected,
         "ssid": ssid,
         "signal": signal,
@@ -260,19 +261,21 @@ def toggle_wifi(target="toggle"):
     active_hotspot, active_client = get_active_wireless()
     radio_out = run_cmd(["nmcli", "radio", "wifi"]).strip()
     radio_on = (radio_out == "enabled")
-    current_wifi_on = radio_on and (active_hotspot is None)
+    current_wifi_on = radio_on and (active_client is not None or active_hotspot is None)
 
     if target == "toggle":
         target = "off" if current_wifi_on else "on"
 
+    devs = get_wifi_devices()
+    has_separate_device = len(devs) > 1
+
     if target == "on":
-        # Turning Wi-Fi on must turn off Hotspot on single-adapter system
-        if active_hotspot:
+        # Only take down Hotspot if they share the exact same physical adapter without a virtual/secondary interface
+        if active_hotspot and not has_separate_device:
             run_cmd(["nmcli", "connection", "down", active_hotspot["uuid"]])
-            time.sleep(0.3)
-        run_cmd(["nmcli", "connection", "down", "Hotspot"])
-        # Guarantee Hotspot is never autoconnected
-        run_cmd(["nmcli", "connection", "modify", "Hotspot", "connection.autoconnect", "no", "connection.autoconnect-priority", "-999"])
+            time.sleep(0.2)
+            run_cmd(["nmcli", "connection", "down", "Hotspot"])
+            run_cmd(["nmcli", "connection", "modify", "Hotspot", "connection.autoconnect", "no", "connection.autoconnect-priority", "-999"])
         run_cmd(["nmcli", "radio", "wifi", "on"])
         time.sleep(0.2)
         best = get_best_saved_client_wifi()
@@ -282,11 +285,12 @@ def toggle_wifi(target="toggle"):
             wlan = get_wlan_device()
             run_cmd(["nmcli", "dev", "connect", wlan])
     else:
-        # Turning Wi-Fi off turns off both client and AP
-        if active_hotspot:
-            run_cmd(["nmcli", "connection", "down", active_hotspot["uuid"]])
-            time.sleep(0.2)
-        run_cmd(["nmcli", "radio", "wifi", "off"])
+        # Turning Wi-Fi off:
+        # If Hotspot is running on a separate device, only disconnect client
+        if active_client:
+            run_cmd(["nmcli", "connection", "down", active_client["uuid"]])
+        if not active_hotspot or not has_separate_device:
+            run_cmd(["nmcli", "radio", "wifi", "off"])
 
     time.sleep(0.6)
     return get_status()
@@ -297,11 +301,11 @@ def toggle_hotspot(target="toggle"):
     if target == "toggle":
         target = "off" if current_hs_on else "on"
 
+    devs = get_wifi_devices()
+    client_dev = active_client.get("device", "") if active_client else ""
+    has_separate_ap_device = any(d["device"] != client_dev for d in devs)
+
     if target == "on":
-        # Turning Hotspot on must turn off client Wi-Fi
-        if active_client:
-            run_cmd(["nmcli", "connection", "down", active_client["uuid"]])
-            time.sleep(0.2)
         run_cmd(["nmcli", "radio", "wifi", "on"])
         time.sleep(0.2)
 
@@ -310,16 +314,22 @@ def toggle_hotspot(target="toggle"):
         ssid = hs_info["ssid"]
         password = hs_info["password"]
 
-        # Ensure Hotspot profile exists with autoconnect explicitly disabled
+        hs_dev = get_hotspot_device(active_client)
+
+        # Only disconnect active Wi-Fi client if they must share the single adapter without concurrency support
+        if active_client and not has_separate_ap_device:
+            run_cmd(["nmcli", "connection", "down", active_client["uuid"]])
+            time.sleep(0.2)
+
         conns = run_cmd(["nmcli", "-t", "-f", "NAME,UUID", "c", "show"])
         has_hs_profile = False
         for line in conns.splitlines():
             if line.startswith("Hotspot:"):
                 has_hs_profile = True
                 break
-        wlan = get_wlan_device()
+
         if not has_hs_profile:
-            run_cmd(["nmcli", "connection", "add", "type", "wifi", "ifname", wlan or "*",
+            run_cmd(["nmcli", "connection", "add", "type", "wifi", "ifname", hs_dev,
                      "con-name", "Hotspot", "autoconnect", "no", "ssid", ssid,
                      "802-11-wireless.mode", "ap",
                      "802-11-wireless-security.key-mgmt", "wpa-psk",
@@ -327,6 +337,7 @@ def toggle_hotspot(target="toggle"):
                      "ipv4.method", "shared"])
         else:
             run_cmd(["nmcli", "connection", "modify", "Hotspot",
+                     "connection.interface-name", hs_dev,
                      "802-11-wireless.ssid", ssid,
                      "802-11-wireless-security.psk", password,
                      "connection.autoconnect", "no",
@@ -335,20 +346,22 @@ def toggle_hotspot(target="toggle"):
         run_cmd(["nmcli", "connection", "modify", "Hotspot", "connection.autoconnect", "no", "connection.autoconnect-priority", "-999"])
         run_cmd(["nmcli", "connection", "up", "Hotspot"])
     else:
-        # Turning Hotspot off must restore client Wi-Fi connection
+        # Turning Hotspot off
         if active_hotspot:
             run_cmd(["nmcli", "connection", "down", active_hotspot["uuid"]])
             time.sleep(0.3)
         run_cmd(["nmcli", "connection", "down", "Hotspot"])
         run_cmd(["nmcli", "connection", "modify", "Hotspot", "connection.autoconnect", "no", "connection.autoconnect-priority", "-999"])
-        run_cmd(["nmcli", "radio", "wifi", "on"])
-        time.sleep(0.2)
-        best = get_best_saved_client_wifi()
-        if best:
-            run_cmd(["nmcli", "connection", "up", "uuid", best[1]])
-        else:
-            wlan = get_wlan_device()
-            run_cmd(["nmcli", "dev", "connect", wlan])
+        # If client Wi-Fi was disconnected due to single-adapter switch, restore client Wi-Fi
+        if not active_client and not has_separate_ap_device:
+            run_cmd(["nmcli", "radio", "wifi", "on"])
+            time.sleep(0.2)
+            best = get_best_saved_client_wifi()
+            if best:
+                run_cmd(["nmcli", "connection", "up", "uuid", best[1]])
+            else:
+                wlan = get_wlan_device()
+                run_cmd(["nmcli", "dev", "connect", wlan])
 
     time.sleep(0.6)
     return get_status()
@@ -397,8 +410,9 @@ def set_hotspot_credentials(new_ssid, new_password):
 
 def list_wifi(rescan=False):
     active_hotspot, active_client = get_active_wireless()
-    # While hotspot is actively running on single adapter, Wi-Fi scanning is not available
-    if active_hotspot:
+    devs = get_wifi_devices()
+    # While hotspot is actively running on single adapter without client, Wi-Fi scanning is suppressed
+    if active_hotspot and len(devs) <= 1 and not active_client:
         return []
 
     rescan_args = ["--rescan", "yes"] if rescan else ["--rescan", "auto"]
