@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 import org.kde.kirigami as Kirigami
 
 /**
@@ -84,12 +83,6 @@ Rectangle {
                 fallback: root.iconFallback
                 color: root.checked ? root.activeTextColor : root.inactiveIconColor
                 isMask: true
-
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    colorization: 1.0
-                    colorizationColor: root.checked ? root.activeTextColor : root.inactiveIconColor
-                }
             }
         }
 

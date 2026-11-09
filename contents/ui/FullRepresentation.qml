@@ -1322,7 +1322,7 @@ Rectangle {
                             return "Available"
                         }
                         iconName: (backend && backend.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                        iconFallback: (backend && backend.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
+                        iconFallback: Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
                         checked: backend ? !backend.cameraBlocked : true
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
