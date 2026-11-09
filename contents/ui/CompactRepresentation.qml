@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
@@ -239,167 +240,149 @@ Item {
             }
 
             // ========================================================
+            // REUSABLE MASKED CAPSULE ICON COMPONENT
+            // Guarantees 100% theme tinting across all icons and distros.
+            // Automatically overrides hardcoded Breeze / system SVG colors
+            // (such as #232629 black defaults in camera-off, mic-off, etc.)
+            // so icons NEVER render as an unmasked solid black dot.
+            // ========================================================
+            component CapsuleIcon: Item {
+                id: cIcon
+                property string source: ""
+                property string fallback: ""
+                property color color: root.activeIndicatorColor
+                property real iconSize: root.panelIconSize
+
+                implicitWidth: iconSize
+                implicitHeight: iconSize
+                Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    id: innerIcon
+                    anchors.fill: parent
+                    source: cIcon.source
+                    fallback: cIcon.fallback
+                    isMask: true
+                    color: cIcon.color
+                }
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    colorization: 1.0
+                    colorizationColor: cIcon.color
+                }
+            }
+
+            // ========================================================
             // ACTIVE TOGGLE ICONS (LEFT TO RIGHT)
             // Visible only when the toggle is enabled / active AND
             // user configuration allows it to be shown in the panel.
             // ========================================================
 
             // 1. KDE Connect (when connected)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "kdeconnect-tray-symbolic"
                 fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 2. Camera (appears ONLY when some app is actively using the camera)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                fallback: Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
-                isMask: true
+                fallback: (mainItem && mainItem.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
                 color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 3. Microphone (appears ONLY when some app is actively using the microphone)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
                 fallback: (mainItem && mainItem.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
-                isMask: true
                 color: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 4. Location (appears ONLY when some app is actively accessing location)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "find-location-symbolic"
-                fallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
-                isMask: true
+                fallback: Qt.resolvedUrl("../icons/find-location-symbolic.svg")
                 color: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 5. Dark Style / Dark Theme (when dark mode is active)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "contrast-symbolic"
                 fallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 6. Do Not Disturb (DND) (when active)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "notifications-disabled-symbolic"
                 fallback: Qt.resolvedUrl("../icons/notifications-disabled-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 7. Night Light (when active)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "redshift-status-on-symbolic"
                 fallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 8. Power Mode: Performance or Power-Saver / Optimise (Balanced shows NO icon)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: root.powerProfileIconName
                 fallback: (mainItem && mainItem.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 9. Hotspot (when active)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "network-wireless-hotspot-symbolic"
                 fallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 10. Airplane Mode (when active)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: "network-flightmode-on-symbolic"
                 fallback: Qt.resolvedUrl("../icons/airplane-mode-symbolic.svg")
-                isMask: true
                 color: root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 11. Bluetooth (when enabled or connected)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: root.btIconName
                 fallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
-                isMask: true
                 color: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // 12. Wi-Fi (when enabled or connected)
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: root.wifiIconName
                 fallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
-                isMask: true
                 color: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // ========================================================
             // VOLUME INDICATOR (ICON ONLY, NO PERCENTAGE)
             // ========================================================
-            Kirigami.Icon {
+            CapsuleIcon {
                 visible: root.showVolume
-                implicitWidth: root.panelIconSize
-                implicitHeight: root.panelIconSize
                 source: root.volumeIconName
                 fallback: root.isMuted ? Qt.resolvedUrl("../icons/audio-volume-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-volume-high-symbolic.svg")
-                isMask: true
                 color: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
-                Layout.alignment: Qt.AlignVCenter
             }
 
             // ========================================================
@@ -410,14 +393,10 @@ Item {
                 spacing: 4
                 Layout.alignment: Qt.AlignVCenter
 
-                Kirigami.Icon {
-                    implicitWidth: root.panelIconSize
-                    implicitHeight: root.panelIconSize
+                CapsuleIcon {
                     source: root.batteryIconName
                     fallback: root.batteryCharging ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
-                    isMask: true
                     color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
-                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 Text {

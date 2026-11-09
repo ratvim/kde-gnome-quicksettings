@@ -17,6 +17,12 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
     - `tileWidth()` evaluates available width in real time (`Math.floor((responsiveWidth - 2 * contentMargin - tileSpacing) / 2)`), ensuring tiles always fill the panel grid with zero gaps or awkward wrapping.
   - **Viewport Clamping & Safe Scrolling**:
     - Panel height is clamped against `maxScreenSafeHeight` (`screenHeight - 64`), paired with `ScrollView` (`ScrollBar.vertical.policy: ScrollBar.AsNeeded`) to guarantee popup contents never clip outside the physical desktop boundaries.
+- **Eliminated Solid Black Icon Glitch on Panel Status Capsule and Quick Settings Toggles**:
+  - Identified root cause: When an indicator or toggle enters an inactive, blocked, or unset state (such as `cameraBlocked` or `micMuted`), KDE resolves `-off-symbolic` or `-muted-symbolic` icons from the system icon theme (e.g., Breeze's `camera-off-symbolic.svg`). These system SVGs contain embedded dual-color CSS stylesheets (`.ColorScheme-Text { color:#232629; }` and `.ColorScheme-NegativeText { color:#da4453; }`).
+  - Because of the conflicting dual-color definitions, Qt/Kirigami's `isMask: true` feature ignores the single-color tint, causing the SVG to render using its hardcoded `.ColorScheme-Text` default of `#232629` (dark charcoal / black), which appeared as an unmasked solid black dot on the panel.
+  - Implemented a unified `CapsuleIcon` component across the panel status capsule using Qt 6's `MultiEffect` (`colorization: 1.0`) on the layer. This guarantees that all rendered pixels are dynamically tinted to the exact intended color (`activeIndicatorColor` for active states, `inactiveIndicatorColor` for light-greyed inactive/unset states, or red for low battery), preventing any raw black pixels from escaping.
+  - Added clean local fallback SVGs for `camera-off-symbolic.svg` and `find-location-symbolic.svg` (`fill="currentColor"`, single-path).
+  - Extended `MultiEffect` layer colorization to `PillToggle.qml` to guarantee Quick Settings drawer toggles also consistently render light-greyed when inactive.
 
 ## [1.1.1] - 2026-10-29
 
