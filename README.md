@@ -3,32 +3,61 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.1.1-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.1.2-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
 
-A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet built natively for **KDE Plasma 6**. Featuring glassmorphic 24px curved cards, uniform capsule pill toggles, smooth rounded sliders, expandable sub-drawers, user profile header, and dedicated C++ compositor effect management for zero background blur bleed.
+A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet built natively for **KDE Plasma 6**. Featuring glassmorphic 24px curved cards, uniform capsule pill toggles, smooth rounded sliders, expandable sub-drawers, user profile header, resolution & DPI responsive scaling engine, and dedicated C++ compositor effect management for zero background blur bleed.
 
 ---
 
-## 🚀 What's New in v1.1.1
+## 🚀 What's New in v1.1.2
+
+- 📐 **Resolution & DPI Responsive Scaling Engine Across All Displays**:
+  - Implemented automatic, multi-factor responsive scaling for the expanded Quick Settings control center across any monitor resolution, aspect ratio, or fractional scaling configuration without requiring manual adjustments.
+  - Dynamically calculates `resolutionScale` combining normalized viewport resolution (1080p reference, clamped against 16:9 equivalent to eliminate horizontal distortion on ultrawide monitors) with system `Kirigami.Units.gridUnit` DPI metrics, smoothly clamped between `0.85` (low-resolution displays) and `1.50` (4K UHD displays).
+  - Automatically bounds popup width (`responsiveWidth`), corner radii, content margins, tile spacing, and slider heights:
+    - **720p / 768p / 800p (Steam Deck, compact displays)**: Panel width scales down cleanly (~347px), preventing the widget from overwhelming small displays while keeping all controls readable.
+    - **1080p (Standard Full HD)**: Native 390px panel width and standard 176px 2-column tiles.
+    - **1440p / 2K / Ultrawide**: Scales smoothly to ~520px width, expanding tiles and typography proportionally.
+    - **4K UHD (3840x2160)**: Scales to ~566px width with enlarged touch/click targets and proportional font sizes, eliminating the tiny popup issue on high-DPI displays.
+  - **Dynamic Two-Column Tile Grid**:
+    - `tileWidth()` evaluates available width in real time (`Math.floor((responsiveWidth - 2 * contentMargin - tileSpacing) / 2)`), ensuring tiles always fill the panel grid with zero gaps or awkward wrapping.
+  - **Viewport Clamping & Safe Scrolling**:
+    - Panel height is clamped against `maxScreenSafeHeight` (`screenHeight - 64`), paired with `ScrollView` (`ScrollBar.vertical.policy: ScrollBar.AsNeeded`) to guarantee popup contents never clip outside physical desktop boundaries.
+
+- 📡 **Concurrent Wi-Fi Client & Hotspot Coexistence Support**:
+  - Removed artificial mutual exclusivity between Wi-Fi Station and Hotspot across backend scripts and UI representations.
+  - Added smart multi-interface detection (`get_wifi_devices()`, `get_hotspot_device()`). On multi-adapter systems or setups with virtual AP interfaces, Wi-Fi client and Hotspot operate concurrently without terminating each other.
+  - Updated the panel status capsule and expanded Quick Settings tiles to display both Wi-Fi and Hotspot active states and connection details simultaneously.
+
+- 🔄 **Hotspot Configuration & KDE Global Settings Bidirectional Synchronization**:
+  - Resolved credential desynchronization between KDE Global Settings (`kcm_mobile_hotspot` / `~/.config/plasma-nm`) and Quick Settings / NetworkManager.
+  - Automatically queries and prioritizes authoritative Hotspot credentials (`HotspotName`, `HotspotPassword`) from `~/.config/plasma-nm` whenever status is polled or displayed, keeping NetworkManager's profile immediately aligned.
+  - Added an inline credential editor to `HotspotView.qml` allowing users to configure both SSID and Password directly within Quick Settings whether the Hotspot is currently active or inactive.
+  - Saving changes via `set_hotspot_credentials` atomically updates `~/.config/plasma-nm`, modifies the NetworkManager `Hotspot` connection, and dynamically reapplies settings if broadcasting is active.
+
+- 💎 **Panel Status Capsule High-Contrast Theme Contrast & Icon Tinting Fix**:
+  - Explicitly configured `Kirigami.Theme.colorSet: Kirigami.Theme.Complementary` on the panel status capsule pill.
+  - Ensures panel indicators always render in crisp, high-contrast theme foreground (`#fcfcfc` / white) even when the system application color scheme is set to `BreezeLight`.
+  - Prevents indicators from resolving to `#1a1a1a` (charcoal black on dark panels).
+  - Resolved KDE Breeze dual-color SVG rendering (`camera-off-symbolic`, etc.) where hardcoded `#232629` was bypassing mask tinting, rendering as pitch black.
+  - Inactive, muted, or blocked indicators now consistently render in soft light grey (`45%` alpha), remaining clearly visible under all desktop themes.
+  - Bundled clean fallback SVGs (`contents/icons/camera-off-symbolic.svg`).
+
+---
+
+## 🚀 Previous Release Highlights (v1.1.1)
 
 - ᛒ **Direct Native Bluetooth Device Pairing**:
-  - Replaced in-drawer scanning with a streamlined **"Pair New Device"** action in the Bluetooth sub-drawer.
-  - Directly invokes KDE Plasma's native Bluetooth pairing wizard, ensuring proper PIN code confirmation, two-way mobile device pairing verification, and persistent connection stability.
+  - Streamlined **"Pair New Device"** action invoking KDE Plasma's native Bluetooth pairing interface for reliable two-way mobile device pairing verification.
 - 🧹 **Removed LocalSend Integration**:
-  - Removed LocalSend tile toggle and panel status capsule indicator to focus Quick Settings strictly on native desktop and hardware controls.
-  - Cleaned up configuration XML, general settings, and appearance reordering lists.
+  - Removed LocalSend tile toggle and panel status capsule indicator to focus Quick Settings strictly on native desktop hardware and privacy controls.
 - ⚙️ **Standardized Default 12-Toggle Layout**:
-  - Cleaned up default toggle ordering for a balanced 2-column grid: Wi-Fi, Bluetooth, Location, Microphone, Camera, KDE Connect, Dark Style, Night Light, Airplane Mode, Do Not Disturb, Hotspot, and Power Profiles.
+  - Standardized default 2-column grid: Wi-Fi, Bluetooth, Location, Microphone, Camera, KDE Connect, Dark Style, Night Light, Airplane Mode, Do Not Disturb, Hotspot, and Power Profiles.
 - 🔊 **Volume Slider Track & Unmute Behavior**:
-  - Clicking or dragging anywhere on the volume slider track while muted now immediately un-mutes the audio and sets the volume to that percentage instead of snapping back to 0%.
-  - Clicking the speaker icon on the extreme left continues to cleanly toggle mute/unmute and restore the previous volume level.
+  - Clicking or dragging anywhere on the volume slider track while muted immediately un-mutes the audio and sets the volume to that percentage instead of snapping back to 0%.
 - 📸 **Universal Screenshot Tool Integration**:
-  - Added quick screenshot capture button in the expanded Quick Settings header.
-  - Supports configurable and auto-detected screenshot utilities across all Linux distributions (Spectacle on KDE, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp on Wayland).
-  - Background processes are cleanly detached with automatic fallbacks so captures work reliably regardless of desktop environment or OS version.
-- 💎 **Panel Capsule Indicator Refinements**:
-  - Optimized indicator visibility checks and contrast in the panel capsule pill.
+  - Quick screenshot capture button in the expanded Quick Settings header supporting Spectacle, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp with detached process execution.
 
 ---
 
@@ -38,6 +67,9 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
   - Unified aesthetic inspired by GNOME 43/44/45/46 Quick Settings.
   - Native C++ `WindowHelper` plugin communicates directly with `KWindowEffects` and `QWindow` to eliminate rectangular compositor blur artifacts on both Wayland and X11.
   - Dynamically calculates height and margins to adapt precisely to the number of visible toggles.
+- **Resolution & DPI Responsive Scaling Engine**:
+  - Smooth scaling from compact 720p/Steam Deck displays (~347px width) up to 4K UHD workstations (~566px width).
+  - Dynamic 2-column tile geometry calculation and viewport-safe scrolling.
 - **User Profile Header**:
   - Displays user avatar, real name, and system role (`Administrator` / `Standard`).
   - Quick action buttons: System Settings, Lock Screen, and Power / Session menu.
@@ -47,7 +79,7 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
   - **Display Brightness**: Smooth rounded slider with dynamic brightness icon (via `brightnessctl` or DBus).
 - **2-Column Pill Toggles**:
   - 📶 **Wi-Fi**: Status, active SSID name, and expandable network drawer.
-  - ᛒ **Bluetooth**: Power toggle, connected device status, and expandable pairing drawer.
+  - ᛒ **Bluetooth**: Power toggle, connected device status, and expandable pairing drawer with direct native pairing.
   - 📍 **Location**: Privacy toggle for location services.
   - 📷 **Camera**: Multi-layer privacy kill-switch with expandable `>` sub-drawer displaying active webcam applications, live status indicators, and process termination controls.
   - 🎙️ **Microphone**: Quick mute / un-mute toggle.
@@ -56,12 +88,12 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
   - 🌅 **Night Light**: Blue light filter toggle.
   - ✈️ **Airplane Mode**: Wireless radio kill-switch.
   - 🔕 **Do Not Disturb**: Notification suppression with preset duration timers.
-  - 📡 **Hotspot**: Quick hotspot toggle.
+  - 📡 **Hotspot**: Concurrent Wi-Fi/Hotspot support with inline SSID & password configuration drawer synchronized bidirectionally with KDE Plasma System Settings.
   - ⚡ **Power Profile**: Performance, Balanced, and Power Saver switcher.
 - **Expandable Sub-Drawers**:
-  - Detailed sub-menus for Wi-Fi networks, Bluetooth devices, Camera active applications, KDE Connect actions, Power profiles, and Do Not Disturb durations with smooth transitions and consistent typography.
+  - Detailed sub-menus for Wi-Fi networks, Bluetooth devices, Hotspot configuration, Camera active applications, KDE Connect actions, Power profiles, and Do Not Disturb durations with smooth transitions and consistent typography.
 - **Panel Status Capsule**:
-  - Compact representation on the KDE panel showing Wi-Fi, Bluetooth, Audio Volume, Battery percentage, and charging capsule.
+  - Compact representation on the KDE panel with `Complementary` shell styling, displaying active Wi-Fi, Hotspot, Bluetooth, Audio Volume, Battery percentage, and privacy indicators with high-contrast theme tinting.
 
 ---
 
@@ -86,7 +118,7 @@ Required by system scripts in `contents/scripts/` to query status and toggle sys
 
 | Tool | Package | Required For |
 | :--- | :--- | :--- |
-| **`nmcli`** | `network-manager` / `networkmanager` | Wi-Fi scanning, connection, and status |
+| **`nmcli`** | `network-manager` / `networkmanager` | Wi-Fi scanning, connection, and Hotspot management |
 | **`bluetoothctl`** | `bluez` / `bluez-utils` | Bluetooth adapter power and device management |
 | **`wpctl`** or **`pactl`** | `wireplumber` or `pulseaudio-utils` | Audio volume and mute control |
 | **`brightnessctl`** | `brightnessctl` | Display backlight brightness adjustment |
@@ -186,7 +218,7 @@ You can bind a global keyboard shortcut to toggle the Quick Settings popup (e.g.
 ## ⚙️ Configuration & Customization
 
 Right-click the panel icon and choose **"Configure GNOME Quick Settings..."**:
-- **Panel Visibility**: Choose whether to show/hide the battery indicator, volume pill, Wi-Fi icon, or Bluetooth indicator on the panel.
+- **Panel Visibility**: Choose whether to show/hide the battery indicator, volume pill, Wi-Fi icon, Hotspot, or Bluetooth indicator on the panel.
 - **Toggle Visibility**: Enable or disable specific pill toggles in the popup control center.
 - **Icon Sizing**: Configure panel and popup tile icon sizes to match your desktop scaling.
 
@@ -196,18 +228,19 @@ Right-click the panel icon and choose **"Configure GNOME Quick Settings..."**:
 
 ```
 kde_gnome_tray/
-├── metadata.json                          # Plasma 6 applet metadata (version 1.1.1)
+├── metadata.json                          # Plasma 6 applet metadata (version 1.1.2)
 ├── install.sh                             # Automated installer with dependency preflight
 ├── package.sh                             # Builds C++ plugin & packages .plasmoid
 ├── org.kde.plasma.gnomequicksettings.plasmoid # Distributable Plasma 6 package
 ├── README.md                              # Complete documentation & dependency guide
+├── CHANGELOG.md                           # Detailed release notes and version history
 ├── plugin/                                # C++ QML Extension Plugin
 │   └── plugin.cpp                         # WindowHelper implementation (KWindowEffects blur control)
 ├── contents/
 │   ├── config/                            # Applet configuration XML & UI
 │   ├── icons/                             # GNOME Symbolic SVG icons
 │   ├── scripts/                           # Native system control scripts
-│   │   ├── network.sh                     # nmcli Wi-Fi control & scanning
+│   │   ├── network.sh                     # nmcli Wi-Fi & Hotspot control & scanning
 │   │   ├── bluetooth.sh                   # bluetoothctl power & pairing
 │   │   ├── audio.sh                       # wpctl / pactl / amixer volume & mute
 │   │   ├── brightness.sh                  # brightnessctl & DBus display brightness
@@ -224,6 +257,7 @@ kde_gnome_tray/
 │       ├── views/
 │       │   ├── NetworkView.qml            # Wi-Fi network scanner drawer
 │       │   ├── BluetoothView.qml          # Bluetooth device drawer
+│       │   ├── HotspotView.qml            # Hotspot configuration drawer
 │       │   ├── KdeConnectView.qml         # KDE Connect device drawer
 │       │   ├── PowerView.qml              # Power profiles & battery drawer
 │       │   ├── DndView.qml                # Do Not Disturb duration drawer
@@ -248,17 +282,13 @@ sudo usermod -aG video $USER
 Log out and log back in for group membership to take effect.
 
 ### 3. Audio volume does not adjust
-Check if your system uses PipeWire (`wpctl`) or PulseAudio (`pactl`):
+Check if PipeWire WirePlumber or PulseAudio is active:
 ```bash
-which wpctl pactl
+wpctl status || pactl info
 ```
-Installing either `wireplumber` (for PipeWire) or `pulseaudio-utils` (for PulseAudio) resolves this immediately.
-
-### 4. Background blur or rectangular corner artifacts
-The bundled `WindowHelper` C++ extension automatically instructs KWin to disable rectangular window blur behind the popup. Ensure that `contents/ui/plugin/libgnomequicksettingsplugin.so` is present and that `kpackagetool6` upgraded the plasmoid.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later). See the LICENSE file for details.
+This project is licensed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later). See [LICENSE](LICENSE) for details.
