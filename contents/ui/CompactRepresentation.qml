@@ -18,14 +18,22 @@ import "./components"
 Item {
     id: root
 
+    // Explicitly configure Complementary colorSet (Plasma panel shell theme)
+    // Ensures text and symbolic icons render in crisp panel contrast (white/light)
+    // regardless of whether application windows use a light theme like BreezeLight.
+    Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
+    Kirigami.Theme.inherit: false
+
     readonly property bool systemIsDark: {
         var bg = Kirigami.Theme.backgroundColor
         return (bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114) < 0.5
     }
-    property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : systemIsDark
+    property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : true
 
-    readonly property color activeIndicatorColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
-    readonly property color inactiveIndicatorColor: root.isDarkTheme ? Qt.rgba(246/255, 248/255, 250/255, 0.45) : Qt.rgba(26/255, 26/255, 26/255, 0.40)
+    // Active icons on the panel use high-contrast panel foreground (crisp white, never black)
+    readonly property color activeIndicatorColor: (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : "#f6f8fa"
+    // Inactive, muted, or blocked indicators are slightly greyed (45% opacity) and always clearly visible
+    readonly property color inactiveIndicatorColor: Qt.rgba(activeIndicatorColor.r, activeIndicatorColor.g, activeIndicatorColor.b, 0.45)
 
     // System states
     property bool wifiEnabled: mainItem ? mainItem.wifiEnabled : true
@@ -203,9 +211,9 @@ Item {
         height: implicitHeight
         radius: height / 2
 
-        color: mouseArea.containsMouse ? (isDarkTheme ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.12))
-                                       : (isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06))
-        border.color: isDarkTheme ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+        color: mouseArea.containsMouse ? Qt.rgba(root.activeIndicatorColor.r, root.activeIndicatorColor.g, root.activeIndicatorColor.b, 0.16)
+                                       : Qt.rgba(root.activeIndicatorColor.r, root.activeIndicatorColor.g, root.activeIndicatorColor.b, 0.08)
+        border.color: Qt.rgba(root.activeIndicatorColor.r, root.activeIndicatorColor.g, root.activeIndicatorColor.b, 0.12)
         border.width: 1
 
         Behavior on color {
@@ -262,7 +270,7 @@ Item {
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                fallback: Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
+                fallback: (mainItem && mainItem.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
                 isMask: true
                 color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
