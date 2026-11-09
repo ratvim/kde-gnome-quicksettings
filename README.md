@@ -58,6 +58,7 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
   - Clicking or dragging anywhere on the volume slider track while muted immediately un-mutes the audio and sets the volume to that percentage instead of snapping back to 0%.
 - 📸 **Universal Screenshot Tool Integration**:
   - Quick screenshot capture button in the expanded Quick Settings header supporting Spectacle, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp with detached process execution.
+  - Automatically detects and displays only utilities installed on the system in both the widget settings drawer and Plasma configuration dialog.
 
 ---
 

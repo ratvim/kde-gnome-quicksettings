@@ -256,6 +256,9 @@ PlasmoidItem {
     property bool hasXfceScreenshooter: false
     property bool hasScrot: false
     property bool hasGrim: false
+    property var installedScreenshotTools: [
+        { "text": "Auto Detect (Desktop Default)", "value": "auto" }
+    ]
     property string screenshotTool: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.screenshotTool !== undefined && plasmoid.configuration.screenshotTool !== "") ? plasmoid.configuration.screenshotTool : "auto"
 
     // Executable DataEngine to run system scripts natively in Plasma 6
@@ -385,6 +388,7 @@ PlasmoidItem {
                     if (dev.has_scrot !== undefined) mainItem.hasScrot = !!dev.has_scrot
                     if (dev.has_grim !== undefined) mainItem.hasGrim = !!dev.has_grim
                     if (dev.has_screenshot_tool !== undefined) mainItem.hasScreenshotTool = !!dev.has_screenshot_tool
+                    if (dev.installed_screenshot_tools !== undefined) mainItem.installedScreenshotTools = dev.installed_screenshot_tools
                 }
             } catch (e) {
                 // Ignore parse errors from background notifications

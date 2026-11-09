@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import org.kde.plasma.plasmoid
+import org.kde.plasma.plasma5support as Plasma5Support
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 
@@ -45,6 +46,44 @@ KCM.SimpleKCM {
     property alias cfg_tileShowKdeConnect: tileKdeCheck.checked
 
     property string cfg_screenshotTool: "auto"
+
+    Plasma5Support.DataSource {
+        id: execSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            var stdout = data["stdout"] ? data["stdout"].trim() : ""
+            disconnectSource(source)
+            if (!stdout) return
+            try {
+                var res = JSON.parse(stdout)
+                if (res.installed_tools && res.installed_tools.length > 0) {
+                    screenshotToolCombo.model = res.installed_tools
+                    for (var i = 0; i < res.installed_tools.length; i++) {
+                        if (res.installed_tools[i].value === root.cfg_screenshotTool) {
+                            screenshotToolCombo.currentIndex = i
+                            return
+                        }
+                    }
+                    screenshotToolCombo.currentIndex = 0
+                }
+            } catch (e) {}
+        }
+    }
+
+    Component.onCompleted: {
+        if (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.installedScreenshotTools && plasmoid.rootItem.installedScreenshotTools.length > 0) {
+            screenshotToolCombo.model = plasmoid.rootItem.installedScreenshotTools
+            for (var i = 0; i < screenshotToolCombo.model.length; i++) {
+                if (screenshotToolCombo.model[i].value === root.cfg_screenshotTool) {
+                    screenshotToolCombo.currentIndex = i
+                    break
+                }
+            }
+        }
+        var scriptUrl = Qt.resolvedUrl("../scripts/devices.sh").toString().replace(/^file:\/\//, "")
+        execSource.connectSource("bash '" + scriptUrl + "' check_screenshot_tools")
+    }
 
     Kirigami.FormLayout {
         // --- 1. Panel Status Capsule Section ---
@@ -166,23 +205,16 @@ KCM.SimpleKCM {
             textRole: "text"
             valueRole: "value"
             model: [
-                { text: i18n("Auto Detect (Desktop Default)"), value: "auto" },
-                { text: i18n("Spectacle (KDE)"), value: "spectacle" },
-                { text: i18n("Flameshot (Universal)"), value: "flameshot" },
-                { text: i18n("GNOME Screenshot"), value: "gnome-screenshot" },
-                { text: i18n("Ksnip (Qt Universal)"), value: "ksnip" },
-                { text: i18n("XFCE Screenshooter"), value: "xfce4-screenshooter" },
-                { text: i18n("Scrot (Lightweight CLI)"), value: "scrot" },
-                { text: i18n("Grim / Slurp (Wayland)"), value: "grim" }
+                { text: i18n("Auto Detect (Desktop Default)"), value: "auto" }
             ]
             currentIndex: {
                 for (var i = 0; i < model.length; i++) {
-                    if (model[i].value === cfg_screenshotTool) return i;
+                    if (model[i].value === root.cfg_screenshotTool) return i;
                 }
                 return 0;
             }
             onActivated: {
-                cfg_screenshotTool = currentValue
+                root.cfg_screenshotTool = currentValue
             }
         }
 

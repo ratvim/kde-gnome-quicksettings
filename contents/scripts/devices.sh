@@ -1017,6 +1017,30 @@ toggle_airplane() {
     fi
 }
 
+get_installed_screenshot_tools_json() {
+    local has_spec="$1"
+    local has_flame="$2"
+    local has_gnome="$3"
+    local has_ksnip="$4"
+    local has_xfce="$5"
+    local has_scrot="$6"
+    local has_grim="$7"
+
+    local items=()
+    items+=('{"text": "Auto Detect (Desktop Default)", "value": "auto"}')
+    [[ "$has_spec" == "true" ]] && items+=('{"text": "Spectacle (KDE)", "value": "spectacle"}')
+    [[ "$has_flame" == "true" ]] && items+=('{"text": "Flameshot", "value": "flameshot"}')
+    [[ "$has_gnome" == "true" ]] && items+=('{"text": "GNOME Screenshot", "value": "gnome-screenshot"}')
+    [[ "$has_ksnip" == "true" ]] && items+=('{"text": "Ksnip", "value": "ksnip"}')
+    [[ "$has_xfce" == "true" ]] && items+=('{"text": "XFCE Screenshooter", "value": "xfce4-screenshooter"}')
+    [[ "$has_scrot" == "true" ]] && items+=('{"text": "Scrot", "value": "scrot"}')
+    [[ "$has_grim" == "true" ]] && items+=('{"text": "Grim / Slurp (Wayland)", "value": "grim"}')
+
+    local json_tools
+    json_tools=$(IFS=,; echo "[${items[*]}]")
+    echo "$json_tools"
+}
+
 get_all_status() {
     local mic_muted
     mic_muted=$(get_mic_status)
@@ -1060,6 +1084,9 @@ get_all_status() {
         any_tool="true"
     fi
 
+    local installed_tools_json
+    installed_tools_json=$(get_installed_screenshot_tools_json "$has_spec" "$has_flame" "$has_gnome" "$has_ksnip" "$has_xfce" "$has_scrot" "$has_grim")
+
     cat <<EOF
 {
   "mic_muted": $mic_muted,
@@ -1079,7 +1106,8 @@ get_all_status() {
   "has_xfce_screenshooter": $has_xfce,
   "has_scrot": $has_scrot,
   "has_grim": $has_grim,
-  "has_screenshot_tool": $any_tool
+  "has_screenshot_tool": $any_tool,
+  "installed_screenshot_tools": $installed_tools_json
 }
 EOF
 }
@@ -1295,6 +1323,7 @@ case "$CMD" in
         if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
             any_tool="true"
         fi
+        installed_tools_json=$(get_installed_screenshot_tools_json "$has_spec" "$has_flame" "$has_gnome" "$has_ksnip" "$has_xfce" "$has_scrot" "$has_grim")
         cat <<EOF
 {
   "has_spectacle": $has_spec,
@@ -1304,7 +1333,8 @@ case "$CMD" in
   "has_xfce_screenshooter": $has_xfce,
   "has_scrot": $has_scrot,
   "has_grim": $has_grim,
-  "has_screenshot_tool": $any_tool
+  "has_screenshot_tool": $any_tool,
+  "installed_tools": $installed_tools_json
 }
 EOF
         ;;

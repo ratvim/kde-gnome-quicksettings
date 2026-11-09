@@ -5,6 +5,10 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
 ## [1.1.2] - 2026-11-09
 
 ### Added & Improved
+- **Dynamic Installed Screenshot Utilities Detection**:
+  - Filtered screenshot utility selection in both the Plasma native configuration dialog (`ConfigGeneral.qml`) and the in-app Quick Settings drawer (`WidgetSettingsView.qml`) to only display applications actually installed on the system (e.g. Spectacle, Flameshot, GNOME Screenshot, Ksnip, XFCE Screenshooter, Scrot, Grim/Slurp).
+  - Automatically queries host binaries via `devices.sh check_screenshot_tools` on demand and dynamically updates the UI models, hiding uninstalled utilities from the user.
+
 - **Resolution & DPI Responsive Scaling Engine**:
   - Implemented automatic, multi-factor responsive scaling for the expanded Quick Settings panel across all display resolutions, aspect ratios, and scaling factors without requiring manual configuration.
   - Dynamically computes `resolutionScale` combining normalized viewport resolution (1080p reference, clamped against 16:9 equivalent to prevent horizontal distortion on ultrawide monitors) with system `Kirigami.Units.gridUnit` DPI metrics, smoothly clamped between `0.85` (low-resolution displays) and `1.50` (4K UHD displays).
