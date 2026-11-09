@@ -2,6 +2,22 @@
 
 All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are documented in this file.
 
+## [1.1.2] - 2026-11-09
+
+### Added & Improved
+- **Resolution & DPI Responsive Scaling Engine**:
+  - Implemented automatic, multi-factor responsive scaling for the expanded Quick Settings panel across all display resolutions, aspect ratios, and scaling factors without requiring manual configuration.
+  - Dynamically computes `resolutionScale` combining normalized viewport resolution (1080p reference, clamped against 16:9 equivalent to prevent horizontal distortion on ultrawide monitors) with system `Kirigami.Units.gridUnit` DPI metrics, smoothly clamped between `0.85` (low-resolution displays) and `1.50` (4K UHD displays).
+  - Automatically bounds popup width (`responsiveWidth`), corner radii, content margins, tile spacing, and slider heights:
+    - **720p / 768p / 800p (Steam Deck, compact displays)**: Panel width scales down cleanly (~347px), preventing the widget from overwhelming small displays while keeping all controls readable.
+    - **1080p (Standard Full HD)**: Native 390px panel width and standard 176px 2-column tiles.
+    - **1440p / 2K / Ultrawide**: Scales smoothly to ~520px width, expanding tiles and typography proportionally.
+    - **4K UHD (3840x2160)**: Scales to ~566px width with enlarged touch/click targets and proportional font sizes, eliminating the tiny popup issue on high-DPI displays.
+  - **Dynamic Two-Column Tile Grid**:
+    - `tileWidth()` evaluates available width in real time (`Math.floor((responsiveWidth - 2 * contentMargin - tileSpacing) / 2)`), ensuring tiles always fill the panel grid with zero gaps or awkward wrapping.
+  - **Viewport Clamping & Safe Scrolling**:
+    - Panel height is clamped against `maxScreenSafeHeight` (`screenHeight - 64`), paired with `ScrollView` (`ScrollBar.vertical.policy: ScrollBar.AsNeeded`) to guarantee popup contents never clip outside the physical desktop boundaries.
+
 ## [1.1.1] - 2026-10-29
 
 ### Added & Improved

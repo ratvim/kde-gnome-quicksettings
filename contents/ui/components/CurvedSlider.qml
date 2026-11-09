@@ -41,7 +41,7 @@ Rectangle {
 
     implicitWidth: 362
     implicitHeight: 24
-    height: 24
+    height: implicitHeight
     radius: height / 2
     color: trackColor
     clip: true
@@ -81,8 +81,8 @@ Rectangle {
 
         Kirigami.Icon {
             anchors.centerIn: parent
-            width: 14
-            height: 14
+            width: Math.max(14, Math.round(parent.height * 0.58))
+            height: width
             source: root.iconName
             isMask: true
             color: (root.visualValue > 15 && !root.effectiveMuted) ? root.accentTextColor : root.iconColor

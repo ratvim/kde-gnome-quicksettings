@@ -31,6 +31,55 @@ Rectangle {
     property bool isDarkTheme: backend ? backend.isDarkTheme : true
     property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings"
 
+    // =========================================================================
+    // RESOLUTION & DPI RESPONSIVE SCALING ENGINE
+    // Automatically adapts panel dimensions and layout across any resolution
+    // (720p, 1080p, 2K/QHD, 4K/UHD, and Ultrawide displays)
+    // =========================================================================
+    readonly property real screenWidth: (Screen.width > 0) ? Screen.width : 1920
+    readonly property real screenHeight: (Screen.height > 0) ? Screen.height : 1080
+    readonly property real baseGridUnit: (Kirigami.Units && Kirigami.Units.gridUnit > 0) ? Kirigami.Units.gridUnit : 18
+
+    // Multi-factor responsive resolution scale:
+    // Normalizes geometry against standard 1080p reference, while honoring
+    // 16:9 aspect-ratio clamping for ultrawide displays and Kirigami gridUnit scaling.
+    readonly property real resolutionScale: {
+        var hScale = screenHeight / 1080.0
+        // Use 16:9 equivalent width to prevent horizontal distortion on ultrawide monitors
+        var wEquiv = Math.min(screenWidth, screenHeight * (16.0 / 9.0))
+        var wScale = wEquiv / 1920.0
+        var geomScale = (hScale * 0.65) + (wScale * 0.35)
+        var unitScale = baseGridUnit / 18.0
+        var effective = Math.max(unitScale, geomScale)
+        // Clamp scale factor between 0.85 (low-res / small displays) and 1.50 (4K UHD)
+        return Math.max(0.85, Math.min(1.50, effective))
+    }
+
+    // Responsive panel width:
+    // Base 390px scaled by resolution, bounded strictly to screen proportions
+    readonly property int responsiveWidth: {
+        var targetW = Math.round(390 * resolutionScale)
+        var maxAllowedW = Math.round(screenWidth * (screenWidth < 700 ? 0.92 : 0.40))
+        var minAllowedW = Math.min(Math.round(screenWidth * 0.88), 340)
+        return Math.max(minAllowedW, Math.min(maxAllowedW, targetW))
+    }
+
+    // Max safe vertical height to guarantee popup never clips outside display
+    readonly property real maxScreenSafeHeight: {
+        return Math.max(280, screenHeight - 64)
+    }
+
+    // Responsive padding and spacing metrics
+    readonly property int contentMargin: Math.round(14 * resolutionScale)
+    readonly property int tileSpacing: Math.round(10 * resolutionScale)
+    readonly property int panelCornerRadius: Math.round(24 * resolutionScale)
+
+    onResponsiveWidthChanged: {
+        updateTogglePages()
+        syncWindowGeometry()
+        restartBackgroundFixTimers()
+    }
+
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground
 
@@ -60,7 +109,7 @@ Rectangle {
 
         if (helper) {
             try {
-                helper.applyMask(root, 24, true)
+                helper.applyMask(root, root.panelCornerRadius, true)
             } catch (e) {}
         }
     }
@@ -328,7 +377,7 @@ Rectangle {
         }
         if (win) {
             try {
-                win.width = 390
+                win.width = root.responsiveWidth
                 win.height = root.currentContentHeight
             } catch (e) {
                 console.warn("Could not sync popup window geometry:", e)
@@ -501,29 +550,36 @@ Rectangle {
     }
 
     readonly property real mainCalculatedHeight: {
-        var tileH = (backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : 56
-        var togglesH = visibleRowsOnPage > 0 ? (visibleRowsOnPage * tileH + Math.max(0, visibleRowsOnPage - 1) * 10) : 0
-        var dotsH = (togglePageCount > 1) ? 18 : 0
+        var tileH = (backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : Math.round(56 * root.resolutionScale)
+        var togglesH = visibleRowsOnPage > 0 ? (visibleRowsOnPage * tileH + Math.max(0, visibleRowsOnPage - 1) * root.tileSpacing) : 0
+        var dotsH = (togglePageCount > 1) ? Math.round(18 * root.resolutionScale) : 0
         var hasMedia = (backend && backend.mediaTitle && backend.mediaTitle !== "")
-        var mediaH = hasMedia ? (14 + 70) : 0
-        // Top bar (32) + Gap (14) + Sliders (56) + (Gap 14 if toggles) + togglesH + dotsH + mediaH + Margins (28)
-        var exactH = 32 + 14 + 56 + (visibleRowsOnPage > 0 ? (14 + togglesH) : 0) + dotsH + mediaH + 28
+        var mediaH = hasMedia ? (root.contentMargin + Math.round(70 * root.resolutionScale)) : 0
+        var topBarH = Math.round(36 * root.resolutionScale)
+        var slidersH = Math.round(56 * root.resolutionScale)
+        var exactH = topBarH + root.contentMargin + slidersH + (visibleRowsOnPage > 0 ? (root.contentMargin + togglesH) : 0) + dotsH + mediaH + (root.contentMargin * 2)
         if (mainCol && mainCol.implicitHeight > 0) {
-            return Math.max(180, Math.min(Math.max(exactH, mainCol.implicitHeight + 28), 950))
+            return Math.max(180, Math.min(Math.max(exactH, mainCol.implicitHeight + (root.contentMargin * 2)), root.maxScreenSafeHeight))
         }
-        return Math.max(180, Math.min(exactH, 950))
+        return Math.max(180, Math.min(exactH, root.maxScreenSafeHeight))
     }
 
     readonly property real currentContentHeight: {
-        if (root.activeView === "main") return mainCalculatedHeight
-        if (root.activeView === "power") return 360
-        if (root.activeView === "hotspot") return 360
-        if (root.activeView === "dnd") return (backend && backend.dndEnabled) ? 440 : 360
-        if (root.activeView === "camera") return 400
-        if (root.activeView === "microphone") return 400
-        if (root.activeView === "location") return 400
-        if (root.activeView === "settings") return 540
-        return 500 // network, bluetooth, kdeconnect
+        var rawH = 0
+        if (root.activeView === "main") {
+            rawH = mainCalculatedHeight
+        } else if (root.activeView === "power" || root.activeView === "hotspot") {
+            rawH = Math.round(360 * root.resolutionScale)
+        } else if (root.activeView === "dnd") {
+            rawH = (backend && backend.dndEnabled) ? Math.round(440 * root.resolutionScale) : Math.round(360 * root.resolutionScale)
+        } else if (root.activeView === "camera" || root.activeView === "microphone" || root.activeView === "location") {
+            rawH = Math.round(400 * root.resolutionScale)
+        } else if (root.activeView === "settings") {
+            rawH = Math.round(540 * root.resolutionScale)
+        } else {
+            rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect
+        }
+        return Math.max(200, Math.min(rawH, root.maxScreenSafeHeight))
     }
 
     onCurrentContentHeightChanged: {
@@ -588,9 +644,10 @@ Rectangle {
         updateTogglePages()
     }
 
-    // Standard fixed half-width for toggles: 2 per row. Odd toggle remains half-width, leaving the right slot empty.
+    // Dynamically calculate 2-column tile width based on actual responsive panel width
     function tileWidth() {
-        return 176
+        var availWidth = root.responsiveWidth - (root.contentMargin * 2) - root.tileSpacing
+        return Math.max(130, Math.floor(availWidth / 2))
     }
 
     function getToggleByKey(k) {
@@ -671,18 +728,18 @@ Rectangle {
         }
     }
 
-    Layout.preferredWidth: 390
-    Layout.preferredHeight: currentContentHeight
-    Layout.minimumWidth: 390
-    Layout.maximumWidth: 390
-    Layout.minimumHeight: currentContentHeight
-    Layout.maximumHeight: currentContentHeight
+    Layout.preferredWidth: root.responsiveWidth
+    Layout.preferredHeight: root.currentContentHeight
+    Layout.minimumWidth: root.responsiveWidth
+    Layout.maximumWidth: root.responsiveWidth
+    Layout.minimumHeight: root.currentContentHeight
+    Layout.maximumHeight: root.currentContentHeight
 
-    implicitWidth: 390
-    implicitHeight: currentContentHeight
-    width: 390
-    height: currentContentHeight
-    radius: 24
+    implicitWidth: root.responsiveWidth
+    implicitHeight: root.currentContentHeight
+    width: root.responsiveWidth
+    height: root.currentContentHeight
+    radius: root.panelCornerRadius
 
     antialiasing: true
     smooth: true
@@ -705,7 +762,7 @@ Rectangle {
         ScrollView {
             id: mainScroll
             anchors.fill: parent
-            anchors.margins: 14
+            anchors.margins: root.contentMargin
             clip: true
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             ScrollBar.vertical.policy: ScrollBar.AsNeeded
@@ -713,20 +770,20 @@ Rectangle {
             ColumnLayout {
                 id: mainCol
                 width: mainScroll.availableWidth
-                spacing: 14
+                spacing: root.contentMargin
 
                 // 1. Top Bar: User Profile (Avatar + Name & Role) + Battery + Action Icons
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: Math.round(8 * root.resolutionScale)
 
                     // User Profile Card (Circular Profile Pic + Name & Role, clicks to open User Management)
                     Rectangle {
                         id: userProfileCard
-                        implicitHeight: 36
-                        implicitWidth: userProfileRow.implicitWidth + 8
-                        Layout.maximumWidth: 170
-                        radius: 18
+                        implicitHeight: Math.round(36 * root.resolutionScale)
+                        implicitWidth: userProfileRow.implicitWidth + Math.round(8 * root.resolutionScale)
+                        Layout.maximumWidth: Math.round(180 * root.resolutionScale)
+                        radius: implicitHeight / 2
                         color: userProfileMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent"
 
                         Behavior on color {
@@ -739,15 +796,15 @@ Rectangle {
                             anchors.left: parent.left
                             anchors.leftMargin: 2
                             anchors.right: parent.right
-                            anchors.rightMargin: 6
-                            spacing: 8
+                            anchors.rightMargin: Math.round(6 * root.resolutionScale)
+                            spacing: Math.round(8 * root.resolutionScale)
 
                             // Circular Profile Pic
                             Rectangle {
                                 id: userProfileAvatar
-                                width: 32
-                                height: 32
-                                radius: 16
+                                width: Math.round(32 * root.resolutionScale)
+                                height: Math.round(32 * root.resolutionScale)
+                                radius: width / 2
                                 color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)
                                 border.width: 1.5
                                 border.color: userProfileMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.4) : Qt.rgba(0, 0, 0, 0.28)) : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.18) : Qt.rgba(0, 0, 0, 0.12))
@@ -770,8 +827,8 @@ Rectangle {
 
                                         Kirigami.Icon {
                                             anchors.centerIn: parent
-                                            width: 16
-                                            height: 16
+                                            width: Math.max(14, Math.round(16 * root.resolutionScale))
+                                            height: Math.max(14, Math.round(16 * root.resolutionScale))
                                             source: "user-identity"
                                             isMask: true
                                             color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -819,7 +876,7 @@ Rectangle {
                                 Text {
                                     Layout.fillWidth: true
                                     text: (backend && backend.userRealName && backend.userRealName !== "") ? backend.userRealName : (backend ? backend.userName : "User")
-                                    font.pixelSize: 12
+                                    font.pixelSize: Math.max(11, Math.round(12 * root.resolutionScale))
                                     font.weight: Font.DemiBold
                                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
                                     elide: Text.ElideRight
@@ -828,7 +885,7 @@ Rectangle {
                                 Text {
                                     Layout.fillWidth: true
                                     text: (backend && backend.userRole && backend.userRole !== "") ? backend.userRole : "Administrator"
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.max(9, Math.round(10 * root.resolutionScale))
                                     color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.55) : Qt.rgba(0, 0, 0, 0.55)
                                     elide: Text.ElideRight
                                 }
@@ -858,9 +915,9 @@ Rectangle {
 
                     // Battery Capsule (Click to toggle battery percentage on panel)
                     Rectangle {
-                        implicitWidth: batRow.implicitWidth + 14
-                        implicitHeight: 28
-                        radius: 14
+                        implicitWidth: batRow.implicitWidth + Math.round(14 * root.resolutionScale)
+                        implicitHeight: Math.round(28 * root.resolutionScale)
+                        radius: implicitHeight / 2
                         color: batMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.12)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.07))
 
                         RowLayout {
@@ -869,8 +926,8 @@ Rectangle {
                             spacing: 4
 
                             Kirigami.Icon {
-                                implicitWidth: 16
-                                implicitHeight: 16
+                                implicitWidth: Math.max(14, Math.round(16 * root.resolutionScale))
+                                implicitHeight: Math.max(14, Math.round(16 * root.resolutionScale))
                                 source: backend ? backend.batteryIconName : "battery-080"
                                 fallback: (backend && backend.batteryCharging) ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
                                 isMask: true
@@ -879,7 +936,7 @@ Rectangle {
                             }
                             Text {
                                 text: (backend ? backend.batteryLevel : 85) + "%"
-                                font.pixelSize: 11
+                                font.pixelSize: Math.max(10, Math.round(11 * root.resolutionScale))
                                 font.weight: Font.Medium
                                 color: (backend && backend.batteryLevel <= 20 && !backend.batteryCharging) ? "#e74c3c" : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
                             }
@@ -900,15 +957,15 @@ Rectangle {
 
                     // Settings Launcher Button (Opens System Settings)
                     Rectangle {
-                        width: 32
-                        height: 32
-                        radius: 16
+                        width: Math.round(32 * root.resolutionScale)
+                        height: Math.round(32 * root.resolutionScale)
+                        radius: width / 2
                         color: settingsMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
                         Kirigami.Icon {
                             anchors.centerIn: parent
-                            width: 16
-                            height: 16
+                            width: Math.max(14, Math.round(16 * root.resolutionScale))
+                            height: Math.max(14, Math.round(16 * root.resolutionScale))
                             source: "settings-configure-symbolic"
                             isMask: true
                             color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -933,17 +990,17 @@ Rectangle {
                     // Screenshot Button (triggers configured screenshot tool with universal OS support)
                     Rectangle {
                         id: screenshotBtnRect
-                        width: 32
-                        height: 32
-                        radius: 16
+                        width: Math.round(32 * root.resolutionScale)
+                        height: Math.round(32 * root.resolutionScale)
+                        radius: width / 2
                         readonly property bool hasTools: Boolean(backend && (backend.hasScreenshotTool || backend.hasSpectacle || backend.hasFlameshot || backend.hasGnomeScreenshot || backend.hasKsnip || backend.hasXfceScreenshooter || backend.hasScrot || backend.hasGrim || (backend.screenshotTool && backend.screenshotTool !== "auto")))
                         opacity: hasTools ? 1.0 : 0.4
                         color: (hasTools && screenshotMouse.containsMouse) ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
                         Kirigami.Icon {
                             anchors.centerIn: parent
-                            width: 16
-                            height: 16
+                            width: Math.max(14, Math.round(16 * root.resolutionScale))
+                            height: Math.max(14, Math.round(16 * root.resolutionScale))
                             source: Qt.resolvedUrl("../assets/screenshot-symbolic.svg")
                             fallback: "camera-photo-symbolic"
                             isMask: true
@@ -987,15 +1044,15 @@ Rectangle {
                     // Power / Shutdown Button
                     Rectangle {
                         id: powerBtnRect
-                        width: 32
-                        height: 32
-                        radius: 16
+                        width: Math.round(32 * root.resolutionScale)
+                        height: Math.round(32 * root.resolutionScale)
+                        radius: width / 2
                         color: powerMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : "transparent"
 
                         Kirigami.Icon {
                             anchors.centerIn: parent
-                            width: 16
-                            height: 16
+                            width: Math.max(14, Math.round(16 * root.resolutionScale))
+                            height: Math.max(14, Math.round(16 * root.resolutionScale))
                             source: "system-shutdown-symbolic"
                             isMask: true
                             color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -1012,15 +1069,15 @@ Rectangle {
                     }
                 }
 
-                // 2. Sliders Section: Volume & Brightness (Full width, slim vertical height ~24px)
+                // 2. Sliders Section: Volume & Brightness (Full width, slim vertical height ~24-32px responsive)
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: Math.round(8 * root.resolutionScale)
 
                     // Audio Volume Slider (Full Width)
                     CurvedSlider {
                         Layout.fillWidth: true
-                        implicitHeight: 24
+                        implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
                         value: backend ? backend.volume : 65
                         isMuted: backend ? backend.isMuted : false
                         iconName: (backend && backend.volumeIconName) ? backend.volumeIconName : "audio-volume-high"
@@ -1034,7 +1091,7 @@ Rectangle {
                     // Display Brightness Slider (Full Width)
                     CurvedSlider {
                         Layout.fillWidth: true
-                        implicitHeight: 24
+                        implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
                         value: backend ? backend.brightness : 75
                         isMuted: false
                         iconName: "brightness-high-symbolic"
@@ -1050,14 +1107,14 @@ Rectangle {
                 Item {
                     id: togglesContainer
                     Layout.fillWidth: true
-                    implicitHeight: togglesSwipeView.implicitHeight + (pageDotsRow.visible ? (pageDotsRow.implicitHeight + 10) : 0)
+                    implicitHeight: togglesSwipeView.implicitHeight + (pageDotsRow.visible ? (pageDotsRow.implicitHeight + root.tileSpacing) : 0)
 
                     SwipeView {
                         id: togglesSwipeView
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        implicitHeight: root.visibleRowsOnPage > 0 ? (root.visibleRowsOnPage * ((backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : 56) + Math.max(0, root.visibleRowsOnPage - 1) * 10) : 0
+                        implicitHeight: root.visibleRowsOnPage > 0 ? (root.visibleRowsOnPage * ((backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : Math.round(56 * root.resolutionScale)) + Math.max(0, root.visibleRowsOnPage - 1) * root.tileSpacing) : 0
                         height: implicitHeight
                         clip: true
                         currentIndex: 0
@@ -1070,7 +1127,7 @@ Rectangle {
                             Flow {
                                 id: page1Flow
                                 anchors.fill: parent
-                                spacing: 10
+                                spacing: root.tileSpacing
                             }
                         }
                     }
@@ -1089,7 +1146,7 @@ Rectangle {
                             Flow {
                                 id: page2Flow
                                 anchors.fill: parent
-                                spacing: 10
+                                spacing: root.tileSpacing
                             }
                         }
 
@@ -1100,7 +1157,7 @@ Rectangle {
                             Flow {
                                 id: page3Flow
                                 anchors.fill: parent
-                                spacing: 10
+                                spacing: root.tileSpacing
                             }
                         }
                     }
@@ -1121,10 +1178,10 @@ Rectangle {
                     RowLayout {
                         id: pageDotsRow
                         anchors.top: togglesSwipeView.bottom
-                        anchors.topMargin: 10
+                        anchors.topMargin: root.tileSpacing
                         anchors.horizontalCenter: parent.horizontalCenter
                         visible: root.togglePageCount > 1
-                        spacing: 8
+                        spacing: Math.round(8 * root.resolutionScale)
 
                         Repeater {
                             model: root.togglePageCount
@@ -1437,13 +1494,13 @@ Rectangle {
         id: powerOverlay
         visible: false
         z: 99
-        width: 180
-        height: powerOverlayCol.implicitHeight + 16
-        radius: 14
+        width: Math.round(180 * root.resolutionScale)
+        height: powerOverlayCol.implicitHeight + Math.round(16 * root.resolutionScale)
+        radius: Math.round(14 * root.resolutionScale)
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: 52      // below the top bar
-        anchors.rightMargin: 14
+        anchors.topMargin: Math.round(52 * root.resolutionScale)      // below the top bar
+        anchors.rightMargin: root.contentMargin
 
         color: root.isDarkTheme ? "#2a2a32" : "#ffffff"
         border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(0, 0, 0, 0.12)
@@ -1462,7 +1519,7 @@ Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: 8
+            anchors.margins: Math.round(8 * root.resolutionScale)
             spacing: 2
 
             component PowerMenuItem: Rectangle {
@@ -1472,8 +1529,8 @@ Rectangle {
                 signal actionTriggered()
 
                 Layout.fillWidth: true
-                height: 38
-                radius: 8
+                height: Math.round(38 * root.resolutionScale)
+                radius: Math.round(8 * root.resolutionScale)
                 color: pmMouse.containsMouse
                        ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.07))
                        : "transparent"
@@ -1482,13 +1539,13 @@ Rectangle {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 10
+                    anchors.leftMargin: Math.round(10 * root.resolutionScale)
+                    anchors.rightMargin: Math.round(10 * root.resolutionScale)
+                    spacing: Math.round(10 * root.resolutionScale)
 
                     Kirigami.Icon {
-                        implicitWidth: 16
-                        implicitHeight: 16
+                        implicitWidth: Math.max(14, Math.round(16 * root.resolutionScale))
+                        implicitHeight: Math.max(14, Math.round(16 * root.resolutionScale))
                         source: pmItem.iconSrc
                         isMask: true
                         color: root.isDarkTheme ? "#e0e0e0" : "#1a1a1a"
@@ -1496,7 +1553,7 @@ Rectangle {
                     }
                     Text {
                         text: pmItem.label
-                        font.pixelSize: 13
+                        font.pixelSize: Math.max(11, Math.round(13 * root.resolutionScale))
                         color: root.isDarkTheme ? "#e0e0e0" : "#1a1a1a"
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
