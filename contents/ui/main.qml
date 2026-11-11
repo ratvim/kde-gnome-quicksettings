@@ -35,6 +35,18 @@ PlasmoidItem {
     }
 
     compactRepresentation: CompactRepresentation {}
+
+    readonly property int panelLocation: {
+        if (mainItem.Plasmoid) {
+            if (mainItem.Plasmoid.containment && mainItem.Plasmoid.containment.location !== undefined) {
+                return mainItem.Plasmoid.containment.location
+            }
+            if (mainItem.Plasmoid.location !== undefined) {
+                return mainItem.Plasmoid.location
+            }
+        }
+        return PlasmaCore.Types.BottomEdge
+    }
     fullRepresentation: FullRepresentation {
         Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
         Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground

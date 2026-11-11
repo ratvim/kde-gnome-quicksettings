@@ -321,13 +321,34 @@ Item {
         return false
     }
 
-    // Panel orientation tracking for directional arrow
+    // Panel orientation tracking for directional arrow and indicator hover popups
     readonly property int panelLocation: {
-        if (typeof plasmoid !== "undefined" && plasmoid.location !== undefined) {
-            return plasmoid.location
+        if (typeof mainItem !== "undefined" && mainItem) {
+            if (mainItem.panelLocation !== undefined) return mainItem.panelLocation
+            if (mainItem.Plasmoid) {
+                if (mainItem.Plasmoid.containment && mainItem.Plasmoid.containment.location !== undefined) {
+                    return mainItem.Plasmoid.containment.location
+                }
+                if (mainItem.Plasmoid.location !== undefined) {
+                    return mainItem.Plasmoid.location
+                }
+            }
         }
-        if (typeof Plasmoid !== "undefined" && Plasmoid.location !== undefined) {
-            return Plasmoid.location
+        if (typeof Plasmoid !== "undefined" && Plasmoid) {
+            if (Plasmoid.containment && Plasmoid.containment.location !== undefined) {
+                return Plasmoid.containment.location
+            }
+            if (Plasmoid.location !== undefined) {
+                return Plasmoid.location
+            }
+        }
+        if (typeof plasmoid !== "undefined" && plasmoid) {
+            if (plasmoid.containment && plasmoid.containment.location !== undefined) {
+                return plasmoid.containment.location
+            }
+            if (plasmoid.location !== undefined) {
+                return plasmoid.location
+            }
         }
         return PlasmaCore.Types.BottomEdge
     }
@@ -363,6 +384,20 @@ Item {
         }
     }
 
+    function formatAppNames(appsList) {
+        if (!appsList || !Array.isArray(appsList) || appsList.length === 0) return ""
+        var names = []
+        for (var i = 0; i < appsList.length; i++) {
+            var item = appsList[i]
+            if (typeof item === "string") {
+                names.push(item)
+            } else if (item && typeof item === "object") {
+                names.push(item.name || item.comm || item.details || "Application")
+            }
+        }
+        return names.join(", ")
+    }
+
     // Plasma Panel Layout sizing & safety margins
     Layout.fillWidth: false
     Layout.fillHeight: true
@@ -381,6 +416,7 @@ Item {
     // Capsule pill container
     Rectangle {
         id: pillRect
+        objectName: "capsulePill"
         anchors.centerIn: parent
         implicitWidth: root.hasVisibleIndicators ? (contentRow.implicitWidth + 24) : Math.max(30, contentRow.implicitWidth + 18)
         implicitHeight: Math.max(32, root.panelIconSize + 14)
@@ -450,7 +486,8 @@ Item {
                     iconName: "preferences-system"
                     iconColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -488,7 +525,8 @@ Item {
                     iconName: "kdeconnect-tray-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -517,12 +555,17 @@ Item {
 
                 StatusToolTip {
                     visible: camHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0) ? mainItem.cameraApps.join(", ") : ((mainItem && mainItem.cameraBlocked) ? "Camera Guard Active" : "Camera In Use")
+                    title: {
+                        var names = root.formatAppNames(mainItem ? mainItem.cameraApps : null)
+                        if (names !== "") return names
+                        return (mainItem && mainItem.cameraBlocked) ? "Camera Guard Active" : "Camera In Use"
+                    }
                     status: (mainItem && mainItem.cameraBlocked) ? "Video capture blocked" : "Active camera stream"
                     iconName: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
                     iconColor: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -551,12 +594,17 @@ Item {
 
                 StatusToolTip {
                     visible: micHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.micApps && mainItem.micApps.length > 0) ? mainItem.micApps.join(", ") : ((mainItem && mainItem.micMuted) ? "Microphone Muted" : "Microphone Active")
+                    title: {
+                        var names = root.formatAppNames(mainItem ? mainItem.micApps : null)
+                        if (names !== "") return names
+                        return (mainItem && mainItem.micMuted) ? "Microphone Muted" : "Microphone Active"
+                    }
                     status: (mainItem && mainItem.micMuted) ? "Muted by privacy toggle" : "Audio capture active"
                     iconName: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
                     iconColor: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -585,12 +633,19 @@ Item {
 
                 StatusToolTip {
                     visible: locHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? ("Location: " + mainItem.locationApps.join(", ")) : "Location Services"
-                    status: (mainItem && mainItem.locationEnabled) ? "Active GPS / Geolocation" : "Location tracking disabled"
+                    title: {
+                        var names = root.formatAppNames(mainItem ? mainItem.locationApps : null)
+                        if (names !== "") return names
+                        return (mainItem && mainItem.locationEnabled) ? "Location Services" : "Location Off"
+                    }
+                    status: (mainItem && mainItem.locationEnabled) 
+                        ? ((mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? "Active GPS / Geolocation Tracking" : "Location Enabled") 
+                        : "Location tracking disabled"
                     iconName: "find-location-symbolic"
                     iconColor: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -624,7 +679,8 @@ Item {
                     iconName: "contrast-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -658,7 +714,8 @@ Item {
                     iconName: "notifications-disabled-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -692,7 +749,8 @@ Item {
                     iconName: "redshift-status-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -726,7 +784,8 @@ Item {
                     iconName: root.powerProfileIconName
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -760,7 +819,8 @@ Item {
                     iconName: "network-wireless-hotspot-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -794,7 +854,8 @@ Item {
                     iconName: "network-flightmode-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -835,7 +896,8 @@ Item {
                     progressValue: (mainItem && mainItem.btBattery) ? mainItem.btBattery : 0
                     progressColor: (mainItem && mainItem.btBattery <= 20) ? "#e74c3c" : "#33d17a"
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -876,7 +938,8 @@ Item {
                     progressValue: root.wifiSignal
                     progressColor: root.wifiSignal >= 60 ? "#33d17a" : (root.wifiSignal >= 30 ? "#f5a623" : "#e74c3c")
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -921,7 +984,8 @@ Item {
                     progressValue: root.isMuted ? 0 : root.volume
                     progressColor: root.isMuted ? (root.isDarkTheme ? "#777777" : "#999999") : ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4")
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
 
@@ -979,7 +1043,8 @@ Item {
                     progressValue: root.batteryLevel
                     progressColor: root.batteryCharging ? "#33d17a" : (root.batteryLevel <= 20 ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#3584e4"))
                     isDarkTheme: root.isDarkTheme
-                    isTopPanel: root.isTopPanel
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
                 }
             }
         }
