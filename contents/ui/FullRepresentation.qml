@@ -1055,21 +1055,33 @@ Rectangle {
                         ToolTip.delay: 400
                         ToolTip.text: {
                             if (!screenshotBtnRect.hasTools) return i18n("No screenshot tool found (install Spectacle, Flameshot, GNOME Screenshot, or Ksnip)")
-                            var toolName = "Screenshot"
+                            var toolName = ""
                             if (backend) {
-                                if (backend.screenshotTool === "flameshot") toolName = "Flameshot"
-                                else if (backend.screenshotTool === "spectacle") toolName = "Spectacle"
-                                else if (backend.screenshotTool === "gnome-screenshot" || backend.screenshotTool === "gnome") toolName = "GNOME Screenshot"
-                                else if (backend.screenshotTool === "ksnip") toolName = "Ksnip"
-                                else if (backend.screenshotTool === "xfce4-screenshooter" || backend.screenshotTool === "xfce") toolName = "XFCE Screenshooter"
-                                else if (backend.screenshotTool === "scrot") toolName = "Scrot"
-                                else if (backend.hasSpectacle) toolName = "Spectacle"
-                                else if (backend.hasFlameshot) toolName = "Flameshot"
-                                else if (backend.hasGnomeScreenshot) toolName = "GNOME Screenshot"
-                                else if (backend.hasKsnip) toolName = "Ksnip"
-                                else if (backend.hasXfceScreenshooter) toolName = "XFCE Screenshooter"
+                                if (backend.screenshotTool && backend.screenshotTool !== "auto" && backend.installedScreenshotTools) {
+                                    for (var i = 0; i < backend.installedScreenshotTools.length; ++i) {
+                                        var item = backend.installedScreenshotTools[i]
+                                        if (item && item.value === backend.screenshotTool) {
+                                            toolName = item.text
+                                            break
+                                        }
+                                    }
+                                }
+                                if (!toolName) {
+                                    if (backend.screenshotTool === "flameshot") toolName = "Flameshot"
+                                    else if (backend.screenshotTool === "spectacle") toolName = "Spectacle"
+                                    else if (backend.screenshotTool === "gnome-screenshot" || backend.screenshotTool === "gnome") toolName = "GNOME Screenshot"
+                                    else if (backend.screenshotTool === "ksnip") toolName = "Ksnip"
+                                    else if (backend.screenshotTool === "xfce4-screenshooter" || backend.screenshotTool === "xfce") toolName = "XFCE Screenshooter"
+                                    else if (backend.screenshotTool === "scrot") toolName = "Scrot"
+                                    else if (backend.hasSpectacle) toolName = "Spectacle"
+                                    else if (backend.hasFlameshot) toolName = "Flameshot"
+                                    else if (backend.hasGnomeScreenshot) toolName = "GNOME Screenshot"
+                                    else if (backend.hasKsnip) toolName = "Ksnip"
+                                    else if (backend.hasXfceScreenshooter) toolName = "XFCE Screenshooter"
+                                    else toolName = "Screenshot"
+                                }
                             }
-                            return i18n("Take Screenshot (%1)", toolName)
+                            return i18n("Take Screenshot (%1)", toolName || "Screenshot")
                         }
                     }
 

@@ -1018,13 +1018,194 @@ toggle_airplane() {
 }
 
 get_installed_screenshot_tools_json() {
-    local has_spec="$1"
-    local has_flame="$2"
-    local has_gnome="$3"
-    local has_ksnip="$4"
-    local has_xfce="$5"
-    local has_scrot="$6"
-    local has_grim="$7"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - << 'PYEOF'
+import os, sys, glob, json
+
+data_dirs = []
+home_app = os.path.expanduser("~/.local/share/applications")
+if os.path.isdir(home_app): data_dirs.append(home_app)
+
+xdg_data_dirs = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+for xd in xdg_data_dirs:
+    app_dir = os.path.join(xd, "applications")
+    if os.path.isdir(app_dir) and app_dir not in data_dirs:
+        data_dirs.append(app_dir)
+
+for extra in ["/var/lib/flatpak/exports/share/applications", 
+              os.path.expanduser("~/.local/share/flatpak/exports/share/applications"),
+              "/var/lib/snapd/desktop/applications",
+              "/usr/share/applications",
+              "/usr/local/share/applications"]:
+    if os.path.isdir(extra) and extra not in data_dirs:
+        data_dirs.append(extra)
+
+def parse_desktop_file(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+    except Exception:
+        return None
+
+    sections = {}
+    current_sec = None
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current_sec = line[1:-1]
+            sections[current_sec] = {}
+        elif current_sec and "=" in line:
+            k, v = line.split("=", 1)
+            sections[current_sec][k.strip()] = v.strip()
+
+    main = sections.get("Desktop Entry", {})
+    if not main or main.get("Type") != "Application":
+        return None
+    if main.get("NoDisplay", "false").lower() == "true":
+        return None
+
+    name = main.get("Name", "")
+    generic = main.get("GenericName", "")
+    comment = main.get("Comment", "")
+    keywords = main.get("Keywords", "")
+    categories = main.get("Categories", "")
+    exec_cmd = main.get("Exec", "")
+
+    exec_clean = " ".join([arg for arg in exec_cmd.split() if not arg.startswith("%")])
+
+    capture_exec = None
+    for sec_name, sec_data in sections.items():
+        if sec_name.startswith("Desktop Action"):
+            s_name = sec_data.get("Name", "").lower()
+            s_exec = sec_data.get("Exec", "")
+            if any(w in s_name for w in ["screenshot", "capture", "gui", "region", "rectangular"]):
+                clean_action_exec = " ".join([arg for arg in s_exec.split() if not arg.startswith("%")])
+                if clean_action_exec:
+                    capture_exec = clean_action_exec
+                    break
+
+    return {
+        "name": name,
+        "generic": generic,
+        "comment": comment,
+        "keywords": keywords,
+        "categories": categories,
+        "exec": capture_exec or exec_clean
+    }
+
+seen_keys = set()
+tools_list = []
+
+for d in data_dirs:
+    for f in sorted(glob.glob(os.path.join(d, "*.desktop"))):
+        base_id = os.path.basename(f)
+        parsed = parse_desktop_file(f)
+        if not parsed:
+            continue
+
+        text = (parsed["name"] + " " + parsed["generic"] + " " + parsed["keywords"] + " " + parsed["categories"] + " " + base_id).lower()
+
+        is_tool = False
+        if "screenshot" in parsed["generic"].lower() or "screenshot" in parsed["keywords"].lower():
+            is_tool = True
+        elif any(sig in base_id.lower() for sig in ["spectacle", "flameshot", "ksnip", "scrot", "grim", "shutter", "gnome-screenshot", "screenshooter"]):
+            is_tool = True
+        elif "screenshooter" in parsed["categories"].lower():
+            is_tool = True
+
+        if is_tool:
+            if "spectacle" in text:
+                key = "spectacle"
+                label = "Spectacle (KDE)"
+            elif "flameshot" in text:
+                key = "flameshot"
+                label = "Flameshot"
+            elif "gnome-screenshot" in text:
+                key = "gnome-screenshot"
+                label = "GNOME Screenshot"
+            elif "ksnip" in text:
+                key = "ksnip"
+                label = "Ksnip"
+            elif "screenshooter" in text:
+                key = "xfce4-screenshooter"
+                label = "XFCE Screenshooter"
+            elif "shutter" in text:
+                key = "shutter"
+                label = "Shutter"
+            else:
+                key = base_id[:-8] if base_id.endswith(".desktop") else base_id
+                label = parsed["name"] or key
+
+            if key not in seen_keys:
+                seen_keys.add(key)
+                tools_list.append({
+                    "text": label,
+                    "value": key,
+                    "exec": parsed["exec"],
+                    "desktop_id": base_id
+                })
+
+# CLI tools check
+cli_tools = [
+    ("scrot", "Scrot", "scrot -s ~/Pictures/Screenshot_%Y-%m-%d_%H-%M-%S.png"),
+    ("grim", "Grim / Slurp (Wayland)", "slurp | grim -g - ~/Pictures/Screenshot_$(date +%Y%m%d_%H%M%S).png"),
+]
+for cmd, label, exec_str in cli_tools:
+    if cmd not in seen_keys:
+        in_path = any(os.access(os.path.join(p, cmd), os.X_OK) for p in os.environ.get("PATH", "").split(":") if os.path.isdir(p))
+        if in_path:
+            seen_keys.add(cmd)
+            tools_list.append({
+                "text": label,
+                "value": cmd,
+                "exec": exec_str,
+                "desktop_id": ""
+            })
+
+items = [{"text": "Auto Detect (Desktop Default)", "value": "auto"}]
+for t in tools_list:
+    items.append({"text": t["text"], "value": t["value"]})
+
+res = {
+    "has_screenshot_tool": len(tools_list) > 0,
+    "has_spectacle": "spectacle" in seen_keys,
+    "has_flameshot": "flameshot" in seen_keys,
+    "has_gnome_screenshot": "gnome-screenshot" in seen_keys,
+    "has_ksnip": "ksnip" in seen_keys,
+    "has_xfce_screenshooter": "xfce4-screenshooter" in seen_keys,
+    "has_scrot": "scrot" in seen_keys,
+    "has_grim": "grim" in seen_keys,
+    "installed_tools": items,
+    "installed_screenshot_tools": items
+}
+print(json.dumps(res))
+PYEOF
+        return 0
+    fi
+
+    # Fallback if python3 is unavailable
+    local has_spec="false"
+    local has_flame="false"
+    local has_gnome="false"
+    local has_ksnip="false"
+    local has_xfce="false"
+    local has_scrot="false"
+    local has_grim="false"
+    local any_tool="false"
+
+    (command -v spectacle >/dev/null 2>&1 || [ -f /usr/share/applications/org.kde.spectacle.desktop ]) && has_spec="true"
+    (command -v flameshot >/dev/null 2>&1 || command -v org.flameshot.Flameshot >/dev/null 2>&1 || [ -x /var/lib/flatpak/exports/bin/org.flameshot.Flameshot ] || [ -f /var/lib/flatpak/exports/share/applications/org.flameshot.Flameshot.desktop ]) && has_flame="true"
+    (command -v gnome-screenshot >/dev/null 2>&1 || [ -f /usr/share/applications/org.gnome.Screenshot.desktop ]) && has_gnome="true"
+    (command -v ksnip >/dev/null 2>&1 || [ -f /usr/share/applications/org.ksnip.ksnip.desktop ]) && has_ksnip="true"
+    (command -v xfce4-screenshooter >/dev/null 2>&1 || [ -f /usr/share/applications/xfce4-screenshooter.desktop ]) && has_xfce="true"
+    command -v scrot >/dev/null 2>&1 && has_scrot="true"
+    (command -v grimblast >/dev/null 2>&1 || command -v grim >/dev/null 2>&1) && has_grim="true"
+
+    if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
+        any_tool="true"
+    fi
 
     local items=()
     items+=('{"text": "Auto Detect (Desktop Default)", "value": "auto"}')
@@ -1038,7 +1219,21 @@ get_installed_screenshot_tools_json() {
 
     local json_tools
     json_tools=$(IFS=,; echo "[${items[*]}]")
-    echo "$json_tools"
+
+    cat <<EOF
+{
+  "has_spectacle": $has_spec,
+  "has_flameshot": $has_flame,
+  "has_gnome_screenshot": $has_gnome,
+  "has_ksnip": $has_ksnip,
+  "has_xfce_screenshooter": $has_xfce,
+  "has_scrot": $has_scrot,
+  "has_grim": $has_grim,
+  "has_screenshot_tool": $any_tool,
+  "installed_tools": $json_tools,
+  "installed_screenshot_tools": $json_tools
+}
+EOF
 }
 
 get_all_status() {
@@ -1063,29 +1258,10 @@ get_all_status() {
     local air_info
     air_info=$(get_airplane_status)
 
-    local has_spec="false"
-    local has_flame="false"
-    local has_gnome="false"
-    local has_ksnip="false"
-    local has_xfce="false"
-    local has_scrot="false"
-    local has_grim="false"
-    local any_tool="false"
-
-    command -v spectacle >/dev/null 2>&1 && has_spec="true"
-    command -v flameshot >/dev/null 2>&1 && has_flame="true"
-    command -v gnome-screenshot >/dev/null 2>&1 && has_gnome="true"
-    command -v ksnip >/dev/null 2>&1 && has_ksnip="true"
-    command -v xfce4-screenshooter >/dev/null 2>&1 && has_xfce="true"
-    command -v scrot >/dev/null 2>&1 && has_scrot="true"
-    (command -v grimblast >/dev/null 2>&1 || command -v grim >/dev/null 2>&1) && has_grim="true"
-
-    if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
-        any_tool="true"
-    fi
-
-    local installed_tools_json
-    installed_tools_json=$(get_installed_screenshot_tools_json "$has_spec" "$has_flame" "$has_gnome" "$has_ksnip" "$has_xfce" "$has_scrot" "$has_grim")
+    local sc_json
+    sc_json=$(get_installed_screenshot_tools_json)
+    local sc_inner="${sc_json#\{}"
+    sc_inner="${sc_inner%\}}"
 
     cat <<EOF
 {
@@ -1099,15 +1275,7 @@ get_all_status() {
   "user": $uinfo,
   "dnd": $dnd_info,
   "airplane_mode": $air_info,
-  "has_spectacle": $has_spec,
-  "has_flameshot": $has_flame,
-  "has_gnome_screenshot": $has_gnome,
-  "has_ksnip": $has_ksnip,
-  "has_xfce_screenshooter": $has_xfce,
-  "has_scrot": $has_scrot,
-  "has_grim": $has_grim,
-  "has_screenshot_tool": $any_tool,
-  "installed_screenshot_tools": $installed_tools_json
+  $sc_inner
 }
 EOF
 }
@@ -1128,23 +1296,32 @@ trigger_screenshot() {
         }
 
         take_spectacle() {
-            launch spectacle -r || launch spectacle -g || launch spectacle
+            launch spectacle -r || launch spectacle -g || launch spectacle || \
+            launch org.kde.spectacle -r || launch org.kde.spectacle || \
+            (command -v flatpak >/dev/null 2>&1 && flatpak run org.kde.spectacle -r >/dev/null 2>&1 &) || \
+            launch gtk-launch org.kde.spectacle
         }
 
         take_flameshot() {
-            launch flameshot gui || launch flameshot
+            launch flameshot gui || launch flameshot || \
+            launch org.flameshot.Flameshot gui || launch org.flameshot.Flameshot || \
+            launch /var/lib/flatpak/exports/bin/org.flameshot.Flameshot gui || \
+            (command -v flatpak >/dev/null 2>&1 && flatpak run org.flameshot.Flameshot gui >/dev/null 2>&1 &) || \
+            launch /snap/bin/flameshot gui || \
+            launch gtk-launch org.flameshot.Flameshot
         }
 
         take_gnome() {
-            launch gnome-screenshot -i || launch gnome-screenshot -a || launch gnome-screenshot
+            launch gnome-screenshot -i || launch gnome-screenshot -a || launch gnome-screenshot || \
+            launch gtk-launch org.gnome.Screenshot
         }
 
         take_ksnip() {
-            launch ksnip -r || launch ksnip
+            launch ksnip -r || launch ksnip || launch gtk-launch org.ksnip.ksnip
         }
 
         take_xfce() {
-            launch xfce4-screenshooter -r || launch xfce4-screenshooter
+            launch xfce4-screenshooter -r || launch xfce4-screenshooter || launch gtk-launch xfce4-screenshooter
         }
 
         take_scrot() {
@@ -1161,6 +1338,21 @@ trigger_screenshot() {
                 mkdir -p "$out_dir" 2>/dev/null || out_dir="/tmp"
                 slurp 2>/dev/null | grim -g - "$out_dir/Screenshot_$(date +%Y%m%d_%H%M%S).png" >/dev/null 2>&1 &
             fi
+        }
+
+        take_generic() {
+            local t="$1"
+            if command -v gtk-launch >/dev/null 2>&1; then
+                launch gtk-launch "$t" && return 0
+                launch gtk-launch "$t.desktop" && return 0
+            fi
+            if command -v gio >/dev/null 2>&1; then
+                launch gio launch "$t" && return 0
+            fi
+            if command -v "$t" >/dev/null 2>&1; then
+                launch "$t" && return 0
+            fi
+            return 1
         }
 
         case "$tool" in
@@ -1185,14 +1377,14 @@ trigger_screenshot() {
             grim|grimblast)
                 take_grim || take_spectacle || take_flameshot || take_gnome || take_ksnip || take_xfce || take_scrot
                 ;;
-            auto|*)
-                if [[ "${XDG_CURRENT_DESKTOP:-}" =~ (KDE|Plasma) ]] && command -v spectacle >/dev/null 2>&1; then
+            auto)
+                if [[ "${XDG_CURRENT_DESKTOP:-}" =~ (KDE|Plasma) ]] && (command -v spectacle >/dev/null 2>&1 || [ -f /usr/share/applications/org.kde.spectacle.desktop ]); then
                     take_spectacle
-                elif [[ "${XDG_CURRENT_DESKTOP:-}" =~ (GNOME|Ubuntu) ]] && command -v gnome-screenshot >/dev/null 2>&1; then
+                elif [[ "${XDG_CURRENT_DESKTOP:-}" =~ (GNOME|Ubuntu) ]] && (command -v gnome-screenshot >/dev/null 2>&1 || [ -f /usr/share/applications/org.gnome.Screenshot.desktop ]); then
                     take_gnome
-                elif command -v spectacle >/dev/null 2>&1; then
+                elif command -v spectacle >/dev/null 2>&1 || [ -f /usr/share/applications/org.kde.spectacle.desktop ]; then
                     take_spectacle
-                elif command -v flameshot >/dev/null 2>&1; then
+                elif command -v flameshot >/dev/null 2>&1 || command -v org.flameshot.Flameshot >/dev/null 2>&1 || [ -x /var/lib/flatpak/exports/bin/org.flameshot.Flameshot ]; then
                     take_flameshot
                 elif command -v gnome-screenshot >/dev/null 2>&1; then
                     take_gnome
@@ -1204,7 +1396,12 @@ trigger_screenshot() {
                     take_grim
                 elif command -v scrot >/dev/null 2>&1; then
                     take_scrot
+                else
+                    take_generic "$tool"
                 fi
+                ;;
+            *)
+                take_generic "$tool" || take_spectacle || take_flameshot
                 ;;
         esac
     ' >/dev/null 2>&1 &
@@ -1305,38 +1502,7 @@ case "$CMD" in
         trigger_screenshot "${2:-auto}"
         ;;
     check_screenshot_tools)
-        has_spec="false"
-        has_flame="false"
-        has_gnome="false"
-        has_ksnip="false"
-        has_xfce="false"
-        has_scrot="false"
-        has_grim="false"
-        any_tool="false"
-        command -v spectacle >/dev/null 2>&1 && has_spec="true"
-        command -v flameshot >/dev/null 2>&1 && has_flame="true"
-        command -v gnome-screenshot >/dev/null 2>&1 && has_gnome="true"
-        command -v ksnip >/dev/null 2>&1 && has_ksnip="true"
-        command -v xfce4-screenshooter >/dev/null 2>&1 && has_xfce="true"
-        command -v scrot >/dev/null 2>&1 && has_scrot="true"
-        (command -v grimblast >/dev/null 2>&1 || command -v grim >/dev/null 2>&1) && has_grim="true"
-        if [[ "$has_spec" == "true" || "$has_flame" == "true" || "$has_gnome" == "true" || "$has_ksnip" == "true" || "$has_xfce" == "true" || "$has_scrot" == "true" || "$has_grim" == "true" ]]; then
-            any_tool="true"
-        fi
-        installed_tools_json=$(get_installed_screenshot_tools_json "$has_spec" "$has_flame" "$has_gnome" "$has_ksnip" "$has_xfce" "$has_scrot" "$has_grim")
-        cat <<EOF
-{
-  "has_spectacle": $has_spec,
-  "has_flameshot": $has_flame,
-  "has_gnome_screenshot": $has_gnome,
-  "has_ksnip": $has_ksnip,
-  "has_xfce_screenshooter": $has_xfce,
-  "has_scrot": $has_scrot,
-  "has_grim": $has_grim,
-  "has_screenshot_tool": $any_tool,
-  "installed_tools": $installed_tools_json
-}
-EOF
+        get_installed_screenshot_tools_json
         ;;
     *)
         echo "Usage: $0 {status|camera_status|toggle_camera|dnd_status|toggle_dnd|user_info|open_user_management|mic_status|toggle_mic|location_status|toggle_location|kdeconnect_status|kdeconnect_devices|kdeconnect_open|kdeconnect_ring|kdeconnect_ping|kdeconnect_share|kdeconnect_sms|kdeconnect_browse|kdeconnect_pair|kdeconnect_unpair|kdeconnect_refresh}"
