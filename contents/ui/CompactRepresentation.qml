@@ -24,17 +24,16 @@ Item {
     Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
     Kirigami.Theme.inherit: false
 
-    readonly property bool systemIsDark: {
-        var bg = Kirigami.Theme.backgroundColor
-        return (bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114) < 0.5
-    }
+    readonly property bool systemIsDark: (mainItem && mainItem.systemIsDark !== undefined) ? mainItem.systemIsDark : false
     property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : true
 
     // Dynamic detection of attached panel background, opacity, and blur
     function detectPanelProperties() {
-        var detectedColor = Kirigami.Theme.backgroundColor
+        var hasCustomColor = false
+        var detectedColor = Qt.rgba(0, 0, 0, 0)
         var detectedOpacity = 0.70
         var detectedBlur = true
+        var detectedTextColor = Qt.rgba(0, 0, 0, 0)
 
         // 1. Inspect sibling applets in the panel containment for panel.colorizer
         try {
@@ -66,10 +65,17 @@ Item {
                                         var customHex = gSettings.panel.backgroundColor.custom
                                         if (customHex && typeof customHex === "string" && customHex.length >= 4) {
                                             detectedColor = Qt.color(customHex)
+                                            hasCustomColor = true
                                         }
                                     }
                                     if (gSettings.panel.blurBehind !== undefined) {
                                         detectedBlur = Boolean(gSettings.panel.blurBehind)
+                                    }
+                                    if (gSettings.panel.foregroundColor && gSettings.panel.foregroundColor.enabled && gSettings.panel.foregroundColor.custom) {
+                                        var fgHex = gSettings.panel.foregroundColor.custom
+                                        if (fgHex && typeof fgHex === "string" && fgHex.length >= 4) {
+                                            detectedTextColor = Qt.color(fgHex)
+                                        }
                                     }
                                 }
                             }
@@ -120,9 +126,11 @@ Item {
         } catch (e3) {}
 
         if (mainItem) {
-            mainItem.detectedPanelColor = detectedColor
+            mainItem.hasCustomPanelColor = hasCustomColor
+            mainItem.detectedPanelColor = hasCustomColor ? detectedColor : Qt.rgba(0, 0, 0, 0)
             mainItem.detectedPanelOpacity = detectedOpacity
             mainItem.detectedPanelBlur = detectedBlur
+            mainItem.detectedPanelTextColor = detectedTextColor
         }
     }
 
@@ -142,8 +150,16 @@ Item {
         root.detectPanelProperties()
     }
 
-    // Active icons on the panel use high-contrast panel foreground (crisp white, never black)
-    readonly property color activeIndicatorColor: (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : "#f6f8fa"
+    // Active icons on the panel use high-contrast panel foreground
+    readonly property color activeIndicatorColor: {
+        if (mainItem && mainItem.detectedPanelTextColor && mainItem.detectedPanelTextColor.a > 0) {
+            return mainItem.detectedPanelTextColor
+        }
+        if (mainItem && mainItem.hasCustomPanelColor) {
+            return mainItem.effectiveIsDark ? "#f6f8fa" : "#1a1a1a"
+        }
+        return (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
+    }
     // Inactive, muted, or blocked indicators are slightly greyed (45% opacity) and always clearly visible
     readonly property color inactiveIndicatorColor: Qt.rgba(activeIndicatorColor.r, activeIndicatorColor.g, activeIndicatorColor.b, 0.45)
 

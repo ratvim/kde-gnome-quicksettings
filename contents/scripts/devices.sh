@@ -1263,6 +1263,13 @@ get_all_status() {
     local sc_inner="${sc_json#\{}"
     sc_inner="${sc_inner%\}}"
 
+    local cur_scheme
+    cur_scheme=$(kreadconfig6 --file kdeglobals --group General --key ColorScheme 2>/dev/null || echo "BreezeLight")
+    local is_dark="false"
+    if [[ "$cur_scheme" =~ [Dd]ark ]]; then
+        is_dark="true"
+    fi
+
     cat <<EOF
 {
   "mic_muted": $mic_muted,
@@ -1275,6 +1282,8 @@ get_all_status() {
   "user": $uinfo,
   "dnd": $dnd_info,
   "airplane_mode": $air_info,
+  "dark_mode": $is_dark,
+  "color_scheme": "$cur_scheme",
   $sc_inner
 }
 EOF

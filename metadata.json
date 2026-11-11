@@ -14,7 +14,7 @@
         ],
         "Category": "System Information",
         "License": "GPL-3.0-or-later",
-        "Version": "1.1.4",
+        "Version": "1.1.5",
         "Website": "https://store.kde.org/p/2380429"
     },
     "X-Plasma-Provides": [

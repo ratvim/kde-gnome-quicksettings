@@ -30,16 +30,33 @@ PlasmoidItem {
         Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground
     }
 
-    // Dynamic System Theme Detection via Kirigami.Theme luminance:
+    // Scoped Kirigami Item bound to Window colorSet to accurately read the global desktop theme (BreezeLight vs BreezeDark)
+    // without being overridden by Plasma's panel Complementary colorSet.
+    Item {
+        id: systemWindowScope
+        Kirigami.Theme.colorSet: Kirigami.Theme.Window
+        Kirigami.Theme.inherit: false
+    }
+
+    // Dynamic Authoritative System Theme Detection
+    property bool scriptReportedDark: false
     readonly property bool systemIsDark: {
-        var bg = Kirigami.Theme.backgroundColor
-        return (bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114) < 0.5
+        var bg = systemWindowScope.Kirigami.Theme.backgroundColor
+        var fg = systemWindowScope.Kirigami.Theme.textColor
+        if (bg && bg.a > 0 && fg && fg.a > 0 && (bg.r !== 0 || bg.g !== 0 || bg.b !== 0 || fg.r !== 0 || fg.g !== 0 || fg.b !== 0)) {
+            var bgLum = bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114
+            var fgLum = fg.r * 0.299 + fg.g * 0.587 + fg.b * 0.114
+            return (bgLum < 0.5) || (fgLum > 0.6)
+        }
+        return scriptReportedDark
     }
 
     // Dynamic attributes detected from the attached panel
-    property color detectedPanelColor: Kirigami.Theme.backgroundColor
+    property bool hasCustomPanelColor: false
+    property color detectedPanelColor: Qt.rgba(0, 0, 0, 0)
     property real detectedPanelOpacity: 0.70
     property bool detectedPanelBlur: true
+    property color detectedPanelTextColor: Qt.rgba(0, 0, 0, 0)
 
     function updatePanelDetection() {
         if (compactRepresentationItem && typeof compactRepresentationItem.detectPanelProperties === "function") {
@@ -56,11 +73,10 @@ PlasmoidItem {
     }
 
     readonly property color effectivePanelColor: {
-        var baseCol = (panelBackgroundMode === "follow_panel" && detectedPanelColor) ? detectedPanelColor : Kirigami.Theme.backgroundColor
-        if (!baseCol || baseCol === "transparent" || (baseCol.a !== undefined && baseCol.a === 0)) {
-            baseCol = systemIsDark ? Qt.color("#1e1e24") : Qt.color("#f0f2f5")
+        if (panelBackgroundMode === "follow_panel" && hasCustomPanelColor && detectedPanelColor && detectedPanelColor.a > 0) {
+            return detectedPanelColor
         }
-        return baseCol
+        return systemIsDark ? Qt.color("#1e1e24") : Qt.color("#f6f8fa")
     }
 
     readonly property color effectiveCardColor: {
@@ -77,18 +93,22 @@ PlasmoidItem {
 
     readonly property bool effectiveIsDark: {
         var c = effectivePanelColor
-        return (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) < 0.55
+        var lum = c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+        return lum < 0.55
     }
 
     property bool manualThemeOverride: false
     property bool manualDark: false
-    property bool isDarkTheme: manualThemeOverride ? manualDark : effectiveIsDark
+    property bool isDarkTheme: manualThemeOverride ? manualDark : (hasCustomPanelColor ? effectiveIsDark : systemIsDark)
 
     Connections {
         target: Kirigami.Theme
         function onColorsChanged() {
             mainItem.manualThemeOverride = false
             mainItem.updatePanelDetection()
+            if (executable && typeof getScriptPath === "function") {
+                executable.exec("bash '" + getScriptPath("devices.sh") + "' status")
+            }
             if (mainItem.fullRepresentationItem && typeof mainItem.fullRepresentationItem.removePlasmaBackground === "function") {
                 mainItem.fullRepresentationItem.removePlasmaBackground()
                 mainItem.fullRepresentationItem.syncWindowGeometry()
@@ -394,8 +414,11 @@ PlasmoidItem {
                         mainItem.batteryLevel = parseInt(bat.percentage) || 100
                         mainItem.batteryCharging = !!bat.charging
                     }
-                    if (bat.dark_mode !== undefined && !mainItem.manualThemeOverride) {
-                        mainItem.manualDark = !!bat.dark_mode
+                    if (bat.dark_mode !== undefined) {
+                        mainItem.scriptReportedDark = !!bat.dark_mode
+                        if (!mainItem.manualThemeOverride) {
+                            mainItem.manualDark = !!bat.dark_mode
+                        }
                     }
                     if (bat.power_profile !== undefined) {
                         mainItem.powerProfile = bat.power_profile
@@ -432,6 +455,9 @@ PlasmoidItem {
                         if (dev.user.user_name) mainItem.userName = dev.user.user_name
                         if (dev.user.user_avatar !== undefined) mainItem.userAvatarPath = dev.user.user_avatar
                         if (dev.user.user_role) mainItem.userRole = dev.user.user_role
+                    }
+                    if (dev.dark_mode !== undefined) {
+                        mainItem.scriptReportedDark = !!dev.dark_mode
                     }
                     if (dev.airplane_mode !== undefined) {
                         mainItem.airplaneMode = !!dev.airplane_mode
