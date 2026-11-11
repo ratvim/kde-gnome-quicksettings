@@ -314,6 +314,19 @@ Item {
         return baseAngle
     }
 
+    readonly property bool isTopPanel: root.panelLocation === PlasmaCore.Types.TopEdge
+
+    function toggleQuickSettings() {
+        root.detectPanelProperties()
+        if (typeof mainItem !== "undefined" && typeof mainItem.expanded !== "undefined") {
+            mainItem.expanded = !mainItem.expanded
+        } else if (typeof plasmoid !== "undefined" && typeof plasmoid.expanded !== "undefined") {
+            plasmoid.expanded = !plasmoid.expanded
+        } else if (typeof Plasmoid !== "undefined" && typeof Plasmoid.expanded !== "undefined") {
+            Plasmoid.expanded = !Plasmoid.expanded
+        }
+    }
+
     // Plasma Panel Layout sizing & safety margins
     Layout.fillWidth: false
     Layout.fillHeight: true
@@ -348,6 +361,15 @@ Item {
             ColorAnimation { duration: 150 }
         }
 
+        MouseArea {
+            id: mouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton
+            onClicked: root.toggleQuickSettings()
+        }
+
         RowLayout {
             id: contentRow
             anchors.centerIn: parent
@@ -357,230 +379,563 @@ Item {
             // UNIVERSAL FALLBACK ARROW (SHOWN WHEN ALL INDICATORS REMOVED)
             // Points DOWN on top panel, UP on bottom panel
             // ========================================================
-            Kirigami.Icon {
-                id: fallbackArrow
+            Item {
                 visible: !root.hasVisibleIndicators
                 implicitWidth: Math.max(12, root.panelIconSize - 2)
                 implicitHeight: Math.max(12, root.panelIconSize - 2)
-                source: Qt.resolvedUrl("../assets/arrow-down-symbolic.svg")
-                fallback: "go-down-symbolic"
-                isMask: true
-                color: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
-                rotation: root.arrowRotation
                 Layout.alignment: Qt.AlignVCenter
 
-                Behavior on rotation {
-                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                Kirigami.Icon {
+                    id: fallbackArrow
+                    anchors.fill: parent
+                    source: Qt.resolvedUrl("../assets/arrow-down-symbolic.svg")
+                    fallback: "go-down-symbolic"
+                    isMask: true
+                    color: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+                    rotation: root.arrowRotation
+
+                    Behavior on rotation {
+                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                MouseArea {
+                    id: arrowHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: arrowHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Quick Settings"
+                    status: "Click to open Control Center"
+                    iconName: "preferences-system"
+                    iconColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
                 }
             }
 
             // ========================================================
             // ACTIVE TOGGLE ICONS (LEFT TO RIGHT)
-            // Visible only when the toggle is enabled / active AND
-            // user configuration allows it to be shown in the panel.
             // ========================================================
 
             // 1. KDE Connect (when connected)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "kdeconnect-tray-symbolic"
-                fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "kdeconnect-tray-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: kdeHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: kdeHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "KDE Connect"
+                    status: mainItem ? (mainItem.kdeConnectName || "Device Connected") : "Connected"
+                    subStatus: "Device synchronized"
+                    iconName: "kdeconnect-tray-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 2. Camera (appears ONLY when some app is actively using the camera)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                fallback: (mainItem && mainItem.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
-                isMask: true
-                color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
+                    fallback: (mainItem && mainItem.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
+                    isMask: true
+                    color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: camHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: camHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Camera"
+                    status: (mainItem && mainItem.cameraBlocked) ? "Blocked" : "In Use"
+                    subStatus: (mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0) ? ("Active: " + mainItem.cameraApps.join(", ")) : "Camera active"
+                    iconName: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
+                    iconColor: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 3. Microphone (appears ONLY when some app is actively using the microphone)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
-                fallback: (mainItem && mainItem.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
-                isMask: true
-                color: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                    fallback: (mainItem && mainItem.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
+                    isMask: true
+                    color: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: micHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: micHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Microphone"
+                    status: (mainItem && mainItem.micMuted) ? "Muted" : "In Use"
+                    subStatus: (mainItem && mainItem.micApps && mainItem.micApps.length > 0) ? ("Active: " + mainItem.micApps.join(", ")) : "Audio capture active"
+                    iconName: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                    iconColor: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 4. Location (appears ONLY when some app is actively accessing location)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "find-location-symbolic"
-                fallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
-                isMask: true
-                color: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "find-location-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
+                    isMask: true
+                    color: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                }
+
+                MouseArea {
+                    id: locHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: locHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Location Services"
+                    status: (mainItem && mainItem.locationEnabled) ? "Location Active" : "Disabled"
+                    subStatus: (mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? ("Active: " + mainItem.locationApps.join(", ")) : "Geographic location tracking"
+                    iconName: "find-location-symbolic"
+                    iconColor: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 5. Dark Style / Dark Theme (when dark mode is active)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "contrast-symbolic"
-                fallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "contrast-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: darkHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: darkHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Dark Style"
+                    status: root.isDarkTheme ? "Dark Mode" : "Light Mode"
+                    subStatus: "Desktop theme color scheme"
+                    iconName: "contrast-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 6. Do Not Disturb (DND) (when active)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "notifications-disabled-symbolic"
-                fallback: Qt.resolvedUrl("../icons/notifications-disabled-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "notifications-disabled-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/notifications-disabled-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: dndHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: dndHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Do Not Disturb"
+                    status: (mainItem && mainItem.dndEnabled) ? "Active" : "Off"
+                    subStatus: (mainItem && mainItem.dndUntilText) ? ("Muted until " + mainItem.dndUntilText) : "Notifications are muted"
+                    iconName: "notifications-disabled-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 7. Night Light (when active)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "redshift-status-on-symbolic"
-                fallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "redshift-status-on-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: nightHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: nightHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Night Light"
+                    status: (mainItem && mainItem.nightLightEnabled) ? "Active" : "Off"
+                    subStatus: (mainItem && mainItem.nightLightEnabled) ? "Warmer screen colors active" : "Normal color temperature"
+                    iconName: "redshift-status-on-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 8. Power Mode: Performance or Power-Saver / Optimise (Balanced shows NO icon)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: root.powerProfileIconName
-                fallback: (mainItem && mainItem.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: root.powerProfileIconName
+                    fallback: (mainItem && mainItem.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: powerHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: powerHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Power Profile"
+                    status: (mainItem && mainItem.powerProfile === "performance") ? "Performance Mode" : "Power Saver Mode"
+                    subStatus: (mainItem && mainItem.powerProfile === "performance") ? "Maximum system performance" : "Optimizes battery life"
+                    iconName: root.powerProfileIconName
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 9. Hotspot (when active)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "network-wireless-hotspot-symbolic"
-                fallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "network-wireless-hotspot-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/network-wireless-hotspot-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: hotspotHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: hotspotHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Wi-Fi Hotspot"
+                    status: "Active"
+                    subStatus: (mainItem && mainItem.hotspotSsid) ? ("SSID: " + mainItem.hotspotSsid) : "Sharing internet connection"
+                    iconName: "network-wireless-hotspot-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 10. Airplane Mode (when active)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: "network-flightmode-on-symbolic"
-                fallback: Qt.resolvedUrl("../icons/airplane-mode-symbolic.svg")
-                isMask: true
-                color: root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "network-flightmode-on-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/airplane-mode-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: airHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: airHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Airplane Mode"
+                    status: "Active"
+                    subStatus: "All wireless transmissions disabled"
+                    iconName: "network-flightmode-on-symbolic"
+                    iconColor: root.activeIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 11. Bluetooth (when enabled or connected)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: root.btIconName
-                fallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
-                isMask: true
-                color: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: root.btIconName
+                    fallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
+                    isMask: true
+                    color: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                }
+
+                MouseArea {
+                    id: btHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: btHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Bluetooth"
+                    status: root.btConnected ? (mainItem.btDeviceName || "Connected") : (root.btEnabled ? "On (No devices connected)" : "Disabled")
+                    subStatus: (root.btConnected && mainItem.btBattery > 0) ? ("Battery: " + mainItem.btBattery + "%") : (root.btConnected ? "Device connected" : "Adapter active")
+                    iconName: root.btIconName
+                    iconColor: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // 12. Wi-Fi (when enabled or connected)
-            Kirigami.Icon {
+            Item {
                 visible: root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: root.wifiIconName
-                fallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
-                isMask: true
-                color: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: root.wifiIconName
+                    fallback: Qt.resolvedUrl("../icons/network-wireless-symbolic.svg")
+                    isMask: true
+                    color: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                }
+
+                MouseArea {
+                    id: wifiHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: wifiHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Wi-Fi"
+                    status: root.wifiConnected ? (mainItem.wifiSsid || "Connected") : (root.wifiEnabled ? "Disconnected" : "Disabled")
+                    subStatus: root.wifiConnected ? (root.wifiSignal + "% Signal Strength") : (root.wifiEnabled ? "Available networks nearby" : "Wi-Fi turned off")
+                    iconName: root.wifiIconName
+                    iconColor: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // ========================================================
             // VOLUME INDICATOR (ICON ONLY, NO PERCENTAGE)
             // ========================================================
-            Kirigami.Icon {
+            Item {
                 visible: root.showVolume
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
-                source: root.volumeIconName
-                fallback: root.isMuted ? Qt.resolvedUrl("../icons/audio-volume-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-volume-high-symbolic.svg")
-                isMask: true
-                color: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: root.volumeIconName
+                    fallback: root.isMuted ? Qt.resolvedUrl("../icons/audio-volume-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-volume-high-symbolic.svg")
+                    isMask: true
+                    color: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: volHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: volHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Volume: " + (root.isMuted ? "Muted" : (root.volume + "%"))
+                    status: root.isMuted ? "Audio Output Muted" : "Master Audio Output"
+                    subStatus: "Click to open Quick Settings"
+                    iconName: root.volumeIconName
+                    iconColor: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    showProgressBar: true
+                    progressValue: root.isMuted ? 0 : root.volume
+                    progressColor: root.isMuted ? (root.isDarkTheme ? "#777777" : "#999999") : "#3584e4"
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
+                }
             }
 
             // ========================================================
             // BATTERY INDICATOR + OPTIONAL PERCENTAGE (RIGHTMOST)
             // ========================================================
-            RowLayout {
+            Item {
                 visible: root.showBattery
-                spacing: 4
+                implicitWidth: batRow.implicitWidth
+                implicitHeight: Math.max(root.panelIconSize, batRow.implicitHeight)
                 Layout.alignment: Qt.AlignVCenter
 
-                Kirigami.Icon {
-                    implicitWidth: root.panelIconSize
-                    implicitHeight: root.panelIconSize
-                    source: root.batteryIconName
-                    fallback: root.batteryCharging ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
-                    isMask: true
-                    color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
-                    Layout.alignment: Qt.AlignVCenter
+                RowLayout {
+                    id: batRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Kirigami.Icon {
+                        implicitWidth: root.panelIconSize
+                        implicitHeight: root.panelIconSize
+                        source: root.batteryIconName
+                        fallback: root.batteryCharging ? Qt.resolvedUrl("../icons/battery-charging-symbolic.svg") : Qt.resolvedUrl("../icons/battery-symbolic.svg")
+                        isMask: true
+                        color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Text {
+                        visible: root.showBatteryPercent
+                        text: root.batteryLevel + "%"
+                        font.pixelSize: Math.max(10, root.panelIconSize - 4)
+                        font.weight: Font.Medium
+                        color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
+                        Layout.alignment: Qt.AlignVCenter
+                    }
                 }
 
-                Text {
-                    visible: root.showBatteryPercent
-                    text: root.batteryLevel + "%"
-                    font.pixelSize: Math.max(10, root.panelIconSize - 4)
-                    font.weight: Font.Medium
-                    color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
-                    Layout.alignment: Qt.AlignVCenter
+                MouseArea {
+                    id: batHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
                 }
-            }
-        }
 
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton
-            onClicked: {
-                root.detectPanelProperties()
-                if (typeof mainItem !== "undefined" && typeof mainItem.expanded !== "undefined") {
-                    mainItem.expanded = !mainItem.expanded
-                } else if (typeof plasmoid !== "undefined" && typeof plasmoid.expanded !== "undefined") {
-                    plasmoid.expanded = !plasmoid.expanded
-                } else if (typeof Plasmoid !== "undefined" && typeof Plasmoid.expanded !== "undefined") {
-                    Plasmoid.expanded = !Plasmoid.expanded
+                StatusToolTip {
+                    visible: batHover.containsMouse && !(mainItem && mainItem.expanded)
+                    title: "Battery: " + root.batteryLevel + "%"
+                    status: root.batteryCharging ? "Charging" : (root.batteryLevel <= 20 ? "Battery Low" : "Discharging")
+                    subStatus: root.batteryCharging ? "Power Connected" : "On Battery Power"
+                    iconName: root.batteryIconName
+                    iconColor: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
+                    showProgressBar: true
+                    progressValue: root.batteryLevel
+                    progressColor: root.batteryCharging ? "#33d17a" : (root.batteryLevel <= 20 ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#3584e4"))
+                    isDarkTheme: root.isDarkTheme
+                    isTopPanel: root.isTopPanel
                 }
             }
         }

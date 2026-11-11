@@ -284,6 +284,10 @@ PlasmoidItem {
     // Display & Sound
     property int volume: 50
     property bool isMuted: false
+    property var audioSinks: []
+    property var audioSinkInputs: []
+    property var audioSources: []
+    property string defaultSinkName: ""
     property int brightness: 100
 
     // Toggles
@@ -379,9 +383,17 @@ PlasmoidItem {
                         }
                     }
                 } else if (source.indexOf("audio.sh") !== -1) {
-                    var aud = JSON.parse(stdout)
-                    mainItem.volume = parseInt(aud.volume) || 0
-                    mainItem.isMuted = !!aud.muted
+                    try {
+                        var aud = JSON.parse(stdout)
+                        if (aud.volume !== undefined) mainItem.volume = parseInt(aud.volume) || 0
+                        if (aud.muted !== undefined) mainItem.isMuted = !!aud.muted
+                        if (aud.sinks !== undefined) mainItem.audioSinks = aud.sinks || []
+                        if (aud.sink_inputs !== undefined) mainItem.audioSinkInputs = aud.sink_inputs || []
+                        if (aud.sources !== undefined) mainItem.audioSources = aud.sources || []
+                        if (aud.default_sink !== undefined) mainItem.defaultSinkName = aud.default_sink || ""
+                    } catch (e) {
+                        console.warn("Could not parse audio.sh output:", e)
+                    }
                 } else if (source.indexOf("brightness.sh") !== -1) {
                     var bri = JSON.parse(stdout)
                     mainItem.brightness = parseInt(bri.brightness) || 0
@@ -616,6 +628,64 @@ PlasmoidItem {
     function toggleMute() {
         mainItem.isMuted = !mainItem.isMuted
         executable.exec("bash '" + getScriptPath("audio.sh") + "' toggle_mute")
+    }
+
+    function fetchAudioMixer() {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' mixer")
+    }
+
+    function setSinkInputVolume(idx, val) {
+        for (var i = 0; i < mainItem.audioSinkInputs.length; i++) {
+            if (mainItem.audioSinkInputs[i].index === idx) {
+                mainItem.audioSinkInputs[i].volume = val
+                if (val > 0) mainItem.audioSinkInputs[i].muted = false
+                break
+            }
+        }
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' set_sink_input_volume " + idx + " " + val)
+    }
+
+    function toggleSinkInputMute(idx) {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' toggle_sink_input_mute " + idx)
+    }
+
+    function setSinkVolume(idx, val) {
+        for (var i = 0; i < mainItem.audioSinks.length; i++) {
+            if (mainItem.audioSinks[i].index === idx) {
+                mainItem.audioSinks[i].volume = val
+                if (val > 0) mainItem.audioSinks[i].muted = false
+                break
+            }
+        }
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' set_sink_volume " + idx + " " + val)
+    }
+
+    function toggleSinkMute(idx) {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' toggle_sink_mute " + idx)
+    }
+
+    function setDefaultSink(target) {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' set_default_sink '" + target + "'")
+    }
+
+    function setSourceVolume(idx, val) {
+        for (var i = 0; i < mainItem.audioSources.length; i++) {
+            if (mainItem.audioSources[i].index === idx) {
+                mainItem.audioSources[i].volume = val
+                if (val > 0) mainItem.audioSources[i].muted = false
+                break
+            }
+        }
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' set_source_volume " + idx + " " + val)
+    }
+
+    function toggleSourceMute(idx) {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' toggle_source_mute " + idx)
+    }
+
+    function openSoundSettings() {
+        executable.exec("bash '" + getScriptPath("audio.sh") + "' open_settings")
+        closePopup()
     }
 
     function setBrightness(val) {

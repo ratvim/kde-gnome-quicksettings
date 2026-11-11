@@ -30,6 +30,7 @@ Rectangle {
 
     property bool isDarkTheme: backend ? backend.isDarkTheme : true
     property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings"
+    property bool volumeExpanded: false
 
     // =========================================================================
     // RESOLUTION & DPI RESPONSIVE SCALING ENGINE
@@ -429,6 +430,7 @@ Rectangle {
         if (typeof togglesSwipeView !== "undefined" && togglesSwipeView) {
             togglesSwipeView.currentIndex = 0
         }
+        root.volumeExpanded = false
         root.activeView = "main"
     }
 
@@ -1113,23 +1115,83 @@ Rectangle {
                     }
                 }
 
-                // 2. Sliders Section: Volume & Brightness (Full width, slim vertical height ~24-32px responsive)
+                // 2. Sliders Section: Volume & Brightness
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Math.round(8 * root.resolutionScale)
 
-                    // Audio Volume Slider (Full Width)
-                    CurvedSlider {
+                    // Audio Volume Row: Slider + Expand Button
+                    RowLayout {
                         Layout.fillWidth: true
-                        implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
-                        value: backend ? backend.volume : 65
-                        isMuted: backend ? backend.isMuted : false
-                        iconName: (backend && backend.volumeIconName) ? backend.volumeIconName : "audio-volume-high"
+                        spacing: Math.round(6 * root.resolutionScale)
+
+                        CurvedSlider {
+                            Layout.fillWidth: true
+                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                            value: backend ? backend.volume : 65
+                            isMuted: backend ? backend.isMuted : false
+                            iconName: (backend && backend.volumeIconName) ? backend.volumeIconName : "audio-volume-high"
+                            isDarkTheme: root.isDarkTheme
+                            accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
+                            accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
+                            onValueChangedByUser: function(newValue) { if (backend) backend.setVolume(newValue) }
+                            onIconClicked: if (backend) backend.toggleMute()
+                        }
+
+                        // Small Expand / Collapse Button next to Volume bar
+                        Rectangle {
+                            id: volExpandBtn
+                            implicitWidth: Math.max(24, Math.round(26 * root.resolutionScale))
+                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                            radius: implicitHeight / 2
+                            color: volExpandMouse.containsMouse
+                                ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.10))
+                                : (root.volumeExpanded
+                                    ? ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4")
+                                    : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)))
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
+                            Kirigami.Icon {
+                                anchors.centerIn: parent
+                                width: Math.round(14 * root.resolutionScale)
+                                height: Math.round(14 * root.resolutionScale)
+                                source: "go-down-symbolic"
+                                rotation: root.volumeExpanded ? 180 : 0
+                                isMask: true
+                                color: (root.volumeExpanded && !volExpandMouse.containsMouse)
+                                    ? ((Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff")
+                                    : (root.isDarkTheme ? "#e0e0e0" : "#222222")
+
+                                Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+                            }
+
+                            MouseArea {
+                                id: volExpandMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.volumeExpanded = !root.volumeExpanded
+                                    if (root.volumeExpanded && backend) {
+                                        backend.fetchAudioMixer()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Expandable Audio Stream & Device Mixer Card
+                    AudioMixerCard {
+                        id: audioMixerSection
+                        Layout.fillWidth: true
+                        visible: root.volumeExpanded
+                        backend: root.backend
                         isDarkTheme: root.isDarkTheme
-                        accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
-                        accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
-                        onValueChangedByUser: function(newValue) { if (backend) backend.setVolume(newValue) }
-                        onIconClicked: if (backend) backend.toggleMute()
+                        resolutionScale: root.resolutionScale
+                        onCloseRequested: {
+                            root.volumeExpanded = false
+                        }
                     }
 
                     // Display Brightness Slider (Full Width)
