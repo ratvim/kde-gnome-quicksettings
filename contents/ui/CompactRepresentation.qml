@@ -30,6 +30,118 @@ Item {
     }
     property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : true
 
+    // Dynamic detection of attached panel background, opacity, and blur
+    function detectPanelProperties() {
+        var detectedColor = Kirigami.Theme.backgroundColor
+        var detectedOpacity = 0.70
+        var detectedBlur = true
+
+        // 1. Inspect sibling applets in the panel containment for panel.colorizer
+        try {
+            if (typeof plasmoid !== "undefined" && plasmoid.containment && plasmoid.containment.applets) {
+                var applets = plasmoid.containment.applets
+                for (var i = 0; i < applets.length; ++i) {
+                    var app = applets[i]
+                    if (app && app.plugin === "luisbocanegra.panel.colorizer") {
+                        var cfg = app.configuration
+                        if (cfg) {
+                            var gSettings = (typeof cfg.globalSettings === "string") ? JSON.parse(cfg.globalSettings) : cfg.globalSettings
+                            if (gSettings) {
+                                // 1a. Native panel background opacity override
+                                if (gSettings.nativePanel && gSettings.nativePanel.background && gSettings.nativePanel.background.opacity !== undefined) {
+                                    var nop = parseFloat(gSettings.nativePanel.background.opacity)
+                                    if (!isNaN(nop) && nop >= 0.05 && nop <= 1.0) {
+                                        detectedOpacity = nop
+                                    }
+                                }
+                                // 1b. Custom panel settings override
+                                if (gSettings.panel && gSettings.panel.enabled) {
+                                    if (gSettings.panel.opacity !== undefined) {
+                                        var pop = parseFloat(gSettings.panel.opacity)
+                                        if (!isNaN(pop) && pop >= 0.05 && pop <= 1.0) {
+                                            detectedOpacity = pop
+                                        }
+                                    }
+                                    if (gSettings.panel.backgroundColor && gSettings.panel.backgroundColor.enabled && gSettings.panel.backgroundColor.custom) {
+                                        var customHex = gSettings.panel.backgroundColor.custom
+                                        if (customHex && typeof customHex === "string" && customHex.length >= 4) {
+                                            detectedColor = Qt.color(customHex)
+                                        }
+                                    }
+                                    if (gSettings.panel.blurBehind !== undefined) {
+                                        detectedBlur = Boolean(gSettings.panel.blurBehind)
+                                    }
+                                }
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+        } catch (e1) {}
+
+        // 2. Check native PanelView window and parent hierarchy
+        try {
+            var win = root.Window.window
+            if (win) {
+                // Check opacityMode on PanelView (0: Adaptive, 1: Opaque, 2: Translucent)
+                if (win.opacityMode !== undefined) {
+                    if (win.opacityMode === 1) { // Opaque
+                        detectedOpacity = 1.0
+                    } else if (win.opacityMode === 2) { // Translucent
+                        detectedOpacity = 0.65
+                    }
+                }
+
+                if (win.panelOpacity !== undefined && win.panelOpacity > 0.05) {
+                    detectedOpacity = Math.max(0.35, Math.min(1.0, win.panelOpacity))
+                } else if (win.contentItem && win.contentItem.children) {
+                    for (var j = 0; j < win.contentItem.children.length; ++j) {
+                        var ch = win.contentItem.children[j]
+                        if (ch && ch.panelOpacity !== undefined && ch.panelOpacity > 0.05) {
+                            detectedOpacity = Math.max(0.35, Math.min(1.0, ch.panelOpacity))
+                            break
+                        }
+                    }
+                }
+            }
+        } catch (e2) {}
+
+        // 3. Walk up parent hierarchy for panelOpacity
+        try {
+            var p = root.parent
+            while (p) {
+                if (p.panelOpacity !== undefined && p.panelOpacity > 0.05) {
+                    detectedOpacity = Math.max(0.35, Math.min(1.0, p.panelOpacity))
+                    break
+                }
+                p = p.parent
+            }
+        } catch (e3) {}
+
+        if (mainItem) {
+            mainItem.detectedPanelColor = detectedColor
+            mainItem.detectedPanelOpacity = detectedOpacity
+            mainItem.detectedPanelBlur = detectedBlur
+        }
+    }
+
+    Timer {
+        id: panelDetectTimer
+        interval: 300
+        running: true
+        repeat: false
+        onTriggered: root.detectPanelProperties()
+    }
+
+    onWindowChanged: {
+        root.detectPanelProperties()
+    }
+
+    Component.onCompleted: {
+        root.detectPanelProperties()
+    }
+
     // Active icons on the panel use high-contrast panel foreground (crisp white, never black)
     readonly property color activeIndicatorColor: (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : "#f6f8fa"
     // Inactive, muted, or blocked indicators are slightly greyed (45% opacity) and always clearly visible
@@ -47,7 +159,7 @@ Item {
     property bool batteryCharging: mainItem ? mainItem.batteryCharging : false
 
     // Sizing
-    property int panelIconSize: (mainItem && mainItem.panelIconSize !== undefined) ? mainItem.panelIconSize : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 15)
+    property int panelIconSize: (mainItem && mainItem.panelIconSize !== undefined) ? mainItem.panelIconSize : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 16)
 
     // Configuration options (persisted via plasmoid settings)
     property bool showVolume: (mainItem && mainItem.showVolume !== undefined) ? mainItem.showVolume : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolume !== undefined) ? plasmoid.configuration.showVolume : true)
@@ -206,7 +318,7 @@ Item {
         id: pillRect
         anchors.centerIn: parent
         implicitWidth: root.hasVisibleIndicators ? (contentRow.implicitWidth + 24) : Math.max(30, contentRow.implicitWidth + 18)
-        implicitHeight: Math.max(30, root.panelIconSize + 14)
+        implicitHeight: Math.max(32, root.panelIconSize + 14)
         width: implicitWidth
         height: implicitHeight
         radius: height / 2
@@ -446,6 +558,7 @@ Item {
             cursorShape: Qt.PointingHandCursor
             acceptedButtons: Qt.LeftButton
             onClicked: {
+                root.detectPanelProperties()
                 if (typeof mainItem !== "undefined" && typeof mainItem.expanded !== "undefined") {
                     mainItem.expanded = !mainItem.expanded
                 } else if (typeof plasmoid !== "undefined" && typeof plasmoid.expanded !== "undefined") {

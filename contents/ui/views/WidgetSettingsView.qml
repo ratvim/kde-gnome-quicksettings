@@ -671,6 +671,178 @@ Rectangle {
                         }
                     }
                 }
+
+                // Section 4: Background & Blur
+                Text {
+                    text: "Background & Blur"
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    color: root.accentColor
+                }
+
+                // Background Mode Selection
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 52
+                    radius: 12
+                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03)
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+
+                        Text {
+                            text: "Background Mode"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            Layout.fillWidth: true
+                        }
+
+                        // Mode Selector Buttons
+                        Row {
+                            spacing: 4
+
+                            component ModeBtn: Rectangle {
+                                id: mb
+                                property string modeKey: ""
+                                property string label: ""
+                                readonly property bool selected: backend ? (backend.panelBackgroundMode === modeKey) : (modeKey === "follow_panel")
+                                width: Math.max(54, labelTxt.implicitWidth + 14)
+                                height: 26
+                                radius: 13
+                                color: selected ? root.accentColor : (mbMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.1)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)))
+
+                                Text {
+                                    id: labelTxt
+                                    anchors.centerIn: parent
+                                    text: mb.label
+                                    font.pixelSize: 10
+                                    font.weight: Font.Medium
+                                    color: mb.selected ? "#ffffff" : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
+                                }
+
+                                MouseArea {
+                                    id: mbMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: if (backend) backend.setWidgetConfig("panelBackgroundMode", mb.modeKey)
+                                }
+                            }
+
+                            ModeBtn {
+                                modeKey: "follow_panel"
+                                label: "Follow Panel"
+                            }
+                            ModeBtn {
+                                modeKey: "translucent"
+                                label: "Translucent"
+                            }
+                            ModeBtn {
+                                modeKey: "opaque"
+                                label: "Opaque"
+                            }
+                        }
+                    }
+                }
+
+                // Custom Opacity Stepper (active in translucent mode)
+                Rectangle {
+                    visible: backend ? (backend.panelBackgroundMode === "translucent") : false
+                    Layout.fillWidth: true
+                    height: 48
+                    radius: 12
+                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+
+                        Text {
+                            text: "Custom Opacity"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            width: 26
+                            height: 26
+                            radius: 13
+                            color: minusOpMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.15)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08))
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "-"
+                                font.pixelSize: 15
+                                font.weight: Font.Bold
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            }
+                            MouseArea {
+                                id: minusOpMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    var cur = backend ? backend.customOpacity : 0.75
+                                    var next = Math.max(0.20, Math.round((cur - 0.05) * 100) / 100)
+                                    if (backend) backend.setWidgetConfig("customOpacity", next)
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: Math.round((backend ? backend.customOpacity : 0.75) * 100) + "%"
+                            font.pixelSize: 12
+                            font.weight: Font.Bold
+                            color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            Layout.preferredWidth: 36
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Rectangle {
+                            width: 26
+                            height: 26
+                            radius: 13
+                            color: plusOpMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.15)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08))
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "+"
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            }
+                            MouseArea {
+                                id: plusOpMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    var cur = backend ? backend.customOpacity : 0.75
+                                    var next = Math.min(1.00, Math.round((cur + 0.05) * 100) / 100)
+                                    if (backend) backend.setWidgetConfig("customOpacity", next)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Blur Behind Toggle
+                Loader {
+                    Layout.fillWidth: true
+                    sourceComponent: settingToggleRow
+                    onLoaded: {
+                        item.title = "KWin Blur Behind Window"
+                        item.subtitle = "Frosted glass blur restricted to card region"
+                        item.configKey = "panelBlurEnabled"
+                        item.checkedState = Qt.binding(function() { return backend ? backend.panelBlurEnabled : true })
+                    }
+                }
             }
         }
     }

@@ -3,14 +3,32 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.1.2-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.1.3-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
 
 A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet built natively for **KDE Plasma 6**. Featuring glassmorphic 24px curved cards, uniform capsule pill toggles, smooth rounded sliders, expandable sub-drawers, user profile header, resolution & DPI responsive scaling engine, and dedicated C++ compositor effect management for zero background blur bleed.
 
 ---
 
-## 🚀 What's New in v1.1.2
+## 🚀 What's New in v1.1.3
+
+- 🎨 **Adaptive Panel Background, Transparency & KWin Blur Synchronization**:
+  - The expanded Quick Settings control center now dynamically tracks and adopts the background color, transparency/opacity, and blur of whichever panel it is attached to.
+  - **Full Native Plasma 6 & Custom Colorizer Support**: Automatically detects native Plasma 6 panel modes (`Translucent`, `Adaptive`, `Opaque`) as well as third-party panel colorizers (e.g. `luisbocanegra.panel.colorizer` presets including `Transparent`).
+  - **Pixel-Perfect Blur & Background Contrast**: Restricts KWin compositor blur behind window and background contrast strictly inside the 24px curved card mask with zero corner bleed or rectangular halos.
+  - **Dynamic Luminance & Contrast Adaptation**: Automatically evaluates background luminance and switches text, icons, and control contrast between dark and light themes to match custom panel backgrounds.
+  - **Flexible Appearance Controls**: Configurable via both native Plasmoid Settings (`Appearance` tab) and inline Quick Settings (`Widget Settings` drawer):
+    - **Follow Attached Panel (Automatic)**: Matches attached panel background, opacity, and blur dynamically.
+    - **Frosted Glass Translucent**: Custom translucent glass with adjustable opacity percentage slider (20% – 100%).
+    - **Solid Opaque**: High-contrast solid background.
+    - **KWin Blur Behind Window**: Toggleable background blur effect.
+
+- 📸 **Dynamic Screenshot Application Detection**:
+  - Configuration now dynamically queries and displays only the screenshot utilities physically installed on the system (Spectacle, Flameshot, Ksnip, etc.), preventing selection of absent binaries.
+
+---
+
+## 🚀 Previous Release Highlights (v1.1.2)
 
 - 📐 **Resolution & DPI Responsive Scaling Engine Across All Displays**:
   - Implemented automatic, multi-factor responsive scaling for the expanded Quick Settings control center across any monitor resolution, aspect ratio, or fractional scaling configuration without requiring manual adjustments.

@@ -35,14 +35,60 @@ PlasmoidItem {
         var bg = Kirigami.Theme.backgroundColor
         return (bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114) < 0.5
     }
+
+    // Dynamic attributes detected from the attached panel
+    property color detectedPanelColor: Kirigami.Theme.backgroundColor
+    property real detectedPanelOpacity: 0.70
+    property bool detectedPanelBlur: true
+
+    function updatePanelDetection() {
+        if (compactRepresentationItem && typeof compactRepresentationItem.detectPanelProperties === "function") {
+            compactRepresentationItem.detectPanelProperties()
+        }
+    }
+
+    // Effective background appearance honoring attached panel or user overrides
+    readonly property real effectiveBackgroundOpacity: {
+        if (panelBackgroundMode === "opaque") return 1.0
+        if (panelBackgroundMode === "translucent") return Math.max(0.20, Math.min(1.0, customOpacity))
+        // "follow_panel": dynamically follows the attached panel
+        return Math.max(0.35, Math.min(1.0, detectedPanelOpacity))
+    }
+
+    readonly property color effectivePanelColor: {
+        var baseCol = (panelBackgroundMode === "follow_panel" && detectedPanelColor) ? detectedPanelColor : Kirigami.Theme.backgroundColor
+        if (!baseCol || baseCol === "transparent" || (baseCol.a !== undefined && baseCol.a === 0)) {
+            baseCol = systemIsDark ? Qt.color("#1e1e24") : Qt.color("#f0f2f5")
+        }
+        return baseCol
+    }
+
+    readonly property color effectiveCardColor: {
+        var c = effectivePanelColor
+        return Qt.rgba(c.r, c.g, c.b, effectiveBackgroundOpacity)
+    }
+
+    readonly property bool effectiveBlurEnabled: {
+        if (!panelBlurEnabled) return false
+        if (panelBackgroundMode === "opaque") return false
+        if (effectiveBackgroundOpacity >= 0.98) return false
+        return true
+    }
+
+    readonly property bool effectiveIsDark: {
+        var c = effectivePanelColor
+        return (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) < 0.55
+    }
+
     property bool manualThemeOverride: false
     property bool manualDark: false
-    property bool isDarkTheme: manualThemeOverride ? manualDark : systemIsDark
+    property bool isDarkTheme: manualThemeOverride ? manualDark : effectiveIsDark
 
     Connections {
         target: Kirigami.Theme
         function onColorsChanged() {
             mainItem.manualThemeOverride = false
+            mainItem.updatePanelDetection()
             if (mainItem.fullRepresentationItem && typeof mainItem.fullRepresentationItem.removePlasmaBackground === "function") {
                 mainItem.fullRepresentationItem.removePlasmaBackground()
                 mainItem.fullRepresentationItem.syncWindowGeometry()
@@ -55,8 +101,12 @@ PlasmoidItem {
     property bool showVolume: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolume !== undefined) ? plasmoid.configuration.showVolume : true
     property bool showBattery: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBattery !== undefined) ? plasmoid.configuration.showBattery : true
     property bool showBatteryPercent: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBatteryPercent !== undefined) ? plasmoid.configuration.showBatteryPercent : true
+    // Icon Sizing & Background Follow Config
     property int panelIconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 15
     property int tileIconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileIconSize !== undefined) ? plasmoid.configuration.tileIconSize : 20
+    property string panelBackgroundMode: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelBackgroundMode !== undefined) ? plasmoid.configuration.panelBackgroundMode : "follow_panel"
+    property real customOpacity: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.customOpacity !== undefined) ? plasmoid.configuration.customOpacity : 0.75
+    property bool panelBlurEnabled: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelBlurEnabled !== undefined) ? plasmoid.configuration.panelBlurEnabled : true
 
     // Panel Status Capsule Toggle Icons Visibility (persisted via KConfigXT)
     property bool panelShowWifi: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowWifi !== undefined) ? plasmoid.configuration.panelShowWifi : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showWifi !== undefined) ? plasmoid.configuration.showWifi : true)
@@ -118,6 +168,9 @@ PlasmoidItem {
         function onPanelShowCameraChanged() { mainItem.panelShowCamera = plasmoid.configuration.panelShowCamera }
         function onPanelShowMicChanged() { mainItem.panelShowMic = plasmoid.configuration.panelShowMic }
         function onPanelShowKdeConnectChanged() { mainItem.panelShowKdeConnect = plasmoid.configuration.panelShowKdeConnect }
+        function onPanelBackgroundModeChanged() { mainItem.panelBackgroundMode = plasmoid.configuration.panelBackgroundMode }
+        function onCustomOpacityChanged() { mainItem.customOpacity = plasmoid.configuration.customOpacity }
+        function onPanelBlurEnabledChanged() { mainItem.panelBlurEnabled = plasmoid.configuration.panelBlurEnabled }
     }
 
     // Wi-Fi icon — follows the active system icon pack exactly

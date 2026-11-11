@@ -124,5 +124,18 @@
     <entry name="isDarkTheme" type="Bool">
       <default>true</default>
     </entry>
+
+    <!-- Panel Background & Blur Sync -->
+    <entry name="panelBackgroundMode" type="String">
+      <default>follow_panel</default>
+    </entry>
+    <entry name="customOpacity" type="Double">
+      <default>0.75</default>
+      <min>0.20</min>
+      <max>1.00</max>
+    </entry>
+    <entry name="panelBlurEnabled" type="Bool">
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

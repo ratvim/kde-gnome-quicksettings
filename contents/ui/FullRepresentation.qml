@@ -43,6 +43,8 @@ Rectangle {
     // Multi-factor responsive resolution scale:
     // Normalizes geometry against standard 1080p reference, while honoring
     // 16:9 aspect-ratio clamping for ultrawide displays and Kirigami gridUnit scaling.
+    // Boosted baseline factor (1.15) provides spacious, modern GNOME/macOS-grade
+    // proportions out of the box on standard 1080p laptop/desktop screens.
     readonly property real resolutionScale: {
         var hScale = screenHeight / 1080.0
         // Use 16:9 equivalent width to prevent horizontal distortion on ultrawide monitors
@@ -50,17 +52,17 @@ Rectangle {
         var wScale = wEquiv / 1920.0
         var geomScale = (hScale * 0.65) + (wScale * 0.35)
         var unitScale = baseGridUnit / 18.0
-        var effective = Math.max(unitScale, geomScale)
-        // Clamp scale factor between 0.85 (low-res / small displays) and 1.50 (4K UHD)
-        return Math.max(0.85, Math.min(1.50, effective))
+        var effective = Math.max(unitScale, geomScale) * 1.15
+        // Clamp scale factor between 0.88 (compact 720p displays) and 1.85 (4K UHD)
+        return Math.max(0.88, Math.min(1.85, effective))
     }
 
     // Responsive panel width:
-    // Base 390px scaled by resolution, bounded strictly to screen proportions
+    // Base 400px scaled by resolution, bounded strictly to screen proportions
     readonly property int responsiveWidth: {
-        var targetW = Math.round(390 * resolutionScale)
-        var maxAllowedW = Math.round(screenWidth * (screenWidth < 700 ? 0.92 : 0.40))
-        var minAllowedW = Math.min(Math.round(screenWidth * 0.88), 340)
+        var targetW = Math.round(400 * resolutionScale)
+        var maxAllowedW = Math.round(screenWidth * (screenWidth < 700 ? 0.92 : 0.42))
+        var minAllowedW = Math.min(Math.round(screenWidth * 0.88), 360)
         return Math.max(minAllowedW, Math.min(maxAllowedW, targetW))
     }
 
@@ -70,7 +72,7 @@ Rectangle {
     }
 
     // Responsive padding and spacing metrics
-    readonly property int contentMargin: Math.round(14 * resolutionScale)
+    readonly property int contentMargin: Math.round(15 * resolutionScale)
     readonly property int tileSpacing: Math.round(10 * resolutionScale)
     readonly property int panelCornerRadius: Math.round(24 * resolutionScale)
 
@@ -78,6 +80,29 @@ Rectangle {
         updateTogglePages()
         syncWindowGeometry()
         restartBackgroundFixTimers()
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (backend && typeof backend.updatePanelDetection === "function") {
+                backend.updatePanelDetection()
+            }
+            applyWindowMaskAndBlur()
+            restartBackgroundFixTimers()
+        }
+    }
+
+    Connections {
+        target: backend ? backend : null
+        function onEffectiveBlurEnabledChanged() {
+            root.applyWindowMaskAndBlur()
+        }
+        function onEffectiveBackgroundOpacityChanged() {
+            root.applyWindowMaskAndBlur()
+        }
+        function onEffectiveCardColorChanged() {
+            root.applyWindowMaskAndBlur()
+        }
     }
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
@@ -108,8 +133,9 @@ Rectangle {
         }
 
         if (helper) {
+            var shouldBlur = backend ? backend.effectiveBlurEnabled : true
             try {
-                helper.applyMask(root, root.panelCornerRadius, true)
+                helper.applyMask(root, root.panelCornerRadius, shouldBlur)
             } catch (e) {}
         }
     }
@@ -550,13 +576,13 @@ Rectangle {
     }
 
     readonly property real mainCalculatedHeight: {
-        var tileH = (backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : Math.round(56 * root.resolutionScale)
+        var tileH = (backend && backend.tileIconSize) ? Math.max(60, backend.tileIconSize + 38) : Math.round(62 * root.resolutionScale)
         var togglesH = visibleRowsOnPage > 0 ? (visibleRowsOnPage * tileH + Math.max(0, visibleRowsOnPage - 1) * root.tileSpacing) : 0
         var dotsH = (togglePageCount > 1) ? Math.round(18 * root.resolutionScale) : 0
         var hasMedia = (backend && backend.mediaTitle && backend.mediaTitle !== "")
-        var mediaH = hasMedia ? (root.contentMargin + Math.round(70 * root.resolutionScale)) : 0
-        var topBarH = Math.round(36 * root.resolutionScale)
-        var slidersH = Math.round(56 * root.resolutionScale)
+        var mediaH = hasMedia ? (root.contentMargin + Math.round(74 * root.resolutionScale)) : 0
+        var topBarH = Math.round(38 * root.resolutionScale)
+        var slidersH = Math.round(58 * root.resolutionScale)
         var exactH = topBarH + root.contentMargin + slidersH + (visibleRowsOnPage > 0 ? (root.contentMargin + togglesH) : 0) + dotsH + mediaH + (root.contentMargin * 2)
         if (mainCol && mainCol.implicitHeight > 0) {
             return Math.max(180, Math.min(Math.max(exactH, mainCol.implicitHeight + (root.contentMargin * 2)), root.maxScreenSafeHeight))
@@ -744,9 +770,11 @@ Rectangle {
     antialiasing: true
     smooth: true
 
-    // GNOME glassmorphic surface
-    color: isDarkTheme ? "#1e1e24" : "#f0f2f5"
-    border.color: isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.08)
+    // Dynamic GNOME glassmorphic surface following attached panel
+    color: backend ? backend.effectiveCardColor : (isDarkTheme ? "#1e1e24" : "#f0f2f5")
+    border.color: isDarkTheme
+                  ? Qt.rgba(255, 255, 255, (backend && backend.effectiveBackgroundOpacity < 0.95) ? 0.14 : 0.08)
+                  : Qt.rgba(0, 0, 0, (backend && backend.effectiveBackgroundOpacity < 0.95) ? 0.12 : 0.08)
     border.width: 1
 
     clip: true
@@ -1502,8 +1530,10 @@ Rectangle {
         anchors.topMargin: Math.round(52 * root.resolutionScale)      // below the top bar
         anchors.rightMargin: root.contentMargin
 
-        color: root.isDarkTheme ? "#2a2a32" : "#ffffff"
-        border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(0, 0, 0, 0.12)
+        color: root.isDarkTheme
+               ? (backend && backend.effectiveBackgroundOpacity < 0.95 ? Qt.rgba(42/255, 42/255, 50/255, 0.92) : "#2a2a32")
+               : (backend && backend.effectiveBackgroundOpacity < 0.95 ? Qt.rgba(1, 1, 1, 0.92) : "#ffffff")
+        border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.15) : Qt.rgba(0, 0, 0, 0.12)
         border.width: 1
 
         layer.enabled: true

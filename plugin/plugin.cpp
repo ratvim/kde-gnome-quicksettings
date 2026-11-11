@@ -19,6 +19,7 @@ public:
 
     Q_INVOKABLE void disableBlur(QQuickItem *item) {
         if (!item) return;
+        m_blurInside = false;
         QQuickWindow *win = item->window();
         if (!win) return;
         KWindowEffects::enableBlurBehind(win, false);
@@ -113,10 +114,15 @@ public:
             QRegion r(bmp);
             win->setMask(r);
 
-            // Setting blur-behind with the exact rounded region 'r' guarantees that KWin
-            // will NEVER blur the 4 corner areas outside the curved card.
-            KWindowEffects::enableBlurBehind(win, true, r);
-            KWindowEffects::enableBackgroundContrast(win, false);
+            // Setting blur-behind and background contrast with the exact rounded region 'r'
+            // guarantees that KWin will NEVER blur or modify the 4 corner areas outside the curved card.
+            if (m_blurInside) {
+                KWindowEffects::enableBlurBehind(win, true, r);
+                KWindowEffects::enableBackgroundContrast(win, true, 1.0, 1.0, 1.0, r);
+            } else {
+                KWindowEffects::enableBlurBehind(win, false);
+                KWindowEffects::enableBackgroundContrast(win, false);
+            }
         }
 
         m_inReapply = false;

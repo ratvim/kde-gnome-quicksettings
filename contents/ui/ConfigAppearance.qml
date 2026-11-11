@@ -11,6 +11,9 @@ KCM.SimpleKCM {
     readonly property string defaultOrder: "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
     property string cfg_tilesOrder: defaultOrder
     property alias cfg_toggleRowsPerPage: rowsSpinBox.value
+    property string cfg_panelBackgroundMode: "follow_panel"
+    property real cfg_customOpacity: 0.75
+    property alias cfg_panelBlurEnabled: blurCheck.checked
 
     function getMeta(key) {
         switch (key) {
@@ -308,6 +311,86 @@ KCM.SimpleKCM {
             displaced: Transition {
                 NumberAnimation { properties: "y"; duration: 150; easing.type: Easing.OutQuad }
             }
+        }
+
+        // Section 2: Panel Background & Blur
+        Kirigami.Separator {
+            Kirigami.FormData.label: i18n("Panel Background, Transparency & Blur")
+            Kirigami.FormData.isSection: true
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.largeSpacing
+
+            Label {
+                text: i18n("Background Appearance:")
+                font.bold: true
+            }
+
+            ComboBox {
+                id: bgModeCombo
+                textRole: "text"
+                valueRole: "value"
+                model: [
+                    { text: i18n("Follow Attached Panel (Automatic)"), value: "follow_panel" },
+                    { text: i18n("Frosted Glass Translucent"), value: "translucent" },
+                    { text: i18n("Solid Opaque"), value: "opaque" }
+                ]
+                currentIndex: {
+                    for (var i = 0; i < model.length; i++) {
+                        if (model[i].value === root.cfg_panelBackgroundMode) return i
+                    }
+                    return 0
+                }
+                onActivated: {
+                    root.cfg_panelBackgroundMode = currentValue
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.largeSpacing
+            visible: root.cfg_panelBackgroundMode === "translucent"
+
+            Label {
+                text: i18n("Custom Opacity:")
+                font.bold: true
+            }
+
+            Slider {
+                id: opacitySlider
+                from: 0.20
+                to: 1.00
+                stepSize: 0.05
+                value: root.cfg_customOpacity
+                onMoved: {
+                    root.cfg_customOpacity = Math.round(value * 100) / 100
+                }
+            }
+
+            Label {
+                text: Math.round(opacitySlider.value * 100) + "%"
+                color: Kirigami.Theme.disabledTextColor
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        CheckBox {
+            id: blurCheck
+            text: i18n("Enable blur behind card (restricted to curved card region via KWin)")
+            checked: true
+        }
+
+        Kirigami.InlineMessage {
+            Layout.fillWidth: true
+            type: Kirigami.MessageType.Information
+            text: i18n("In 'Follow Attached Panel' mode, Quick Settings automatically adopts the attached panel's background color, opacity (including custom panel colorizer presets), and blur behind window.")
+            visible: true
         }
     }
 }
