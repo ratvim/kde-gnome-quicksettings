@@ -101,6 +101,9 @@ PlasmoidItem {
     property bool showVolume: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolume !== undefined) ? plasmoid.configuration.showVolume : true
     property bool showBattery: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBattery !== undefined) ? plasmoid.configuration.showBattery : true
     property bool showBatteryPercent: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBatteryPercent !== undefined) ? plasmoid.configuration.showBatteryPercent : true
+    property bool showVolumePercent: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolumePercent !== undefined) ? plasmoid.configuration.showVolumePercent : false
+    property bool showWifi: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showWifi !== undefined) ? plasmoid.configuration.showWifi : true
+    property bool showBluetooth: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBluetooth !== undefined) ? plasmoid.configuration.showBluetooth : true
     // Icon Sizing & Background Follow Config
     property int panelIconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 15
     property int tileIconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileIconSize !== undefined) ? plasmoid.configuration.tileIconSize : 20

@@ -312,7 +312,7 @@ Rectangle {
                             item.title = "Show Volume Percentage on Panel"
                             item.subtitle = "Displays number (e.g. 65%) next to volume icon"
                             item.configKey = "showVolumePercent"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.showVolumePercent : false })
+                            item.checkedState = Qt.binding(function() { return Boolean(backend && backend.showVolumePercent) })
                         }
                     }
 
@@ -323,7 +323,7 @@ Rectangle {
                             item.title = "Wi-Fi Indicator"
                             item.subtitle = "Show Wi-Fi status on panel capsule"
                             item.configKey = "showWifi"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.showWifi : true })
+                            item.checkedState = Qt.binding(function() { return backend ? Boolean(backend.showWifi) : true })
                         }
                     }
 
@@ -334,7 +334,7 @@ Rectangle {
                             item.title = "Volume Indicator"
                             item.subtitle = "Show sound volume icon on panel capsule"
                             item.configKey = "showVolume"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.showVolume : true })
+                            item.checkedState = Qt.binding(function() { return backend ? Boolean(backend.showVolume) : true })
                         }
                     }
 
@@ -345,7 +345,7 @@ Rectangle {
                             item.title = "Bluetooth Indicator"
                             item.subtitle = "Show Bluetooth status on panel capsule"
                             item.configKey = "showBluetooth"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.showBluetooth : true })
+                            item.checkedState = Qt.binding(function() { return backend ? Boolean(backend.showBluetooth) : true })
                         }
                     }
 
@@ -356,18 +356,7 @@ Rectangle {
                             item.title = "Battery Indicator"
                             item.subtitle = "Show battery icon on panel capsule"
                             item.configKey = "showBattery"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.showBattery : true })
-                        }
-                    }
-
-                    Loader {
-                        Layout.fillWidth: true
-                        sourceComponent: settingToggleRow
-                        onLoaded: {
-                            item.title = "LocalSend Indicator"
-                            item.subtitle = "Show LocalSend icon on panel capsule when active"
-                            item.configKey = "panelShowLocalSend"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.panelShowLocalSend : false })
+                            item.checkedState = Qt.binding(function() { return backend ? Boolean(backend.showBattery) : true })
                         }
                     }
                 }
@@ -661,15 +650,6 @@ Rectangle {
                         }
                     }
 
-                    Loader {
-                        Layout.fillWidth: true
-                        sourceComponent: settingToggleRow
-                        onLoaded: {
-                            item.title = "LocalSend Tile"
-                            item.configKey = "tileShowLocalSend"
-                            item.checkedState = Qt.binding(function() { return backend ? backend.tileShowLocalSend : true })
-                        }
-                    }
                 }
 
                 // Section 4: Background & Blur

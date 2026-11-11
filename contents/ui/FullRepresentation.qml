@@ -82,16 +82,6 @@ Rectangle {
         restartBackgroundFixTimers()
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            if (backend && typeof backend.updatePanelDetection === "function") {
-                backend.updatePanelDetection()
-            }
-            applyWindowMaskAndBlur()
-            restartBackgroundFixTimers()
-        }
-    }
-
     Connections {
         target: backend ? backend : null
         function onEffectiveBlurEnabledChanged() {
@@ -247,8 +237,10 @@ Rectangle {
                 recordHook(topItem, "children")
                 if (topItem.childrenChanged) {
                     topItem.childrenChanged.connect(function() {
-                        root.removePlasmaBackground()
-                        root.restartBackgroundFixTimers()
+                        if (root && typeof root.removePlasmaBackground === "function") {
+                            root.removePlasmaBackground()
+                            root.restartBackgroundFixTimers()
+                        }
                     })
                 }
             }
@@ -270,8 +262,10 @@ Rectangle {
                     recordHook(win.contentItem, "children")
                     if (win.contentItem.childrenChanged) {
                         win.contentItem.childrenChanged.connect(function() {
-                            root.removePlasmaBackground()
-                            root.restartBackgroundFixTimers()
+                            if (root && typeof root.removePlasmaBackground === "function") {
+                                root.removePlasmaBackground()
+                                root.restartBackgroundFixTimers()
+                            }
                         })
                     }
                 }
@@ -308,14 +302,18 @@ Rectangle {
                     }
                     if (win.widthChanged) {
                         win.widthChanged.connect(function() {
-                            root.removePlasmaBackground()
-                            root.applyWindowMaskAndBlur()
+                            if (root && typeof root.removePlasmaBackground === "function") {
+                                root.removePlasmaBackground()
+                                root.applyWindowMaskAndBlur()
+                            }
                         })
                     }
                     if (win.heightChanged) {
                         win.heightChanged.connect(function() {
-                            root.removePlasmaBackground()
-                            root.applyWindowMaskAndBlur()
+                            if (root && typeof root.removePlasmaBackground === "function") {
+                                root.removePlasmaBackground()
+                                root.applyWindowMaskAndBlur()
+                            }
                         })
                     }
                 }
@@ -382,8 +380,10 @@ Rectangle {
                     recordHook(root.parent, "children")
                     if (root.parent.childrenChanged) {
                         root.parent.childrenChanged.connect(function() {
-                            root.removePlasmaBackground()
-                            root.restartBackgroundFixTimers()
+                            if (root && typeof root.removePlasmaBackground === "function") {
+                                root.removePlasmaBackground()
+                                root.restartBackgroundFixTimers()
+                            }
                         })
                     }
                 }
@@ -463,6 +463,10 @@ Rectangle {
     onVisibleChanged: {
         resetToFreshMainView()
         if (visible) {
+            if (backend && typeof backend.updatePanelDetection === "function") {
+                backend.updatePanelDetection()
+            }
+            applyWindowMaskAndBlur()
             syncWindowGeometry()
             removePlasmaBackground()
             restartBackgroundFixTimers()
