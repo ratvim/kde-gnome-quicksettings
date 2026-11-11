@@ -483,9 +483,8 @@ Item {
 
                 StatusToolTip {
                     visible: kdeHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "KDE Connect"
-                    status: mainItem ? (mainItem.kdeConnectName || "Device Connected") : "Connected"
-                    subStatus: "Device synchronized"
+                    title: (mainItem && mainItem.kdeConnectName && mainItem.kdeConnectName !== "") ? mainItem.kdeConnectName : "KDE Connect"
+                    status: (mainItem && mainItem.kdeConnectBattery > 0) ? (mainItem.kdeConnectBattery + "% Battery • Synced") : "Device synchronized"
                     iconName: "kdeconnect-tray-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -518,9 +517,8 @@ Item {
 
                 StatusToolTip {
                     visible: camHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Camera"
-                    status: (mainItem && mainItem.cameraBlocked) ? "Blocked" : "In Use"
-                    subStatus: (mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0) ? ("Active: " + mainItem.cameraApps.join(", ")) : "Camera active"
+                    title: (mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0) ? mainItem.cameraApps.join(", ") : ((mainItem && mainItem.cameraBlocked) ? "Camera Guard Active" : "Camera In Use")
+                    status: (mainItem && mainItem.cameraBlocked) ? "Video capture blocked" : "Active camera stream"
                     iconName: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
                     iconColor: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -553,9 +551,8 @@ Item {
 
                 StatusToolTip {
                     visible: micHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Microphone"
-                    status: (mainItem && mainItem.micMuted) ? "Muted" : "In Use"
-                    subStatus: (mainItem && mainItem.micApps && mainItem.micApps.length > 0) ? ("Active: " + mainItem.micApps.join(", ")) : "Audio capture active"
+                    title: (mainItem && mainItem.micApps && mainItem.micApps.length > 0) ? mainItem.micApps.join(", ") : ((mainItem && mainItem.micMuted) ? "Microphone Muted" : "Microphone Active")
+                    status: (mainItem && mainItem.micMuted) ? "Muted by privacy toggle" : "Audio capture active"
                     iconName: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
                     iconColor: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -588,9 +585,8 @@ Item {
 
                 StatusToolTip {
                     visible: locHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Location Services"
-                    status: (mainItem && mainItem.locationEnabled) ? "Location Active" : "Disabled"
-                    subStatus: (mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? ("Active: " + mainItem.locationApps.join(", ")) : "Geographic location tracking"
+                    title: (mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? ("Location: " + mainItem.locationApps.join(", ")) : "Location Services"
+                    status: (mainItem && mainItem.locationEnabled) ? "Active GPS / Geolocation" : "Location tracking disabled"
                     iconName: "find-location-symbolic"
                     iconColor: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -623,9 +619,8 @@ Item {
 
                 StatusToolTip {
                     visible: darkHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Dark Style"
-                    status: root.isDarkTheme ? "Dark Mode" : "Light Mode"
-                    subStatus: "Desktop theme color scheme"
+                    title: root.isDarkTheme ? "Dark Mode Active" : "Light Mode Active"
+                    status: "Desktop color scheme"
                     iconName: "contrast-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -658,9 +653,8 @@ Item {
 
                 StatusToolTip {
                     visible: dndHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Do Not Disturb"
-                    status: (mainItem && mainItem.dndEnabled) ? "Active" : "Off"
-                    subStatus: (mainItem && mainItem.dndUntilText) ? ("Muted until " + mainItem.dndUntilText) : "Notifications are muted"
+                    title: (mainItem && mainItem.dndEnabled) ? "Do Not Disturb" : "Notifications Active"
+                    status: (mainItem && mainItem.dndEnabled) ? ((mainItem && mainItem.dndUntilText) ? ("Muted until " + mainItem.dndUntilText) : "All alerts and sounds muted") : "Normal notification alerts"
                     iconName: "notifications-disabled-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -693,9 +687,8 @@ Item {
 
                 StatusToolTip {
                     visible: nightHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Night Light"
-                    status: (mainItem && mainItem.nightLightEnabled) ? "Active" : "Off"
-                    subStatus: (mainItem && mainItem.nightLightEnabled) ? "Warmer screen colors active" : "Normal color temperature"
+                    title: (mainItem && mainItem.nightLightEnabled) ? "Night Light Active" : "Night Light Off"
+                    status: (mainItem && mainItem.nightLightEnabled) ? "Warm color temperature for eye comfort" : "Standard color temperature"
                     iconName: "redshift-status-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -728,9 +721,8 @@ Item {
 
                 StatusToolTip {
                     visible: powerHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Power Profile"
-                    status: (mainItem && mainItem.powerProfile === "performance") ? "Performance Mode" : "Power Saver Mode"
-                    subStatus: (mainItem && mainItem.powerProfile === "performance") ? "Maximum system performance" : "Optimizes battery life"
+                    title: (mainItem && mainItem.powerProfile === "performance") ? "Performance Mode" : ((mainItem && mainItem.powerProfile === "power-saver") ? "Power Saver Mode" : "Balanced Mode")
+                    status: (mainItem && mainItem.powerProfile === "performance") ? "Maximum system performance" : ((mainItem && mainItem.powerProfile === "power-saver") ? "Optimizing battery lifespan" : "Standard performance & efficiency")
                     iconName: root.powerProfileIconName
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -763,9 +755,8 @@ Item {
 
                 StatusToolTip {
                     visible: hotspotHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Wi-Fi Hotspot"
-                    status: "Active"
-                    subStatus: (mainItem && mainItem.hotspotSsid) ? ("SSID: " + mainItem.hotspotSsid) : "Sharing internet connection"
+                    title: (mainItem && mainItem.hotspotSsid && mainItem.hotspotSsid !== "") ? mainItem.hotspotSsid : "Wi-Fi Hotspot"
+                    status: (mainItem && mainItem.hotspotPassword) ? ("Password: " + mainItem.hotspotPassword) : "Sharing internet connection"
                     iconName: "network-wireless-hotspot-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -798,9 +789,8 @@ Item {
 
                 StatusToolTip {
                     visible: airHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Airplane Mode"
-                    status: "Active"
-                    subStatus: "All wireless transmissions disabled"
+                    title: "Airplane Mode Active"
+                    status: "All wireless transmissions disabled"
                     iconName: "network-flightmode-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -833,11 +823,17 @@ Item {
 
                 StatusToolTip {
                     visible: btHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Bluetooth"
-                    status: root.btConnected ? (mainItem.btDeviceName || "Connected") : (root.btEnabled ? "On (No devices connected)" : "Disabled")
-                    subStatus: (root.btConnected && mainItem.btBattery > 0) ? ("Battery: " + mainItem.btBattery + "%") : (root.btConnected ? "Device connected" : "Adapter active")
+                    title: (mainItem && mainItem.btConnected && mainItem.btDeviceName && mainItem.btDeviceName !== "")
+                        ? mainItem.btDeviceName
+                        : (root.btEnabled ? (root.btConnected ? "Connected Device" : "Not Connected") : "Bluetooth Off")
+                    status: root.btConnected 
+                        ? ((mainItem && mainItem.btBattery > 0) ? (mainItem.btBattery + "% Battery • Connected") : "Device connected")
+                        : (root.btEnabled ? "Click to connect devices" : "Bluetooth adapter disabled")
                     iconName: root.btIconName
                     iconColor: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    showProgressBar: Boolean(root.btConnected && mainItem && mainItem.btBattery > 0)
+                    progressValue: (mainItem && mainItem.btBattery) ? mainItem.btBattery : 0
+                    progressColor: (mainItem && mainItem.btBattery <= 20) ? "#e74c3c" : "#33d17a"
                     isDarkTheme: root.isDarkTheme
                     isTopPanel: root.isTopPanel
                 }
@@ -868,11 +864,17 @@ Item {
 
                 StatusToolTip {
                     visible: wifiHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Wi-Fi"
-                    status: root.wifiConnected ? (mainItem.wifiSsid || "Connected") : (root.wifiEnabled ? "Disconnected" : "Disabled")
-                    subStatus: root.wifiConnected ? (root.wifiSignal + "% Signal Strength") : (root.wifiEnabled ? "Available networks nearby" : "Wi-Fi turned off")
+                    title: (mainItem && mainItem.wifiConnected && mainItem.wifiSsid && mainItem.wifiSsid !== "" && mainItem.wifiSsid !== "Checking...") 
+                        ? mainItem.wifiSsid 
+                        : (root.wifiEnabled ? (root.wifiConnected ? "Connected Network" : "Disconnected") : "Wi-Fi Off")
+                    status: root.wifiConnected 
+                        ? (root.wifiSignal > 0 ? (root.wifiSignal + "% Signal Strength • Connected") : "Connected") 
+                        : (root.wifiEnabled ? "Click to connect to a network" : "Wireless adapter disabled")
                     iconName: root.wifiIconName
                     iconColor: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    showProgressBar: root.wifiConnected && root.wifiSignal > 0
+                    progressValue: root.wifiSignal
+                    progressColor: root.wifiSignal >= 60 ? "#33d17a" : (root.wifiSignal >= 30 ? "#f5a623" : "#e74c3c")
                     isDarkTheme: root.isDarkTheme
                     isTopPanel: root.isTopPanel
                 }
@@ -905,14 +907,19 @@ Item {
 
                 StatusToolTip {
                     visible: volHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Volume: " + (root.isMuted ? "Muted" : (root.volume + "%"))
-                    status: root.isMuted ? "Audio Output Muted" : "Master Audio Output"
-                    subStatus: "Click to open Quick Settings"
+                    title: root.isMuted ? "Audio Muted" : (root.volume + "% Volume")
+                    status: root.isMuted 
+                        ? "Sound output is muted" 
+                        : ((mainItem && mainItem.audioSinks && mainItem.audioSinks.length > 0) 
+                            ? (mainItem.audioSinks.find(function(s){ return s.is_default }) 
+                                ? mainItem.audioSinks.find(function(s){ return s.is_default }).description 
+                                : "Audio Output") 
+                            : "Master Audio Output")
                     iconName: root.volumeIconName
                     iconColor: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     showProgressBar: true
                     progressValue: root.isMuted ? 0 : root.volume
-                    progressColor: root.isMuted ? (root.isDarkTheme ? "#777777" : "#999999") : "#3584e4"
+                    progressColor: root.isMuted ? (root.isDarkTheme ? "#777777" : "#999999") : ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4")
                     isDarkTheme: root.isDarkTheme
                     isTopPanel: root.isTopPanel
                 }
@@ -962,9 +969,10 @@ Item {
 
                 StatusToolTip {
                     visible: batHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Battery: " + root.batteryLevel + "%"
-                    status: root.batteryCharging ? "Charging" : (root.batteryLevel <= 20 ? "Battery Low" : "Discharging")
-                    subStatus: root.batteryCharging ? "Power Connected" : "On Battery Power"
+                    title: root.batteryLevel + "% Battery" + (root.batteryCharging ? " (Charging)" : "")
+                    status: root.batteryCharging 
+                        ? "Power Adapter Connected • Charging" 
+                        : (root.batteryLevel <= 20 ? "Battery Low • Connect Charger" : "Running on Battery Power")
                     iconName: root.batteryIconName
                     iconColor: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
                     showProgressBar: true
