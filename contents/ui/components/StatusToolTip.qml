@@ -110,3 +110,4 @@ PlasmaComponents.ToolTip {
         }
     }
 }
+

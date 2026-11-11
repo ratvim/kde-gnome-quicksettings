@@ -24,6 +24,16 @@ PlasmoidItem {
     Layout.leftMargin: 2
     Layout.rightMargin: 8
 
+    // Suppress Plasma desktop's default applet tooltip ("GNOME Quick Settings")
+    // so it doesn't conflict with our per-indicator capsule hover status tooltips
+    toolTipMainText: ""
+    toolTipSubText: ""
+    toolTipItem: Item {
+        visible: false
+        width: 0
+        height: 0
+    }
+
     compactRepresentation: CompactRepresentation {}
     fullRepresentation: FullRepresentation {
         Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground

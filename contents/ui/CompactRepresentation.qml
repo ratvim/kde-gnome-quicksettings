@@ -142,12 +142,48 @@ Item {
         onTriggered: root.detectPanelProperties()
     }
 
+    function disableSystemToolTip() {
+        var p = parent
+        while (p) {
+            if (p.objectName === "org.kde.desktop-CompactApplet" || (typeof p.active !== "undefined" && p.toString().indexOf("ToolTipArea") !== -1)) {
+                p.active = false
+                if (typeof p.mainText !== "undefined") p.mainText = ""
+                if (typeof p.subText !== "undefined") p.subText = ""
+                break
+            }
+            p = p.parent
+        }
+    }
+
+    Timer {
+        id: disableToolTipTimer
+        interval: 150
+        repeat: false
+        running: true
+        onTriggered: root.disableSystemToolTip()
+    }
+
+    Connections {
+        target: mainItem ? mainItem : null
+        ignoreUnknownSignals: true
+        function onExpandedChanged() {
+            root.disableSystemToolTip()
+        }
+    }
+
     onWindowChanged: {
         root.detectPanelProperties()
+        root.disableSystemToolTip()
+    }
+
+    onParentChanged: {
+        root.detectPanelProperties()
+        root.disableSystemToolTip()
     }
 
     Component.onCompleted: {
         root.detectPanelProperties()
+        root.disableSystemToolTip()
     }
 
     // Active icons on the panel use high-contrast panel foreground
@@ -408,7 +444,7 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: arrowHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: !root.hasVisibleIndicators && arrowHover.containsMouse && !(mainItem && mainItem.expanded)
                     title: "Quick Settings"
                     status: "Click to open Control Center"
                     iconName: "preferences-system"
