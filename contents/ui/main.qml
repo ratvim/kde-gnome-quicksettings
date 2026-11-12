@@ -475,8 +475,15 @@ PlasmoidItem {
                     var dev = JSON.parse(stdout)
                     if (dev.mic_muted !== undefined) mainItem.micMuted = !!dev.mic_muted
                     if (dev.mic_apps !== undefined) mainItem.micApps = dev.mic_apps
-                    if (dev.location_enabled !== undefined) mainItem.locationEnabled = !!dev.location_enabled
-                    if (dev.location_apps !== undefined) mainItem.locationApps = dev.location_apps
+                    if (dev.location_apps !== undefined) {
+                        mainItem.locationApps = dev.location_apps
+                        if (dev.location_apps && dev.location_apps.length > 0) {
+                            mainItem.locationEnabled = true
+                        }
+                    }
+                    if (dev.location_enabled !== undefined) {
+                        mainItem.locationEnabled = !!dev.location_enabled || (mainItem.locationApps && mainItem.locationApps.length > 0)
+                    }
                     if (dev.camera_blocked !== undefined) mainItem.cameraBlocked = !!dev.camera_blocked
                     if (dev.camera_apps !== undefined) mainItem.cameraApps = dev.camera_apps
                     if (dev.kdeconnect) {

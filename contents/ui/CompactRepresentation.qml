@@ -24,8 +24,11 @@ Item {
     Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
     Kirigami.Theme.inherit: false
 
-    readonly property bool systemIsDark: (mainItem && mainItem.systemIsDark !== undefined) ? mainItem.systemIsDark : false
-    property bool isDarkTheme: (mainItem && mainItem.isDarkTheme !== undefined) ? mainItem.isDarkTheme : true
+    // Backend reference (avoiding any shadowing by PlasmaCore.Dialog.mainItem)
+    readonly property var backend: (typeof mainItem !== "undefined" && mainItem) ? mainItem : null
+
+    readonly property bool systemIsDark: (backend && backend.systemIsDark !== undefined) ? backend.systemIsDark : false
+    property bool isDarkTheme: (backend && backend.isDarkTheme !== undefined) ? backend.isDarkTheme : true
 
     // Dynamic detection of attached panel background, opacity, and blur
     function detectPanelProperties() {
@@ -125,12 +128,12 @@ Item {
             }
         } catch (e3) {}
 
-        if (mainItem) {
-            mainItem.hasCustomPanelColor = hasCustomColor
-            mainItem.detectedPanelColor = hasCustomColor ? detectedColor : Qt.rgba(0, 0, 0, 0)
-            mainItem.detectedPanelOpacity = detectedOpacity
-            mainItem.detectedPanelBlur = detectedBlur
-            mainItem.detectedPanelTextColor = detectedTextColor
+        if (backend) {
+            backend.hasCustomPanelColor = hasCustomColor
+            backend.detectedPanelColor = hasCustomColor ? detectedColor : Qt.rgba(0, 0, 0, 0)
+            backend.detectedPanelOpacity = detectedOpacity
+            backend.detectedPanelBlur = detectedBlur
+            backend.detectedPanelTextColor = detectedTextColor
         }
     }
 
@@ -164,7 +167,7 @@ Item {
     }
 
     Connections {
-        target: mainItem ? mainItem : null
+        target: backend ? backend : null
         ignoreUnknownSignals: true
         function onExpandedChanged() {
             root.disableSystemToolTip()
@@ -188,11 +191,11 @@ Item {
 
     // Active icons on the panel use high-contrast panel foreground
     readonly property color activeIndicatorColor: {
-        if (mainItem && mainItem.detectedPanelTextColor && mainItem.detectedPanelTextColor.a > 0) {
-            return mainItem.detectedPanelTextColor
+        if (backend && backend.detectedPanelTextColor && backend.detectedPanelTextColor.a > 0) {
+            return backend.detectedPanelTextColor
         }
-        if (mainItem && mainItem.hasCustomPanelColor) {
-            return mainItem.effectiveIsDark ? "#f6f8fa" : "#1a1a1a"
+        if (backend && backend.hasCustomPanelColor) {
+            return backend.effectiveIsDark ? "#f6f8fa" : "#1a1a1a"
         }
         return (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
     }
@@ -200,42 +203,66 @@ Item {
     readonly property color inactiveIndicatorColor: Qt.rgba(activeIndicatorColor.r, activeIndicatorColor.g, activeIndicatorColor.b, 0.45)
 
     // System states
-    property bool wifiEnabled: mainItem ? mainItem.wifiEnabled : true
-    property bool wifiConnected: mainItem ? mainItem.wifiConnected : true
-    property int wifiSignal: mainItem ? mainItem.wifiSignal : 80
-    property bool btEnabled: mainItem ? mainItem.btEnabled : true
-    property bool btConnected: mainItem ? mainItem.btConnected : false
-    property int volume: mainItem ? mainItem.volume : 65
-    property bool isMuted: mainItem ? mainItem.isMuted : false
-    property int batteryLevel: mainItem ? mainItem.batteryLevel : 85
-    property bool batteryCharging: mainItem ? mainItem.batteryCharging : false
+    property bool wifiEnabled: backend ? backend.wifiEnabled : true
+    property bool wifiConnected: backend ? backend.wifiConnected : true
+    property int wifiSignal: backend ? backend.wifiSignal : 80
+    property string wifiSsid: backend ? backend.wifiSsid : ""
+    property bool btEnabled: backend ? backend.btEnabled : true
+    property bool btConnected: backend ? backend.btConnected : false
+    property string btDeviceName: backend ? backend.btDeviceName : ""
+    property int btBattery: backend ? backend.btBattery : 0
+    property int volume: backend ? backend.volume : 65
+    property bool isMuted: backend ? backend.isMuted : false
+    property var audioSinks: backend ? backend.audioSinks : []
+    property int batteryLevel: backend ? backend.batteryLevel : 85
+    property bool batteryCharging: backend ? backend.batteryCharging : false
 
     // Sizing
-    property int panelIconSize: (mainItem && mainItem.panelIconSize !== undefined) ? mainItem.panelIconSize : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 16)
+    property int panelIconSize: (backend && backend.panelIconSize !== undefined) ? backend.panelIconSize : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelIconSize !== undefined) ? plasmoid.configuration.panelIconSize : 16)
 
     // Configuration options (persisted via plasmoid settings)
-    property bool showVolume: (mainItem && mainItem.showVolume !== undefined) ? mainItem.showVolume : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolume !== undefined) ? plasmoid.configuration.showVolume : true)
-    property bool showBattery: (mainItem && mainItem.showBattery !== undefined) ? mainItem.showBattery : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBattery !== undefined) ? plasmoid.configuration.showBattery : true)
-    property bool showBatteryPercent: (mainItem && mainItem.showBatteryPercent !== undefined) ? mainItem.showBatteryPercent : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBatteryPercent !== undefined) ? plasmoid.configuration.showBatteryPercent : true)
+    property bool showVolume: (backend && backend.showVolume !== undefined) ? backend.showVolume : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showVolume !== undefined) ? plasmoid.configuration.showVolume : true)
+    property bool showBattery: (backend && backend.showBattery !== undefined) ? backend.showBattery : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBattery !== undefined) ? plasmoid.configuration.showBattery : true)
+    property bool showBatteryPercent: (backend && backend.showBatteryPercent !== undefined) ? backend.showBatteryPercent : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.showBatteryPercent !== undefined) ? plasmoid.configuration.showBatteryPercent : true)
 
     // Panel Toggle Icons Visibility (persisted via plasmoid settings)
-    property bool panelShowWifi: (mainItem && mainItem.panelShowWifi !== undefined) ? mainItem.panelShowWifi : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowWifi !== undefined) ? plasmoid.configuration.panelShowWifi : true)
-    property bool panelShowBluetooth: (mainItem && mainItem.panelShowBluetooth !== undefined) ? mainItem.panelShowBluetooth : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowBluetooth !== undefined) ? plasmoid.configuration.panelShowBluetooth : true)
-    property bool panelShowNightLight: (mainItem && mainItem.panelShowNightLight !== undefined) ? mainItem.panelShowNightLight : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowNightLight !== undefined) ? plasmoid.configuration.panelShowNightLight : true)
-    property bool panelShowAirplane: (mainItem && mainItem.panelShowAirplane !== undefined) ? mainItem.panelShowAirplane : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowAirplane !== undefined) ? plasmoid.configuration.panelShowAirplane : true)
-    property bool panelShowDnd: (mainItem && mainItem.panelShowDnd !== undefined) ? mainItem.panelShowDnd : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowDnd !== undefined) ? plasmoid.configuration.panelShowDnd : true)
-    property bool panelShowHotspot: (mainItem && mainItem.panelShowHotspot !== undefined) ? mainItem.panelShowHotspot : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowHotspot !== undefined) ? plasmoid.configuration.panelShowHotspot : true)
-    property bool panelShowDarkTheme: (mainItem && mainItem.panelShowDarkTheme !== undefined) ? mainItem.panelShowDarkTheme : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowDarkTheme !== undefined) ? plasmoid.configuration.panelShowDarkTheme : true)
-    property bool panelShowPowerProfile: (mainItem && mainItem.panelShowPowerProfile !== undefined) ? mainItem.panelShowPowerProfile : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowPowerProfile !== undefined) ? plasmoid.configuration.panelShowPowerProfile : true)
-    property bool panelShowLocation: (mainItem && mainItem.panelShowLocation !== undefined) ? mainItem.panelShowLocation : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowLocation !== undefined) ? plasmoid.configuration.panelShowLocation : true)
-    property bool panelShowCamera: (mainItem && mainItem.panelShowCamera !== undefined) ? mainItem.panelShowCamera : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowCamera !== undefined) ? plasmoid.configuration.panelShowCamera : true)
-    property bool panelShowMic: (mainItem && mainItem.panelShowMic !== undefined) ? mainItem.panelShowMic : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowMic !== undefined) ? plasmoid.configuration.panelShowMic : true)
-    property bool panelShowKdeConnect: (mainItem && mainItem.panelShowKdeConnect !== undefined) ? mainItem.panelShowKdeConnect : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowKdeConnect !== undefined) ? plasmoid.configuration.panelShowKdeConnect : true)
+    property bool panelShowWifi: (backend && backend.panelShowWifi !== undefined) ? backend.panelShowWifi : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowWifi !== undefined) ? plasmoid.configuration.panelShowWifi : true)
+    property bool panelShowBluetooth: (backend && backend.panelShowBluetooth !== undefined) ? backend.panelShowBluetooth : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowBluetooth !== undefined) ? plasmoid.configuration.panelShowBluetooth : true)
+    property bool panelShowNightLight: (backend && backend.panelShowNightLight !== undefined) ? backend.panelShowNightLight : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowNightLight !== undefined) ? plasmoid.configuration.panelShowNightLight : true)
+    property bool panelShowAirplane: (backend && backend.panelShowAirplane !== undefined) ? backend.panelShowAirplane : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowAirplane !== undefined) ? plasmoid.configuration.panelShowAirplane : true)
+    property bool panelShowDnd: (backend && backend.panelShowDnd !== undefined) ? backend.panelShowDnd : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowDnd !== undefined) ? plasmoid.configuration.panelShowDnd : true)
+    property bool panelShowHotspot: (backend && backend.panelShowHotspot !== undefined) ? backend.panelShowHotspot : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowHotspot !== undefined) ? plasmoid.configuration.panelShowHotspot : true)
+    property bool panelShowDarkTheme: (backend && backend.panelShowDarkTheme !== undefined) ? backend.panelShowDarkTheme : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowDarkTheme !== undefined) ? plasmoid.configuration.panelShowDarkTheme : true)
+    property bool panelShowPowerProfile: (backend && backend.panelShowPowerProfile !== undefined) ? backend.panelShowPowerProfile : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowPowerProfile !== undefined) ? plasmoid.configuration.panelShowPowerProfile : true)
+    property bool panelShowLocation: (backend && backend.panelShowLocation !== undefined) ? backend.panelShowLocation : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowLocation !== undefined) ? plasmoid.configuration.panelShowLocation : true)
+    property bool panelShowCamera: (backend && backend.panelShowCamera !== undefined) ? backend.panelShowCamera : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowCamera !== undefined) ? plasmoid.configuration.panelShowCamera : true)
+    property bool panelShowMic: (backend && backend.panelShowMic !== undefined) ? backend.panelShowMic : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowMic !== undefined) ? plasmoid.configuration.panelShowMic : true)
+    property bool panelShowKdeConnect: (backend && backend.panelShowKdeConnect !== undefined) ? backend.panelShowKdeConnect : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowKdeConnect !== undefined) ? plasmoid.configuration.panelShowKdeConnect : true)
+
+    // Device, Privacy & Quick Setting States
+    property bool locationEnabled: Boolean(backend && (backend.locationEnabled || (backend.locationApps && backend.locationApps.length > 0)))
+    property var locationApps: (backend && backend.locationApps) ? backend.locationApps : []
+    property bool micMuted: backend ? backend.micMuted : false
+    property var micApps: (backend && backend.micApps) ? backend.micApps : []
+    property bool cameraBlocked: backend ? backend.cameraBlocked : false
+    property var cameraApps: (backend && backend.cameraApps) ? backend.cameraApps : []
+    property bool kdeConnectConnected: backend ? backend.kdeConnectConnected : false
+    property string kdeConnectName: backend ? backend.kdeConnectName : ""
+    property int kdeConnectBattery: backend ? backend.kdeConnectBattery : -1
+    property bool nightLightEnabled: backend ? backend.nightLightEnabled : false
+    property bool dndEnabled: backend ? backend.dndEnabled : false
+    property string dndUntilText: backend ? backend.dndUntilText : ""
+    property bool hotspotEnabled: backend ? backend.hotspotEnabled : false
+    property string hotspotSsid: backend ? backend.hotspotSsid : ""
+    property string hotspotPassword: backend ? backend.hotspotPassword : ""
+    property bool airplaneMode: backend ? backend.airplaneMode : false
+    property string powerProfile: backend ? backend.powerProfile : "balanced"
+    property bool isTrayExpanded: Boolean(backend && backend.expanded)
 
     // Wi-Fi icon — follows the active system icon pack exactly
     property string wifiIconName: {
-        if (mainItem && mainItem.wifiIconName) {
-            return mainItem.wifiIconName
+        if (backend && backend.wifiIconName) {
+            return backend.wifiIconName
         }
         if (!root.wifiEnabled || !root.wifiConnected) {
             return "network-wireless-offline-symbolic"
@@ -250,8 +277,8 @@ Item {
 
     // Dynamic Volume icon matching KDE Plasma System Tray
     property string volumeIconName: {
-        if (mainItem && mainItem.volumeIconName) {
-            return mainItem.volumeIconName
+        if (backend && backend.volumeIconName) {
+            return backend.volumeIconName
         }
         if (root.isMuted || root.volume === 0) {
             return "audio-volume-muted"
@@ -267,8 +294,8 @@ Item {
 
     // Dynamic Bluetooth icon matching KDE Plasma System Tray
     property string btIconName: {
-        if (mainItem && mainItem.btIconName) {
-            return mainItem.btIconName
+        if (backend && backend.btIconName) {
+            return backend.btIconName
         }
         if (root.btConnected) {
             return "network-bluetooth"
@@ -278,8 +305,8 @@ Item {
 
     // Dynamic Battery icon matching KDE Plasma System Tray
     property string batteryIconName: {
-        if (mainItem && mainItem.batteryIconName) {
-            return mainItem.batteryIconName
+        if (backend && backend.batteryIconName) {
+            return backend.batteryIconName
         }
         var level = Math.max(0, Math.min(100, Math.round(root.batteryLevel / 10) * 10))
         var levelStr = ("000" + level).slice(-3)
@@ -291,11 +318,11 @@ Item {
 
     // Dynamic Power Profile icon (Performance / Optimise only)
     property string powerProfileIconName: {
-        if (mainItem) {
-            if (mainItem.powerProfile === "performance") {
+        if (backend) {
+            if (backend.powerProfile === "performance") {
                 return "battery-profile-performance-symbolic"
             }
-            if (mainItem.powerProfile === "power-saver") {
+            if (backend.powerProfile === "power-saver") {
                 return "battery-profile-powersave-symbolic"
             }
         }
@@ -306,31 +333,31 @@ Item {
     readonly property bool hasVisibleIndicators: {
         if (root.showBattery) return true
         if (root.showVolume) return true
-        if (root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))) return true
-        if (root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))) return true
-        if (root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)) return true
-        if (root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)) return true
-        if (root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))) return true
-        if (root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)) return true
-        if (root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)) return true
-        if (root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)) return true
-        if (root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)) return true
-        if (root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)) return true
-        if (root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)) return true
-        if (root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)) return true
+        if (root.panelShowWifi && (root.wifiConnected || root.wifiEnabled)) return true
+        if (root.panelShowBluetooth && (root.btEnabled || root.btConnected)) return true
+        if (root.panelShowAirplane && root.airplaneMode) return true
+        if (root.panelShowHotspot && root.hotspotEnabled) return true
+        if (root.panelShowPowerProfile && (root.powerProfile === "performance" || root.powerProfile === "power-saver")) return true
+        if (root.panelShowNightLight && root.nightLightEnabled) return true
+        if (root.panelShowDnd && root.dndEnabled) return true
+        if (root.panelShowDarkTheme && root.isDarkTheme) return true
+        if (root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)) return true
+        if (root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)) return true
+        if (root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)) return true
+        if (root.panelShowKdeConnect && root.kdeConnectConnected) return true
         return false
     }
 
     // Panel orientation tracking for directional arrow and indicator hover popups
     readonly property int panelLocation: {
-        if (typeof mainItem !== "undefined" && mainItem) {
-            if (mainItem.panelLocation !== undefined) return mainItem.panelLocation
-            if (mainItem.Plasmoid) {
-                if (mainItem.Plasmoid.containment && mainItem.Plasmoid.containment.location !== undefined) {
-                    return mainItem.Plasmoid.containment.location
+        if (typeof backend !== "undefined" && backend) {
+            if (backend.panelLocation !== undefined) return backend.panelLocation
+            if (backend.Plasmoid) {
+                if (backend.Plasmoid.containment && backend.Plasmoid.containment.location !== undefined) {
+                    return backend.Plasmoid.containment.location
                 }
-                if (mainItem.Plasmoid.location !== undefined) {
-                    return mainItem.Plasmoid.location
+                if (backend.Plasmoid.location !== undefined) {
+                    return backend.Plasmoid.location
                 }
             }
         }
@@ -365,7 +392,7 @@ Item {
             baseAngle = 90 // RightEdge: pointing LEFT
         }
 
-        if (mainItem && mainItem.expanded) {
+        if (root.isTrayExpanded) {
             return baseAngle + 180
         }
         return baseAngle
@@ -375,8 +402,8 @@ Item {
 
     function toggleQuickSettings() {
         root.detectPanelProperties()
-        if (typeof mainItem !== "undefined" && typeof mainItem.expanded !== "undefined") {
-            mainItem.expanded = !mainItem.expanded
+        if (typeof backend !== "undefined" && backend && typeof backend.expanded !== "undefined") {
+            backend.expanded = !backend.expanded
         } else if (typeof plasmoid !== "undefined" && typeof plasmoid.expanded !== "undefined") {
             plasmoid.expanded = !plasmoid.expanded
         } else if (typeof Plasmoid !== "undefined" && typeof Plasmoid.expanded !== "undefined") {
@@ -481,7 +508,7 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: !root.hasVisibleIndicators && arrowHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: !root.hasVisibleIndicators && arrowHover.containsMouse && !root.isTrayExpanded
                     title: "Quick Settings"
                     status: "Click to open Control Center"
                     iconName: "preferences-system"
@@ -500,7 +527,7 @@ Item {
             // 1. KDE Connect (when connected)
             Item {
                 id: kdeItem
-                visible: root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)
+                visible: root.panelShowKdeConnect && root.kdeConnectConnected
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -522,9 +549,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: kdeHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.kdeConnectName && mainItem.kdeConnectName !== "") ? mainItem.kdeConnectName : "KDE Connect"
-                    status: (mainItem && mainItem.kdeConnectBattery > 0) ? (mainItem.kdeConnectBattery + "% Battery • Synced") : "Device synchronized"
+                    visible: kdeHover.containsMouse && !root.isTrayExpanded
+                    title: (root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : "KDE Connect"
+                    status: (root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? "Device synchronized" : "No device connected")
                     iconName: "kdeconnect-tray-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -537,17 +564,17 @@ Item {
             // 2. Camera (appears ONLY when some app is actively using the camera)
             Item {
                 id: camItem
-                visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
+                visible: root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
 
                 Kirigami.Icon {
                     anchors.fill: parent
-                    source: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                    fallback: (mainItem && mainItem.cameraBlocked) ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
+                    source: root.cameraBlocked ? "camera-off-symbolic" : "camera-web-symbolic"
+                    fallback: root.cameraBlocked ? Qt.resolvedUrl("../icons/camera-off-symbolic.svg") : Qt.resolvedUrl("../icons/camera-web-symbolic.svg")
                     isMask: true
-                    color: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    color: root.cameraBlocked ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 }
 
                 MouseArea {
@@ -559,15 +586,15 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: camHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: camHover.containsMouse && !root.isTrayExpanded
                     title: {
-                        var names = root.formatAppNames(mainItem ? mainItem.cameraApps : null)
+                        var names = root.formatAppNames(root.cameraApps)
                         if (names !== "") return names
-                        return (mainItem && mainItem.cameraBlocked) ? "Camera Guard Active" : "Camera In Use"
+                        return root.cameraBlocked ? "Camera Guard Active" : "Camera In Use"
                     }
-                    status: (mainItem && mainItem.cameraBlocked) ? "Video capture blocked" : "Active camera stream"
-                    iconName: (mainItem && mainItem.cameraBlocked) ? "camera-off-symbolic" : "camera-web-symbolic"
-                    iconColor: (mainItem && mainItem.cameraBlocked) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    status: root.cameraBlocked ? "Video capture blocked" : "Active camera stream"
+                    iconName: root.cameraBlocked ? "camera-off-symbolic" : "camera-web-symbolic"
+                    iconColor: root.cameraBlocked ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -578,17 +605,17 @@ Item {
             // 3. Microphone (appears ONLY when some app is actively using the microphone)
             Item {
                 id: micItem
-                visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
+                visible: root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
 
                 Kirigami.Icon {
                     anchors.fill: parent
-                    source: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
-                    fallback: (mainItem && mainItem.micMuted) ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
+                    source: root.micMuted ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                    fallback: root.micMuted ? Qt.resolvedUrl("../icons/microphone-sensitivity-muted-symbolic.svg") : Qt.resolvedUrl("../icons/audio-input-microphone-symbolic.svg")
                     isMask: true
-                    color: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    color: root.micMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
                 }
 
                 MouseArea {
@@ -600,15 +627,15 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: micHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: micHover.containsMouse && !root.isTrayExpanded
                     title: {
-                        var names = root.formatAppNames(mainItem ? mainItem.micApps : null)
+                        var names = root.formatAppNames(root.micApps)
                         if (names !== "") return names
-                        return (mainItem && mainItem.micMuted) ? "Microphone Muted" : "Microphone Active"
+                        return root.micMuted ? "Microphone Muted" : "Microphone Active"
                     }
-                    status: (mainItem && mainItem.micMuted) ? "Muted by privacy toggle" : "Audio capture active"
-                    iconName: (mainItem && mainItem.micMuted) ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
-                    iconColor: (mainItem && mainItem.micMuted) ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    status: root.micMuted ? "Muted by privacy toggle" : "Audio capture active"
+                    iconName: root.micMuted ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
+                    iconColor: root.micMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -619,7 +646,7 @@ Item {
             // 4. Location (appears ONLY when some app is actively accessing location)
             Item {
                 id: locItem
-                visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)
+                visible: root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -629,7 +656,7 @@ Item {
                     source: "find-location-symbolic"
                     fallback: Qt.resolvedUrl("../icons/location-services-active-symbolic.svg")
                     isMask: true
-                    color: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    color: root.locationEnabled ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 }
 
                 MouseArea {
@@ -641,17 +668,17 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: locHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: locHover.containsMouse && !root.isTrayExpanded
                     title: {
-                        var names = root.formatAppNames(mainItem ? mainItem.locationApps : null)
+                        var names = root.formatAppNames(root.locationApps)
                         if (names !== "") return names
-                        return (mainItem && mainItem.locationEnabled) ? "Location Services" : "Location Off"
+                        return root.locationEnabled ? "Location Services" : "Location Off"
                     }
-                    status: (mainItem && mainItem.locationEnabled) 
-                        ? ((mainItem && mainItem.locationApps && mainItem.locationApps.length > 0) ? "Active GPS / Geolocation Tracking" : "Location Enabled") 
+                    status: root.locationEnabled 
+                        ? ((root.locationApps && root.locationApps.length > 0) ? "Active Geolocation • In Use" : "Location Enabled") 
                         : "Location tracking disabled"
                     iconName: "find-location-symbolic"
-                    iconColor: (mainItem && mainItem.locationEnabled) ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    iconColor: root.locationEnabled ? root.activeIndicatorColor : root.inactiveIndicatorColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -662,7 +689,7 @@ Item {
             // 5. Dark Style / Dark Theme (when dark mode is active)
             Item {
                 id: darkItem
-                visible: root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)
+                visible: root.panelShowDarkTheme && root.isDarkTheme
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -684,7 +711,7 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: darkHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: darkHover.containsMouse && !root.isTrayExpanded
                     title: root.isDarkTheme ? "Dark Mode Active" : "Light Mode Active"
                     status: "Desktop color scheme"
                     iconName: "contrast-symbolic"
@@ -699,7 +726,7 @@ Item {
             // 6. Do Not Disturb (DND) (when active)
             Item {
                 id: dndItem
-                visible: root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)
+                visible: root.panelShowDnd && root.dndEnabled
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -721,9 +748,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: dndHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.dndEnabled) ? "Do Not Disturb" : "Notifications Active"
-                    status: (mainItem && mainItem.dndEnabled) ? ((mainItem && mainItem.dndUntilText) ? ("Muted until " + mainItem.dndUntilText) : "All alerts and sounds muted") : "Normal notification alerts"
+                    visible: dndHover.containsMouse && !root.isTrayExpanded
+                    title: root.dndEnabled ? "Do Not Disturb" : "Notifications Active"
+                    status: root.dndEnabled ? (root.dndUntilText ? ("Muted until " + root.dndUntilText) : "All alerts and sounds muted") : "Normal notification alerts"
                     iconName: "notifications-disabled-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -736,7 +763,7 @@ Item {
             // 7. Night Light (when active)
             Item {
                 id: nightItem
-                visible: root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)
+                visible: root.panelShowNightLight && root.nightLightEnabled
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -758,9 +785,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: nightHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.nightLightEnabled) ? "Night Light Active" : "Night Light Off"
-                    status: (mainItem && mainItem.nightLightEnabled) ? "Warm color temperature for eye comfort" : "Standard color temperature"
+                    visible: nightHover.containsMouse && !root.isTrayExpanded
+                    title: root.nightLightEnabled ? "Night Light Active" : "Night Light Off"
+                    status: root.nightLightEnabled ? "Warm color temperature for eye comfort" : "Standard color temperature"
                     iconName: "redshift-status-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -773,7 +800,7 @@ Item {
             // 8. Power Mode: Performance or Power-Saver / Optimise (Balanced shows NO icon)
             Item {
                 id: powerItem
-                visible: root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))
+                visible: root.panelShowPowerProfile && (root.powerProfile === "performance" || root.powerProfile === "power-saver")
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -781,7 +808,7 @@ Item {
                 Kirigami.Icon {
                     anchors.fill: parent
                     source: root.powerProfileIconName
-                    fallback: (mainItem && mainItem.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
+                    fallback: (root.powerProfile === "power-saver") ? Qt.resolvedUrl("../icons/power-profile-powersave-symbolic.svg") : Qt.resolvedUrl("../icons/power-profile-performance-symbolic.svg")
                     isMask: true
                     color: root.activeIndicatorColor
                 }
@@ -795,9 +822,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: powerHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.powerProfile === "performance") ? "Performance Mode" : ((mainItem && mainItem.powerProfile === "power-saver") ? "Power Saver Mode" : "Balanced Mode")
-                    status: (mainItem && mainItem.powerProfile === "performance") ? "Maximum system performance" : ((mainItem && mainItem.powerProfile === "power-saver") ? "Optimizing battery lifespan" : "Standard performance & efficiency")
+                    visible: powerHover.containsMouse && !root.isTrayExpanded
+                    title: (root.powerProfile === "performance") ? "Performance Mode" : ((root.powerProfile === "power-saver") ? "Power Saver Mode" : "Balanced Mode")
+                    status: (root.powerProfile === "performance") ? "Maximum system performance" : ((root.powerProfile === "power-saver") ? "Optimizing battery lifespan" : "Standard performance & efficiency")
                     iconName: root.powerProfileIconName
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -810,7 +837,7 @@ Item {
             // 9. Hotspot (when active)
             Item {
                 id: hotspotItem
-                visible: root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)
+                visible: root.panelShowHotspot && root.hotspotEnabled
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -832,9 +859,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: hotspotHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.hotspotSsid && mainItem.hotspotSsid !== "") ? mainItem.hotspotSsid : "Wi-Fi Hotspot"
-                    status: (mainItem && mainItem.hotspotPassword) ? ("Password: " + mainItem.hotspotPassword) : "Sharing internet connection"
+                    visible: hotspotHover.containsMouse && !root.isTrayExpanded
+                    title: (root.hotspotSsid && root.hotspotSsid !== "") ? root.hotspotSsid : "Wi-Fi Hotspot"
+                    status: root.hotspotPassword ? ("Password: " + root.hotspotPassword) : "Sharing internet connection"
                     iconName: "network-wireless-hotspot-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -847,7 +874,7 @@ Item {
             // 10. Airplane Mode (when active)
             Item {
                 id: airItem
-                visible: root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)
+                visible: root.panelShowAirplane && root.airplaneMode
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -869,9 +896,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: airHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: "Airplane Mode Active"
-                    status: "All wireless transmissions disabled"
+                    visible: airHover.containsMouse && !root.isTrayExpanded
+                    title: root.airplaneMode ? "Airplane Mode Active" : "Airplane Mode Off"
+                    status: root.airplaneMode ? "All wireless transmissions disabled" : "Wireless communications enabled"
                     iconName: "network-flightmode-on-symbolic"
                     iconColor: root.activeIndicatorColor
                     isDarkTheme: root.isDarkTheme
@@ -884,7 +911,7 @@ Item {
             // 11. Bluetooth (when enabled or connected)
             Item {
                 id: btItem
-                visible: root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))
+                visible: root.panelShowBluetooth && (root.btEnabled || root.btConnected)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -906,18 +933,18 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: btHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.btConnected && mainItem.btDeviceName && mainItem.btDeviceName !== "")
-                        ? mainItem.btDeviceName
+                    visible: btHover.containsMouse && !root.isTrayExpanded
+                    title: (root.btConnected && root.btDeviceName && root.btDeviceName !== "")
+                        ? root.btDeviceName
                         : (root.btEnabled ? (root.btConnected ? "Connected Device" : "Not Connected") : "Bluetooth Off")
                     status: root.btConnected 
-                        ? ((mainItem && mainItem.btBattery > 0) ? (mainItem.btBattery + "% Battery • Connected") : "Device connected")
+                        ? ((root.btBattery > 0) ? (root.btBattery + "% Battery • Connected") : "Device connected")
                         : (root.btEnabled ? "Click to connect devices" : "Bluetooth adapter disabled")
                     iconName: root.btIconName
                     iconColor: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
-                    showProgressBar: Boolean(root.btConnected && mainItem && mainItem.btBattery > 0)
-                    progressValue: (mainItem && mainItem.btBattery) ? mainItem.btBattery : 0
-                    progressColor: (mainItem && mainItem.btBattery <= 20) ? "#e74c3c" : "#33d17a"
+                    showProgressBar: Boolean(root.btConnected && root.btBattery > 0)
+                    progressValue: root.btBattery
+                    progressColor: (root.btBattery <= 20) ? "#e74c3c" : "#33d17a"
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -928,7 +955,7 @@ Item {
             // 12. Wi-Fi (when enabled or connected)
             Item {
                 id: wifiItem
-                visible: root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))
+                visible: root.panelShowWifi && (root.wifiConnected || root.wifiEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -950,9 +977,9 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: wifiHover.containsMouse && !(mainItem && mainItem.expanded)
-                    title: (mainItem && mainItem.wifiConnected && mainItem.wifiSsid && mainItem.wifiSsid !== "" && mainItem.wifiSsid !== "Checking...") 
-                        ? mainItem.wifiSsid 
+                    visible: wifiHover.containsMouse && !root.isTrayExpanded
+                    title: (root.wifiConnected && root.wifiSsid && root.wifiSsid !== "" && root.wifiSsid !== "Checking...") 
+                        ? root.wifiSsid 
                         : (root.wifiEnabled ? (root.wifiConnected ? "Connected Network" : "Disconnected") : "Wi-Fi Off")
                     status: root.wifiConnected 
                         ? (root.wifiSignal > 0 ? (root.wifiSignal + "% Signal Strength • Connected") : "Connected") 
@@ -996,13 +1023,13 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: volHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: volHover.containsMouse && !root.isTrayExpanded
                     title: root.isMuted ? "Audio Muted" : (root.volume + "% Volume")
                     status: root.isMuted 
                         ? "Sound output is muted" 
-                        : ((mainItem && mainItem.audioSinks && mainItem.audioSinks.length > 0) 
-                            ? (mainItem.audioSinks.find(function(s){ return s.is_default }) 
-                                ? mainItem.audioSinks.find(function(s){ return s.is_default }).description 
+                        : ((root.audioSinks && root.audioSinks.length > 0) 
+                            ? (root.audioSinks.find(function(s){ return s.is_default }) 
+                                ? root.audioSinks.find(function(s){ return s.is_default }).description 
                                 : "Audio Output") 
                             : "Master Audio Output")
                     iconName: root.volumeIconName
@@ -1061,7 +1088,7 @@ Item {
                 }
 
                 StatusToolTip {
-                    visible: batHover.containsMouse && !(mainItem && mainItem.expanded)
+                    visible: batHover.containsMouse && !root.isTrayExpanded
                     title: root.batteryLevel + "% Battery" + (root.batteryCharging ? " (Charging)" : "")
                     status: root.batteryCharging 
                         ? "Power Adapter Connected • Charging" 

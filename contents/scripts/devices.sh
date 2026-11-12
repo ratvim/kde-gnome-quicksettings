@@ -233,6 +233,17 @@ get_location_status() {
             enabled="true"
         fi
     fi
+    if [[ "$enabled" != "true" ]]; then
+        local in_use="false"
+        if command -v busctl >/dev/null 2>&1; then
+            in_use=$(busctl --system get-property org.freedesktop.GeoClue2 /org/freedesktop/GeoClue2/Manager org.freedesktop.GeoClue2.Manager InUse 2>/dev/null || echo "false")
+        fi
+        if echo "$in_use" | grep -qi "true"; then
+            enabled="true"
+        elif pgrep -f "knighttimed" >/dev/null 2>&1; then
+            enabled="true"
+        fi
+    fi
     echo "$enabled"
 }
 
@@ -369,7 +380,12 @@ stop_location_app() {
     fi
     local apps
     apps=$(get_location_apps)
-    echo "{\"location_apps\": $apps}"
+    local cur_en
+    cur_en=$(get_location_status)
+    if [[ "$apps" != "[]" && "$apps" != "" && "$apps" != "null" ]]; then
+        cur_en="true"
+    fi
+    echo "{\"location_enabled\": $cur_en, \"location_apps\": $apps}"
 }
 
 toggle_location() {
@@ -1241,10 +1257,13 @@ get_all_status() {
     mic_muted=$(get_mic_status)
     local mic_apps
     mic_apps=$(get_mic_apps)
-    local loc_enabled
-    loc_enabled=$(get_location_status)
     local loc_apps
     loc_apps=$(get_location_apps)
+    local loc_enabled
+    loc_enabled=$(get_location_status)
+    if [[ "$loc_apps" != "[]" && "$loc_apps" != "" && "$loc_apps" != "null" ]]; then
+        loc_enabled="true"
+    fi
     local cam_blocked
     cam_blocked=$(get_camera_status)
     local cam_apps
@@ -1463,10 +1482,20 @@ case "$CMD" in
         toggle_mic
         ;;
     location_status)
-        echo "{\"location_enabled\": $(get_location_status)}"
+        cur_apps=$(get_location_apps)
+        cur_en=$(get_location_status)
+        if [[ "$cur_apps" != "[]" && "$cur_apps" != "" && "$cur_apps" != "null" ]]; then
+            cur_en="true"
+        fi
+        echo "{\"location_enabled\": $cur_en}"
         ;;
     location_apps)
-        echo "{\"location_apps\": $(get_location_apps)}"
+        cur_apps=$(get_location_apps)
+        cur_en=$(get_location_status)
+        if [[ "$cur_apps" != "[]" && "$cur_apps" != "" && "$cur_apps" != "null" ]]; then
+            cur_en="true"
+        fi
+        echo "{\"location_enabled\": $cur_en, \"location_apps\": $cur_apps}"
         ;;
     stop_location_app)
         stop_location_app "${2:-}"
