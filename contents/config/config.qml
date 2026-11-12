@@ -12,4 +12,9 @@ ConfigModel {
         icon: "preferences-desktop-theme"
         source: "ConfigAppearance.qml"
     }
+    ConfigCategory {
+        name: i18n("Support Me")
+        icon: "help-donate"
+        source: "ConfigSupport.qml"
+    }
 }

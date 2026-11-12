@@ -823,6 +823,97 @@ Rectangle {
                         item.checkedState = Qt.binding(function() { return backend ? backend.panelBlurEnabled : true })
                     }
                 }
+
+                // Section 4: Support Development
+                Text {
+                    text: "Support Development"
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    color: root.accentColor
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: supportCol.implicitHeight + 24
+                    radius: 12
+                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)
+                    border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06)
+                    border.width: 1
+
+                    ColumnLayout {
+                        id: supportCol
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 8
+
+                        RowLayout {
+                            spacing: 8
+                            Layout.fillWidth: true
+
+                            Kirigami.Icon {
+                                source: "help-donate"
+                                implicitWidth: 20
+                                implicitHeight: 20
+                                isMask: true
+                                color: root.accentColor
+                            }
+
+                            Text {
+                                text: "Support Me on PayPal"
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        Text {
+                            text: "If you enjoy using GNOME Quick Settings, please consider supporting ongoing development and new features!"
+                            font.pixelSize: 11
+                            color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            implicitWidth: donateBtnRow.implicitWidth + 24
+                            implicitHeight: 32
+                            radius: 16
+                            color: donateMouse.containsMouse ? Qt.darker(root.accentColor, 1.1) : root.accentColor
+
+                            RowLayout {
+                                id: donateBtnRow
+                                anchors.centerIn: parent
+                                spacing: 6
+
+                                Kirigami.Icon {
+                                    source: "help-donate"
+                                    implicitWidth: 14
+                                    implicitHeight: 14
+                                    isMask: true
+                                    color: "#ffffff"
+                                }
+
+                                Text {
+                                    text: "Donate via PayPal"
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                    color: "#ffffff"
+                                }
+                            }
+
+                            MouseArea {
+                                id: donateMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Qt.openUrlExternally("https://paypal.me/VimleshRaturi")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
