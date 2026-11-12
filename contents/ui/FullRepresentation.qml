@@ -29,7 +29,7 @@ Rectangle {
     property var backend: mainItem
 
     property bool isDarkTheme: backend ? backend.isDarkTheme : true
-    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings"
+    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings" | "volume"
     property bool volumeExpanded: false
 
     // =========================================================================
@@ -608,6 +608,8 @@ Rectangle {
             rawH = Math.round(400 * root.resolutionScale)
         } else if (root.activeView === "settings") {
             rawH = Math.round(540 * root.resolutionScale)
+        } else if (root.activeView === "volume") {
+            rawH = Math.round(520 * root.resolutionScale)
         } else {
             rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect
         }
@@ -1138,7 +1140,7 @@ Rectangle {
                             onIconClicked: if (backend) backend.toggleMute()
                         }
 
-                        // Small Expand / Collapse Button next to Volume bar
+                        // Volume Details Sub-View Button next to Volume bar (opens VolumeView without pushing toggles down)
                         Rectangle {
                             id: volExpandBtn
                             implicitWidth: Math.max(24, Math.round(26 * root.resolutionScale))
@@ -1146,9 +1148,7 @@ Rectangle {
                             radius: implicitHeight / 2
                             color: volExpandMouse.containsMouse
                                 ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.10))
-                                : (root.volumeExpanded
-                                    ? ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4")
-                                    : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)))
+                                : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05))
 
                             Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -1156,14 +1156,10 @@ Rectangle {
                                 anchors.centerIn: parent
                                 width: Math.round(14 * root.resolutionScale)
                                 height: Math.round(14 * root.resolutionScale)
-                                source: "go-down-symbolic"
-                                rotation: root.volumeExpanded ? 180 : 0
+                                source: "go-next-symbolic"
+                                fallback: "go-down-symbolic"
                                 isMask: true
-                                color: (root.volumeExpanded && !volExpandMouse.containsMouse)
-                                    ? ((Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff")
-                                    : (root.isDarkTheme ? "#e0e0e0" : "#222222")
-
-                                Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+                                color: root.isDarkTheme ? "#e0e0e0" : "#222222"
                             }
 
                             MouseArea {
@@ -1172,25 +1168,12 @@ Rectangle {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    root.volumeExpanded = !root.volumeExpanded
-                                    if (root.volumeExpanded && backend) {
+                                    if (backend && typeof backend.fetchAudioMixer === "function") {
                                         backend.fetchAudioMixer()
                                     }
+                                    root.activeView = "volume"
                                 }
                             }
-                        }
-                    }
-
-                    // Expandable Audio Stream & Device Mixer Card
-                    AudioMixerCard {
-                        id: audioMixerSection
-                        Layout.fillWidth: true
-                        visible: root.volumeExpanded
-                        backend: root.backend
-                        isDarkTheme: root.isDarkTheme
-                        resolutionScale: root.resolutionScale
-                        onCloseRequested: {
-                            root.volumeExpanded = false
                         }
                     }
 
@@ -1881,5 +1864,15 @@ Rectangle {
         isDarkTheme: root.isDarkTheme
         onBackClicked: root.activeView = "main"
         onOpenWindowClicked: if (backend && backend.openWidgetSettings) backend.openWidgetSettings()
+    }
+
+    // Volume & Audio Mixer Sub-View Container
+    VolumeView {
+        anchors.fill: parent
+        visible: root.activeView === "volume"
+        backend: root.backend
+        isDarkTheme: root.isDarkTheme
+        resolutionScale: root.resolutionScale
+        onBackClicked: root.activeView = "main"
     }
 }
