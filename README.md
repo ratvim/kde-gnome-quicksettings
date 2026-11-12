@@ -3,28 +3,53 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.1.3-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.1.9-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg)](https://paypal.me/VimleshRaturi)
 
 A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet built natively for **KDE Plasma 6**. Featuring glassmorphic 24px curved cards, uniform capsule pill toggles, smooth rounded sliders, expandable sub-drawers, user profile header, resolution & DPI responsive scaling engine, and dedicated C++ compositor effect management for zero background blur bleed.
 
 ---
 
-## 🚀 What's New in v1.1.3
+## 🚀 What's New in v1.1.9
+
+- 🔊 **Dedicated Volume & Audio Stream Mixer Sub-View (`VolumeView.qml`)**:
+  - Replaced inline accordion expansion with a dedicated, full-width sub-view accessed via a clean `>` chevron button next to the volume slider.
+  - Keeps the main Quick Settings drawer compact without pushing brightness sliders, toggles, or media players downwards.
+  - **Comprehensive Audio Control**: Includes master output volume slider with live mute toggle, per-application playback streams (Firefox, Spotify, Chrome, games, etc.) with independent sliders and mute controls, output device (sink) selection with default switcher, input device (microphone) level controls, and a direct shortcut to KDE Global Sound Settings (`kcm_pulseaudio`).
+  - Standard sub-view header with `<` back navigation button to return to the main toggles view.
+
+- 💬 **Capsule Indicator Mouse Hover Status Tooltips (`StatusToolTip.qml`)**:
+  - Hovering over indicators in the panel capsule pill now displays a native, floating status popup with real-time hardware status:
+    - **Battery**: Percentage, power adapter connection state, charging indicator, and visual fill progress bar.
+    - **Volume**: Current percentage, active output sink name, muted status, and volume level progress bar.
+    - **Wi-Fi**: Connected SSID name, signal strength percentage, and signal quality bar.
+    - **Bluetooth**: Connected device name and battery level.
+    - **Privacy (Camera / Microphone / Location)**: Formatted list of application names currently accessing the camera, recording microphone audio, or querying geolocation.
+    - **Night Light**: Color temperature status (active vs off).
+    - **Do Not Disturb**: Active alert state and "until" time.
+    - **Wi-Fi Hotspot**: Hotspot SSID and password.
+    - **Power Profile**: Active performance, balanced, or power saver mode.
+    - **KDE Connect**: Device name, battery level, and sync state.
+  - **Edge-Aware Positioning**: Built as real native top-level windows using `PlasmaCore.Dialog.Tooltip` that automatically appear outside the panel (below top panels, above bottom panels, and to the left/right of vertical side panels).
+  - Suppressed default Plasma desktop applet tooltips to prevent popup collisions.
+
+- 🌓 **Full Dynamic Dark & Light Theme Adaptation**:
+  - Decoupled tooltip window colors from panel colors, ensuring tooltip icons render in high-contrast dark charcoal (`#1a1a1a`) on light cards during light theme (BreezeLight), eliminating invisible white-on-white icons.
+  - Panel status capsule (`CompactRepresentation.qml`) dynamically follows `root.isDarkTheme`: capsule icons, battery text, and borders render in white (`#f6f8fa`) in dark theme and dark charcoal (`#1a1a1a`) in light theme.
+  - Dark Style capsule indicator dynamically switches symbols: displays Moon (`weather-clear-night-symbolic`) in dark mode and Sun (`weather-clear-symbolic`) in light mode, remaining visible in both modes when enabled.
+  - Fixed battery percentage text and empty fallback arrow color binding so they never invert to black on dark panels.
+
+- 💖 **"Support Me" Configuration Page & In-App Card (`ConfigSupport.qml`)**:
+  - Added a dedicated "Support Me" category to the native Plasma Plasmoid configuration dialog with developer bio and donation links.
+  - Integrated PayPal donation button (`https://paypal.me/VimleshRaturi`), selectable URL link, and one-click copy-to-clipboard action.
+  - Added matching "Support Development" card in `WidgetSettingsView.qml`.
 
 - 🎨 **Adaptive Panel Background, Transparency & KWin Blur Synchronization**:
   - The expanded Quick Settings control center now dynamically tracks and adopts the background color, transparency/opacity, and blur of whichever panel it is attached to.
   - **Full Native Plasma 6 & Custom Colorizer Support**: Automatically detects native Plasma 6 panel modes (`Translucent`, `Adaptive`, `Opaque`) as well as third-party panel colorizers (e.g. `luisbocanegra.panel.colorizer` presets including `Transparent`).
   - **Pixel-Perfect Blur & Background Contrast**: Restricts KWin compositor blur behind window and background contrast strictly inside the 24px curved card mask with zero corner bleed or rectangular halos.
   - **Dynamic Luminance & Contrast Adaptation**: Automatically evaluates background luminance and switches text, icons, and control contrast between dark and light themes to match custom panel backgrounds.
-  - **Flexible Appearance Controls**: Configurable via both native Plasmoid Settings (`Appearance` tab) and inline Quick Settings (`Widget Settings` drawer):
-    - **Follow Attached Panel (Automatic)**: Matches attached panel background, opacity, and blur dynamically.
-    - **Frosted Glass Translucent**: Custom translucent glass with adjustable opacity percentage slider (20% – 100%).
-    - **Solid Opaque**: High-contrast solid background.
-    - **KWin Blur Behind Window**: Toggleable background blur effect.
-
-- 📸 **Dynamic Screenshot Application Detection**:
-  - Configuration now dynamically queries and displays only the screenshot utilities physically installed on the system (Spectacle, Flameshot, Ksnip, etc.), preventing selection of absent binaries.
 
 ---
 
@@ -257,11 +282,16 @@ kde_gnome_tray/
 │   └── plugin.cpp                         # WindowHelper implementation (KWindowEffects blur control)
 ├── contents/
 │   ├── config/                            # Applet configuration XML & UI
+│   │   ├── config.qml                     # Settings categories registration
+│   │   ├── main.xml                       # Config entries schema
+│   │   ├── ConfigGeneral.qml              # General toggles & screenshot tool config
+│   │   ├── ConfigAppearance.qml           # Panel follow, blur & tile ordering
+│   │   └── ConfigSupport.qml              # Support Me & donation links
 │   ├── icons/                             # GNOME Symbolic SVG icons
 │   ├── scripts/                           # Native system control scripts
 │   │   ├── network.sh                     # nmcli Wi-Fi & Hotspot control & scanning
 │   │   ├── bluetooth.sh                   # bluetoothctl power & pairing
-│   │   ├── audio.sh                       # wpctl / pactl / amixer volume & mute
+│   │   ├── audio.sh                       # wpctl / pactl / amixer volume, sinks & streams
 │   │   ├── brightness.sh                  # brightnessctl & DBus display brightness
 │   │   ├── power.sh                       # Battery, power profiles, and session actions
 │   │   └── devices.sh                     # Location, Camera, Mic, and KDE Connect
@@ -270,21 +300,39 @@ kde_gnome_tray/
 │       ├── CompactRepresentation.qml      # Panel status indicator capsule
 │       ├── FullRepresentation.qml         # Popup Quick Settings card
 │       ├── components/
+│       │   ├── StatusToolTip.qml          # Edge-aware native floating indicator hover popup
 │       │   ├── PillToggle.qml             # Rounded capsule toggle button
 │       │   ├── CurvedSlider.qml           # Rounded volume & brightness slider
-│       │   └── MediaCard.qml              # MPRIS media player card
+│       │   ├── MediaCard.qml              # MPRIS media player card
+│       │   └── AudioMixerCard.qml         # Per-app audio stream & sink mixer card
 │       ├── views/
+│       │   ├── VolumeView.qml             # Dedicated sound & audio mixer sub-view
 │       │   ├── NetworkView.qml            # Wi-Fi network scanner drawer
 │       │   ├── BluetoothView.qml          # Bluetooth device drawer
 │       │   ├── HotspotView.qml            # Hotspot configuration drawer
 │       │   ├── KdeConnectView.qml         # KDE Connect device drawer
 │       │   ├── PowerView.qml              # Power profiles & battery drawer
 │       │   ├── DndView.qml                # Do Not Disturb duration drawer
+│       │   ├── CameraView.qml             # Camera privacy & active apps drawer
+│       │   ├── MicrophoneView.qml         # Microphone privacy & active apps drawer
+│       │   ├── LocationView.qml           # Geolocation privacy & active apps drawer
 │       │   └── WidgetSettingsView.qml     # In-popup tile configuration drawer
 │       └── plugin/                        # Compiled C++ plugin output
 │           ├── libgnomequicksettingsplugin.so
 │           └── qmldir
 ```
+
+---
+
+## 💖 Support Development
+
+If you enjoy using **GNOME Quick Settings for KDE Plasma 6** and want to support its ongoing development, improvements, and updates, you can buy me a coffee via PayPal:
+
+[![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=for-the-badge&logo=paypal)](https://paypal.me/VimleshRaturi)
+
+**PayPal Link**: [https://paypal.me/VimleshRaturi](https://paypal.me/VimleshRaturi)
+
+Your support is deeply appreciated!
 
 ---
 

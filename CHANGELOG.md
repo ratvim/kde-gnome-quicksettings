@@ -2,6 +2,55 @@
 
 All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are documented in this file.
 
+## [1.1.9] - 2026-11-13
+
+### Added & Improved
+- **Dedicated Volume & Audio Stream Mixer Sub-View (`VolumeView.qml`)**:
+  - Redesigned volume details to open as a dedicated full sub-view via a chevron `>` button (`go-next-symbolic`) placed directly beside the volume slider, matching the navigation pattern of `NetworkView` and `BluetoothView`.
+  - Replaces inline accordion expansion, keeping the main Quick Settings drawer compact without pushing brightness sliders, toggles, or media players downwards.
+  - Features a standard sub-view header with a `<` back button (`go-previous-symbolic`) to return to the main toggles view, a refresh button, and a direct shortcut to open KDE System Settings Sound module (`kcm_pulseaudio`).
+  - Scrollable view includes:
+    - **Master Output**: Full curved volume slider with live percentage and instant mute toggle.
+    - **Applications (Playback Streams)**: Individual per-app volume sliders and mute buttons for active audio streams (Firefox, Spotify, Chrome, VLC, Discord, etc.).
+    - **Output Devices (Sinks)**: Device selection list with radio check to switch the default playback sink (Built-in Speakers, Headphones, HDMI Audio), plus per-device volume controls.
+    - **Input Devices (Microphones)**: Recording input level sliders and microphone mute toggles.
+    - **Footer**: One-click action to configure audio devices in KDE System Settings.
+
+- **Capsule Indicator Mouse Hover Status Tooltips (`StatusToolTip.qml`)**:
+  - Implemented floating real-time status popups when hovering the mouse cursor over capsule pill indicators on the KDE panel.
+  - Provides instant glimpse of status without opening the full control center:
+    - **Battery**: Percentage, power adapter connection state, charging indicator, and visual fill progress bar.
+    - **Volume**: Current percentage, active audio output device name, mute state, and volume progress bar.
+    - **Wi-Fi**: Connected SSID name, signal strength percentage, and signal quality bar.
+    - **Bluetooth**: Connected device name and battery level.
+    - **Privacy (Camera / Microphone / Location)**: Formatted list of application names currently accessing the camera, recording microphone audio, or querying geolocation.
+    - **Night Light**: Color temperature status (active vs off).
+    - **Do Not Disturb**: Active alert state and "until" time.
+    - **Wi-Fi Hotspot**: Hotspot SSID and password.
+    - **Power Profile**: Active performance, balanced, or power saver mode.
+    - **KDE Connect**: Device name, battery level, and sync state.
+  - Built as real native top-level windows using `PlasmaCore.Dialog.Tooltip` positioned cleanly outside panel boundaries.
+  - **Dynamic Edge-Aware Placement**: Automatically repositions outside the panel based on containment orientation (below for top panels, above for bottom panels, and to the left/right for vertical side panels).
+  - Suppressed conflicting Plasma default applet tooltips (`org.kde.desktop-CompactApplet` ToolTipArea) to eliminate popup collision.
+
+- **"Support Me" Configuration Page & In-App Card (`ConfigSupport.qml`)**:
+  - Added a dedicated "Support Me" category to the native Plasma Plasmoid configuration dialog with developer bio and donation links.
+  - Integrated a one-click PayPal donation button (`https://paypal.me/VimleshRaturi`), selectable URL link, and one-click copy-to-clipboard action.
+  - Added a matching "Support Development" card in `WidgetSettingsView.qml` with direct external link handling.
+
+- **Adaptive Panel Background, Transparency & KWin Blur Synchronization**:
+  - Expanded Quick Settings control center dynamically tracks and adopts the background color, transparency/opacity, and blur of whichever panel it is attached to.
+  - Full native Plasma 6 panel modes (`Translucent`, `Adaptive`, `Opaque`) as well as third-party panel colorizers (e.g. `luisbocanegra.panel.colorizer` presets including `Transparent`).
+  - Restricts KWin compositor blur behind window and background contrast strictly inside the 24px curved card mask with zero corner bleed or rectangular halos.
+
+### Fixed & Refined
+- **Full Dark & Light Theme Adaptation for Capsule & Tooltips**:
+  - Decoupled tooltip window colors from panel colors, ensuring tooltip icons render in high-contrast dark charcoal (`#1a1a1a`) on light cards during light theme (BreezeLight), eliminating invisible white-on-white icons.
+  - Panel status capsule (`CompactRepresentation.qml`) now dynamically follows `root.isDarkTheme`: capsule icons, battery text, and borders render in white (`#f6f8fa`) in dark theme and dark charcoal (`#1a1a1a`) in light theme.
+  - Updated capsule Dark Style toggle icon to dynamically switch symbols: displays Moon (`weather-clear-night-symbolic`) in dark mode and Sun (`weather-clear-symbolic`) in light mode, remaining visible in both modes when enabled.
+  - Fixed battery percentage text and empty fallback arrow color binding so they never invert to black on dark panels.
+  - Added `property int kdeConnectBattery: -1` in `main.qml` to prevent undefined type-cast warnings in QML engine logs.
+
 ## [1.1.2] - 2026-11-09
 
 ### Added & Improved
