@@ -18,10 +18,9 @@ import "./components"
 Item {
     id: root
 
-    // Explicitly configure Complementary colorSet (Plasma panel shell theme)
-    // Ensures text and symbolic icons render in crisp panel contrast (white/light)
-    // regardless of whether application windows use a light theme like BreezeLight.
-    Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
+    // Dynamically follows global desktop theme (Complementary in Dark mode, Window in Light mode)
+    // Ensures text and symbolic icons render in crisp contrast matching the system theme.
+    Kirigami.Theme.colorSet: root.isDarkTheme ? Kirigami.Theme.Complementary : Kirigami.Theme.Window
     Kirigami.Theme.inherit: false
 
     // Backend reference (avoiding any shadowing by PlasmaCore.Dialog.mainItem)
@@ -189,7 +188,7 @@ Item {
         root.disableSystemToolTip()
     }
 
-    // Active icons on the panel use high-contrast panel foreground
+    // Active icons on the panel use high-contrast panel foreground adapting dynamically to dark/light theme
     readonly property color activeIndicatorColor: {
         if (backend && backend.detectedPanelTextColor && backend.detectedPanelTextColor.a > 0) {
             return backend.detectedPanelTextColor
@@ -197,7 +196,7 @@ Item {
         if (backend && backend.hasCustomPanelColor) {
             return backend.effectiveIsDark ? "#f6f8fa" : "#1a1a1a"
         }
-        return (Kirigami.Theme.textColor && Kirigami.Theme.textColor.a > 0) ? Kirigami.Theme.textColor : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
+        return root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
     }
     // Inactive, muted, or blocked indicators are slightly greyed (45% opacity) and always clearly visible
     readonly property color inactiveIndicatorColor: Qt.rgba(activeIndicatorColor.r, activeIndicatorColor.g, activeIndicatorColor.b, 0.45)
@@ -344,7 +343,7 @@ Item {
         if (root.panelShowPowerProfile && (root.powerProfile === "performance" || root.powerProfile === "power-saver")) return true
         if (root.panelShowNightLight && root.nightLightEnabled) return true
         if (root.panelShowDnd && root.dndEnabled) return true
-        if (root.panelShowDarkTheme && root.isDarkTheme) return true
+        if (root.panelShowDarkTheme) return true
         if (root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)) return true
         if (root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)) return true
         if (root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)) return true
@@ -690,18 +689,18 @@ Item {
                 }
             }
 
-            // 5. Dark Style / Dark Theme (when dark mode is active)
+            // 5. Dark Style / Dark Theme (adapts symbol: moon in dark mode, sun in light mode)
             Item {
                 id: darkItem
-                visible: root.panelShowDarkTheme && root.isDarkTheme
+                visible: root.panelShowDarkTheme
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
 
                 Kirigami.Icon {
                     anchors.fill: parent
-                    source: "contrast-symbolic"
-                    fallback: Qt.resolvedUrl("../icons/contrast-symbolic.svg")
+                    source: root.isDarkTheme ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
+                    fallback: root.isDarkTheme ? Qt.resolvedUrl("../icons/weather-clear-night-symbolic.svg") : "contrast-symbolic"
                     isMask: true
                     color: root.activeIndicatorColor
                 }
@@ -718,7 +717,7 @@ Item {
                     visible: darkHover.containsMouse && !root.isTrayExpanded
                     title: root.isDarkTheme ? "Dark Mode Active" : "Light Mode Active"
                     status: "Desktop color scheme"
-                    iconName: "contrast-symbolic"
+                    iconName: root.isDarkTheme ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
                     iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
