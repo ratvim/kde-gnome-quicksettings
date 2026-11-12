@@ -452,6 +452,7 @@ Item {
             // Points DOWN on top panel, UP on bottom panel
             // ========================================================
             Item {
+                id: fallbackArrowItem
                 visible: !root.hasVisibleIndicators
                 implicitWidth: Math.max(12, root.panelIconSize - 2)
                 implicitHeight: Math.max(12, root.panelIconSize - 2)
@@ -488,6 +489,7 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: fallbackArrowItem
                 }
             }
 
@@ -497,6 +499,7 @@ Item {
 
             // 1. KDE Connect (when connected)
             Item {
+                id: kdeItem
                 visible: root.panelShowKdeConnect && Boolean(mainItem && mainItem.kdeConnectConnected)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -527,11 +530,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: kdeItem
                 }
             }
 
             // 2. Camera (appears ONLY when some app is actively using the camera)
             Item {
+                id: camItem
                 visible: root.panelShowCamera && Boolean(mainItem && mainItem.cameraApps && mainItem.cameraApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -566,11 +571,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: camItem
                 }
             }
 
             // 3. Microphone (appears ONLY when some app is actively using the microphone)
             Item {
+                id: micItem
                 visible: root.panelShowMic && Boolean(mainItem && mainItem.micApps && mainItem.micApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -605,11 +612,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: micItem
                 }
             }
 
             // 4. Location (appears ONLY when some app is actively accessing location)
             Item {
+                id: locItem
                 visible: root.panelShowLocation && Boolean(mainItem && mainItem.locationApps && mainItem.locationApps.length > 0)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -646,11 +655,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: locItem
                 }
             }
 
             // 5. Dark Style / Dark Theme (when dark mode is active)
             Item {
+                id: darkItem
                 visible: root.panelShowDarkTheme && Boolean(mainItem && mainItem.isDarkTheme)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -681,11 +692,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: darkItem
                 }
             }
 
             // 6. Do Not Disturb (DND) (when active)
             Item {
+                id: dndItem
                 visible: root.panelShowDnd && Boolean(mainItem && mainItem.dndEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -716,11 +729,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: dndItem
                 }
             }
 
             // 7. Night Light (when active)
             Item {
+                id: nightItem
                 visible: root.panelShowNightLight && Boolean(mainItem && mainItem.nightLightEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -751,11 +766,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: nightItem
                 }
             }
 
             // 8. Power Mode: Performance or Power-Saver / Optimise (Balanced shows NO icon)
             Item {
+                id: powerItem
                 visible: root.panelShowPowerProfile && Boolean(mainItem && (mainItem.powerProfile === "performance" || mainItem.powerProfile === "power-saver"))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -786,11 +803,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: powerItem
                 }
             }
 
             // 9. Hotspot (when active)
             Item {
+                id: hotspotItem
                 visible: root.panelShowHotspot && Boolean(mainItem && mainItem.hotspotEnabled)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -821,11 +840,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: hotspotItem
                 }
             }
 
             // 10. Airplane Mode (when active)
             Item {
+                id: airItem
                 visible: root.panelShowAirplane && Boolean(mainItem && mainItem.airplaneMode)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -856,11 +877,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: airItem
                 }
             }
 
             // 11. Bluetooth (when enabled or connected)
             Item {
+                id: btItem
                 visible: root.panelShowBluetooth && Boolean(mainItem && (mainItem.btEnabled || mainItem.btConnected))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -898,11 +921,13 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: btItem
                 }
             }
 
             // 12. Wi-Fi (when enabled or connected)
             Item {
+                id: wifiItem
                 visible: root.panelShowWifi && Boolean(mainItem && (mainItem.wifiConnected || mainItem.wifiEnabled))
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -940,6 +965,7 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: wifiItem
                 }
             }
 
@@ -947,6 +973,7 @@ Item {
             // VOLUME INDICATOR (ICON ONLY, NO PERCENTAGE)
             // ========================================================
             Item {
+                id: volItem
                 visible: root.showVolume
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
@@ -986,6 +1013,7 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: volItem
                 }
             }
 
@@ -993,6 +1021,7 @@ Item {
             // BATTERY INDICATOR + OPTIONAL PERCENTAGE (RIGHTMOST)
             // ========================================================
             Item {
+                id: batItem
                 visible: root.showBattery
                 implicitWidth: batRow.implicitWidth
                 implicitHeight: Math.max(root.panelIconSize, batRow.implicitHeight)
@@ -1045,6 +1074,7 @@ Item {
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
+                    targetItem: batItem
                 }
             }
         }
