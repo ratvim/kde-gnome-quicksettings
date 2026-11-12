@@ -202,6 +202,10 @@ Item {
     // Inactive, muted, or blocked indicators are slightly greyed (45% opacity) and always clearly visible
     readonly property color inactiveIndicatorColor: Qt.rgba(activeIndicatorColor.r, activeIndicatorColor.g, activeIndicatorColor.b, 0.45)
 
+    // Tooltip card foreground colors (tooltips float in their own window following system light/dark theme)
+    readonly property color tooltipActiveColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+    readonly property color tooltipInactiveColor: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.45) : Qt.rgba(0, 0, 0, 0.45)
+
     // System states
     property bool wifiEnabled: backend ? backend.wifiEnabled : true
     property bool wifiConnected: backend ? backend.wifiConnected : true
@@ -248,7 +252,7 @@ Item {
     property var cameraApps: (backend && backend.cameraApps) ? backend.cameraApps : []
     property bool kdeConnectConnected: backend ? backend.kdeConnectConnected : false
     property string kdeConnectName: backend ? backend.kdeConnectName : ""
-    property int kdeConnectBattery: backend ? backend.kdeConnectBattery : -1
+    property int kdeConnectBattery: (backend && backend.kdeConnectBattery !== undefined) ? backend.kdeConnectBattery : -1
     property bool nightLightEnabled: backend ? backend.nightLightEnabled : false
     property bool dndEnabled: backend ? backend.dndEnabled : false
     property string dndUntilText: backend ? backend.dndUntilText : ""
@@ -491,7 +495,7 @@ Item {
                     source: Qt.resolvedUrl("../assets/arrow-down-symbolic.svg")
                     fallback: "go-down-symbolic"
                     isMask: true
-                    color: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+                    color: root.activeIndicatorColor
                     rotation: root.arrowRotation
 
                     Behavior on rotation {
@@ -512,7 +516,7 @@ Item {
                     title: "Quick Settings"
                     status: "Click to open Control Center"
                     iconName: "preferences-system"
-                    iconColor: root.isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -553,7 +557,7 @@ Item {
                     title: (root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : "KDE Connect"
                     status: (root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? "Device synchronized" : "No device connected")
                     iconName: "kdeconnect-tray-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -594,7 +598,7 @@ Item {
                     }
                     status: root.cameraBlocked ? "Video capture blocked" : "Active camera stream"
                     iconName: root.cameraBlocked ? "camera-off-symbolic" : "camera-web-symbolic"
-                    iconColor: root.cameraBlocked ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    iconColor: root.cameraBlocked ? root.tooltipInactiveColor : root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -635,7 +639,7 @@ Item {
                     }
                     status: root.micMuted ? "Muted by privacy toggle" : "Audio capture active"
                     iconName: root.micMuted ? "microphone-sensitivity-muted-symbolic" : "audio-input-microphone-symbolic"
-                    iconColor: root.micMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    iconColor: root.micMuted ? root.tooltipInactiveColor : root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -678,7 +682,7 @@ Item {
                         ? ((root.locationApps && root.locationApps.length > 0) ? "Active Geolocation • In Use" : "Location Enabled") 
                         : "Location tracking disabled"
                     iconName: "find-location-symbolic"
-                    iconColor: root.locationEnabled ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    iconColor: root.locationEnabled ? root.tooltipActiveColor : root.tooltipInactiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -715,7 +719,7 @@ Item {
                     title: root.isDarkTheme ? "Dark Mode Active" : "Light Mode Active"
                     status: "Desktop color scheme"
                     iconName: "contrast-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -752,7 +756,7 @@ Item {
                     title: root.dndEnabled ? "Do Not Disturb" : "Notifications Active"
                     status: root.dndEnabled ? (root.dndUntilText ? ("Muted until " + root.dndUntilText) : "All alerts and sounds muted") : "Normal notification alerts"
                     iconName: "notifications-disabled-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -789,7 +793,7 @@ Item {
                     title: root.nightLightEnabled ? "Night Light Active" : "Night Light Off"
                     status: root.nightLightEnabled ? "Warm color temperature for eye comfort" : "Standard color temperature"
                     iconName: "redshift-status-on-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -826,7 +830,7 @@ Item {
                     title: (root.powerProfile === "performance") ? "Performance Mode" : ((root.powerProfile === "power-saver") ? "Power Saver Mode" : "Balanced Mode")
                     status: (root.powerProfile === "performance") ? "Maximum system performance" : ((root.powerProfile === "power-saver") ? "Optimizing battery lifespan" : "Standard performance & efficiency")
                     iconName: root.powerProfileIconName
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -863,7 +867,7 @@ Item {
                     title: (root.hotspotSsid && root.hotspotSsid !== "") ? root.hotspotSsid : "Wi-Fi Hotspot"
                     status: root.hotspotPassword ? ("Password: " + root.hotspotPassword) : "Sharing internet connection"
                     iconName: "network-wireless-hotspot-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -900,7 +904,7 @@ Item {
                     title: root.airplaneMode ? "Airplane Mode Active" : "Airplane Mode Off"
                     status: root.airplaneMode ? "All wireless transmissions disabled" : "Wireless communications enabled"
                     iconName: "network-flightmode-on-symbolic"
-                    iconColor: root.activeIndicatorColor
+                    iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
@@ -941,7 +945,7 @@ Item {
                         ? ((root.btBattery > 0) ? (root.btBattery + "% Battery • Connected") : "Device connected")
                         : (root.btEnabled ? "Click to connect devices" : "Bluetooth adapter disabled")
                     iconName: root.btIconName
-                    iconColor: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    iconColor: root.btConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
                     showProgressBar: Boolean(root.btConnected && root.btBattery > 0)
                     progressValue: root.btBattery
                     progressColor: (root.btBattery <= 20) ? "#e74c3c" : "#33d17a"
@@ -985,7 +989,7 @@ Item {
                         ? (root.wifiSignal > 0 ? (root.wifiSignal + "% Signal Strength • Connected") : "Connected") 
                         : (root.wifiEnabled ? "Click to connect to a network" : "Wireless adapter disabled")
                     iconName: root.wifiIconName
-                    iconColor: root.wifiConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
+                    iconColor: root.wifiConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
                     showProgressBar: root.wifiConnected && root.wifiSignal > 0
                     progressValue: root.wifiSignal
                     progressColor: root.wifiSignal >= 60 ? "#33d17a" : (root.wifiSignal >= 30 ? "#f5a623" : "#e74c3c")
@@ -1033,7 +1037,7 @@ Item {
                                 : "Audio Output") 
                             : "Master Audio Output")
                     iconName: root.volumeIconName
-                    iconColor: root.isMuted ? root.inactiveIndicatorColor : root.activeIndicatorColor
+                    iconColor: root.isMuted ? root.tooltipInactiveColor : root.tooltipActiveColor
                     showProgressBar: true
                     progressValue: root.isMuted ? 0 : root.volume
                     progressColor: root.isMuted ? (root.isDarkTheme ? "#777777" : "#999999") : ((Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4")
@@ -1074,7 +1078,7 @@ Item {
                         text: root.batteryLevel + "%"
                         font.pixelSize: Math.max(10, root.panelIconSize - 4)
                         font.weight: Font.Medium
-                        color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
+                        color: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }
@@ -1094,7 +1098,7 @@ Item {
                         ? "Power Adapter Connected • Charging" 
                         : (root.batteryLevel <= 20 ? "Battery Low • Connect Charger" : "Running on Battery Power")
                     iconName: root.batteryIconName
-                    iconColor: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.activeIndicatorColor
+                    iconColor: root.batteryLevel <= 20 && !root.batteryCharging ? "#e74c3c" : root.tooltipActiveColor
                     showProgressBar: true
                     progressValue: root.batteryLevel
                     progressColor: root.batteryCharging ? "#33d17a" : (root.batteryLevel <= 20 ? "#e74c3c" : (root.isDarkTheme ? "#f6f8fa" : "#3584e4"))

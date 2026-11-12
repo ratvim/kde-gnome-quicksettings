@@ -284,6 +284,7 @@ PlasmoidItem {
     property bool kdeConnectConnected: false
     property string kdeConnectName: "No Device"
     property string kdeConnectId: ""
+    property int kdeConnectBattery: -1
     property var kdeConnectDevices: []
 
     // Wi-Fi
@@ -469,6 +470,7 @@ PlasmoidItem {
                             mainItem.kdeConnectConnected = !!(firstActive.paired && firstActive.reachable)
                             mainItem.kdeConnectName = firstActive.name || "Device"
                             mainItem.kdeConnectId = firstActive.id || ""
+                            mainItem.kdeConnectBattery = (typeof firstActive.battery === "number") ? firstActive.battery : -1
                         }
                     }
                 } else if (source.indexOf("devices.sh") !== -1) {
@@ -490,6 +492,7 @@ PlasmoidItem {
                         mainItem.kdeConnectConnected = !!dev.kdeconnect.connected
                         mainItem.kdeConnectName = dev.kdeconnect.device_name || "No Device"
                         mainItem.kdeConnectId = dev.kdeconnect.device_id || ""
+                        mainItem.kdeConnectBattery = (typeof dev.kdeconnect.battery === "number") ? dev.kdeconnect.battery : -1
                     }
                     if (dev.user) {
                         if (dev.user.user_real_name) mainItem.userRealName = dev.user.user_real_name

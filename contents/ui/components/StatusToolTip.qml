@@ -19,7 +19,10 @@ PlasmaCore.Dialog {
     property string status: ""
     property string subStatus: ""
     property string iconName: ""
-    property color iconColor: isDarkTheme ? "#f6f8fa" : "#1a1a1a"
+    property bool isActive: true
+    property color iconColor: isActive
+        ? (isDarkTheme ? "#ffffff" : "#1a1a1a")
+        : (isDarkTheme ? Qt.rgba(255, 255, 255, 0.45) : Qt.rgba(0, 0, 0, 0.45))
     property bool showProgressBar: false
     property int progressValue: 0
     property color progressColor: "#3584e4"
