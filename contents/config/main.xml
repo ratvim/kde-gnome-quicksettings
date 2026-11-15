@@ -120,6 +120,9 @@
     <entry name="screenshotTool" type="String">
       <default>auto</default>
     </entry>
+    <entry name="connectivityApp" type="String">
+      <default>kdeconnect</default>
+    </entry>
 
     <entry name="isDarkTheme" type="Bool">
       <default>true</default>

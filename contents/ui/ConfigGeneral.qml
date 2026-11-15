@@ -46,6 +46,7 @@ KCM.SimpleKCM {
     property alias cfg_tileShowKdeConnect: tileKdeCheck.checked
 
     property string cfg_screenshotTool: "auto"
+    property string cfg_connectivityApp: "kdeconnect"
 
     Plasma5Support.DataSource {
         id: execSource
@@ -79,6 +80,12 @@ KCM.SimpleKCM {
                     screenshotToolCombo.currentIndex = i
                     break
                 }
+            }
+        }
+        for (var k = 0; k < connectivityAppCombo.model.length; k++) {
+            if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
+                connectivityAppCombo.currentIndex = k
+                break
             }
         }
         var scriptUrl = Qt.resolvedUrl("../scripts/devices.sh").toString().replace(/^file:\/\//, "")
@@ -189,7 +196,33 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: panelKdeCheck
-                text: i18n("KDE Connect (when connected)")
+                text: (root.cfg_connectivityApp === "sendfile") ? i18n("Send File (when connected)") : i18n("KDE Connect (when connected)")
+            }
+        }
+
+        // --- Device Sharing & Connectivity Section ---
+        Kirigami.Separator {
+            Kirigami.FormData.label: i18n("Device Sharing & Connectivity")
+            Kirigami.FormData.isSection: true
+        }
+
+        ComboBox {
+            id: connectivityAppCombo
+            Kirigami.FormData.label: i18n("Default Application:")
+            textRole: "text"
+            valueRole: "value"
+            model: [
+                { text: i18n("KDE Connect"), value: "kdeconnect" },
+                { text: i18n("Send File"), value: "sendfile" }
+            ]
+            currentIndex: {
+                for (var i = 0; i < model.length; i++) {
+                    if (model[i].value === root.cfg_connectivityApp) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                root.cfg_connectivityApp = currentValue
             }
         }
 
@@ -300,7 +333,7 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: tileKdeCheck
-                text: i18n("KDE Connect")
+                text: (root.cfg_connectivityApp === "sendfile") ? i18n("Send File") : i18n("KDE Connect")
             }
         }
     }

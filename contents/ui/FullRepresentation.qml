@@ -1422,19 +1422,30 @@ Rectangle {
                         }
                     }
 
-                    // 6. KDE Connect
+                    // 6. KDE Connect / Send File
                     PillToggle {
                         id: toggleKde
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowKdeConnect : true
-                        title: "KDE Connect"
-                        subtitle: (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || "Connected") : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : "Disconnected")
-                        iconName: "kdeconnect-tray-symbolic"
-                        iconFallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                        checked: backend ? backend.kdeConnectConnected : false
+                        title: (backend && backend.connectivityApp === "sendfile") ? i18n("Send File") : i18n("KDE Connect")
+                        subtitle: {
+                            if (backend && backend.connectivityApp === "sendfile") {
+                                return (backend.kdeConnectConnected && backend.kdeConnectName) ? backend.kdeConnectName : i18n("Send to Device")
+                            }
+                            return (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
+                        }
+                        iconName: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
+                        iconFallback: (backend && backend.connectivityApp === "sendfile") ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                        checked: (backend && backend.connectivityApp === "sendfile") ? false : (backend ? backend.kdeConnectConnected : false)
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.openKdeConnect()
+                        onToggled: {
+                            if (backend && backend.connectivityApp === "sendfile") {
+                                backend.openSendFile()
+                            } else if (backend) {
+                                backend.openKdeConnect()
+                            }
+                        }
                         onMenuClicked: {
                             if (backend) backend.refreshKdeConnect()
                             root.activeView = "kdeconnect"
@@ -1747,11 +1758,12 @@ Rectangle {
         onScanClicked: if (backend) backend.refreshBluetoothDevices()
     }
 
-    // KDE Connect Sub-View Container
+    // KDE Connect / Send File Sub-View Container
     KdeConnectView {
         anchors.fill: parent
         visible: root.activeView === "kdeconnect"
         isDarkTheme: root.isDarkTheme
+        isSendFileMode: Boolean(backend && backend.connectivityApp === "sendfile")
         devicesModel: (backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : []
         onBackClicked: root.activeView = "main"
         onRefreshClicked: if (backend) backend.refreshKdeConnect()
@@ -1763,6 +1775,7 @@ Rectangle {
         onPairClicked: function(devId) { if (backend) backend.pairKdeConnect(devId) }
         onUnpairClicked: function(devId) { if (backend) backend.unpairKdeConnect(devId) }
         onOpenSettingsClicked: if (backend) backend.openKdeConnect()
+        onOpenSendFileClicked: if (backend) backend.openSendFile()
     }
 
     // Power Profile Sub-View Container

@@ -432,6 +432,52 @@ Rectangle {
                     }
                 }
 
+                // Section: Device Sharing & Connectivity Application
+                Text {
+                    text: "Device Sharing & Connectivity"
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    color: root.accentColor
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: connectBoxCol.implicitHeight + 24
+                    radius: 12
+                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)
+
+                    ColumnLayout {
+                        id: connectBoxCol
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 10
+
+                        Text {
+                            text: "Select Connectivity Application:"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            RadioButton {
+                                text: "KDE Connect"
+                                checked: !backend || backend.connectivityApp === "kdeconnect" || !backend.connectivityApp
+                                onToggled: if (checked && backend) backend.setWidgetConfig("connectivityApp", "kdeconnect")
+                            }
+
+                            RadioButton {
+                                text: "Send File"
+                                checked: Boolean(backend && backend.connectivityApp === "sendfile")
+                                onToggled: if (checked && backend) backend.setWidgetConfig("connectivityApp", "sendfile")
+                            }
+                        }
+                    }
+                }
+
                 // Section 2: Quick Settings Tiles Visibility
                 Text {
                     text: "Quick Settings Tiles Visibility"
@@ -644,7 +690,7 @@ Rectangle {
                         Layout.fillWidth: true
                         sourceComponent: settingToggleRow
                         onLoaded: {
-                            item.title = "KDE Connect Tile"
+                            item.title = Qt.binding(function() { return (backend && backend.connectivityApp === "sendfile") ? "Send File Tile" : "KDE Connect Tile" })
                             item.configKey = "tileShowKdeConnect"
                             item.checkedState = Qt.binding(function() { return backend ? backend.tileShowKdeConnect : true })
                         }

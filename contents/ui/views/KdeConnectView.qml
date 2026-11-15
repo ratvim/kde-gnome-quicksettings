@@ -17,6 +17,7 @@ Rectangle {
     id: root
 
     property bool isDarkTheme: true
+    property bool isSendFileMode: false
     property var devicesModel: []
 
     readonly property color accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
@@ -32,6 +33,7 @@ Rectangle {
     signal pairClicked(string devId)
     signal unpairClicked(string devId)
     signal openSettingsClicked()
+    signal openSendFileClicked()
 
     color: "transparent"
 
@@ -70,7 +72,7 @@ Rectangle {
             }
 
             Text {
-                text: "KDE Connect"
+                text: root.isSendFileMode ? i18n("Send File") : i18n("KDE Connect")
                 font.pixelSize: 15
                 font.weight: Font.Bold
                 color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -528,7 +530,8 @@ Rectangle {
                         anchors.centerIn: parent
                         width: 28
                         height: 28
-                        source: "kdeconnect-symbolic"
+                        source: root.isSendFileMode ? "document-send-symbolic" : "kdeconnect-symbolic"
+                        fallback: root.isSendFileMode ? Qt.resolvedUrl("../../icons/document-send-symbolic.svg") : ""
                         isMask: true
                         color: root.isDarkTheme ? "#9aa0a6" : "#606770"
                     }
@@ -536,7 +539,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "No Devices Found"
+                    text: root.isSendFileMode ? i18n("No Connected Devices") : i18n("No Devices Found")
                     font.pixelSize: 15
                     font.weight: Font.Bold
                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -547,7 +550,9 @@ Rectangle {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    text: "Make sure your phone or tablet has the KDE Connect app open and is connected to the same Wi-Fi network."
+                    text: root.isSendFileMode
+                          ? i18n("Make sure your device has Bluetooth or KDE Connect active and paired to send files.")
+                          : i18n("Make sure your phone or tablet has the KDE Connect app open and is connected to the same Wi-Fi network.")
                     font.pixelSize: 12
                     color: root.isDarkTheme ? "#9aa0a6" : "#606770"
                 }
@@ -555,7 +560,7 @@ Rectangle {
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 8
-                    width: 160
+                    width: root.isSendFileMode ? 170 : 160
                     height: 34
                     radius: 17
                     color: pairNewMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : root.accentColor
@@ -567,13 +572,14 @@ Rectangle {
                         Kirigami.Icon {
                             implicitWidth: 14
                             implicitHeight: 14
-                            source: "kdeconnect-symbolic"
+                            source: root.isSendFileMode ? "document-send-symbolic" : "kdeconnect-symbolic"
+                            fallback: root.isSendFileMode ? Qt.resolvedUrl("../../icons/document-send-symbolic.svg") : ""
                             isMask: true
                             color: root.accentTextColor
                         }
 
                         Text {
-                            text: "Open KDE Connect"
+                            text: root.isSendFileMode ? i18n("Send File…") : i18n("Open KDE Connect")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: root.accentTextColor
@@ -585,13 +591,19 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.openSettingsClicked()
+                        onClicked: {
+                            if (root.isSendFileMode) {
+                                root.openSendFileClicked()
+                            } else {
+                                root.openSettingsClicked()
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Bottom Footer Button: Open KDE Connect App
+        // Bottom Footer Button: Open KDE Connect App / Launch Send File
         Rectangle {
             Layout.fillWidth: true
             height: 40
@@ -608,13 +620,14 @@ Rectangle {
                 Kirigami.Icon {
                     implicitWidth: 16
                     implicitHeight: 16
-                    source: "kdeconnect-symbolic"
+                    source: root.isSendFileMode ? "document-send-symbolic" : "kdeconnect-symbolic"
+                    fallback: root.isSendFileMode ? Qt.resolvedUrl("../../icons/document-send-symbolic.svg") : ""
                     isMask: true
                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
                 }
 
                 Text {
-                    text: "Configure KDE Connect"
+                    text: root.isSendFileMode ? i18n("Launch Send File") : i18n("Configure KDE Connect")
                     font.pixelSize: 12
                     font.weight: Font.Medium
                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -626,7 +639,13 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.openSettingsClicked()
+                onClicked: {
+                    if (root.isSendFileMode) {
+                        root.openSendFileClicked()
+                    } else {
+                        root.openSettingsClicked()
+                    }
+                }
             }
         }
     }

@@ -180,6 +180,7 @@ PlasmoidItem {
     property bool tileShowCamera: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowCamera !== undefined) ? plasmoid.configuration.tileShowCamera : true
     property bool tileShowMic: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowMic !== undefined) ? plasmoid.configuration.tileShowMic : true
     property bool tileShowKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowKdeConnect !== undefined) ? plasmoid.configuration.tileShowKdeConnect : true
+    property string connectivityApp: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.connectivityApp !== undefined) ? plasmoid.configuration.connectivityApp : "kdeconnect"
     property string tilesOrder: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tilesOrder !== undefined && plasmoid.configuration.tilesOrder.length > 0) ? plasmoid.configuration.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
     property int toggleRowsPerPage: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleRowsPerPage !== undefined) ? Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) : 4
 
@@ -213,6 +214,7 @@ PlasmoidItem {
         function onPanelShowCameraChanged() { mainItem.panelShowCamera = plasmoid.configuration.panelShowCamera }
         function onPanelShowMicChanged() { mainItem.panelShowMic = plasmoid.configuration.panelShowMic }
         function onPanelShowKdeConnectChanged() { mainItem.panelShowKdeConnect = plasmoid.configuration.panelShowKdeConnect }
+        function onConnectivityAppChanged() { mainItem.connectivityApp = plasmoid.configuration.connectivityApp }
         function onPanelBackgroundModeChanged() { mainItem.panelBackgroundMode = plasmoid.configuration.panelBackgroundMode }
         function onCustomOpacityChanged() { mainItem.customOpacity = plasmoid.configuration.customOpacity }
         function onPanelBlurEnabledChanged() { mainItem.panelBlurEnabled = plasmoid.configuration.panelBlurEnabled }
@@ -1013,6 +1015,10 @@ PlasmoidItem {
 
     function openKdeConnect() {
         executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_open")
+    }
+
+    function openSendFile() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' send_file_open")
     }
 
     function refreshKdeConnect() {

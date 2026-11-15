@@ -806,6 +806,37 @@ open_kdeconnect() {
     echo '{"success": false}'
 }
 
+open_send_file() {
+    nohup bash -c '
+        if command -v bluedevil-sendfile >/dev/null 2>&1; then
+            bluedevil-sendfile >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v bluetooth-sendto >/dev/null 2>&1; then
+            bluetooth-sendto >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v kdeconnect-cli >/dev/null 2>&1; then
+            dev_id=$(kdeconnect-cli --id-only --list-devices 2>/dev/null | head -n 1 || true)
+            if [[ -n "$dev_id" ]]; then
+                file=""
+                if command -v kdialog >/dev/null 2>&1; then
+                    file=$(kdialog --getopenfilename "$HOME" "All Files (*)" 2>/dev/null || true)
+                elif command -v zenity >/dev/null 2>&1; then
+                    file=$(zenity --file-selection 2>/dev/null || true)
+                fi
+                if [[ -n "$file" ]]; then
+                    kdeconnect-cli -d "$dev_id" --share "$file" >/dev/null 2>&1 &
+                    exit 0
+                fi
+            fi
+            kdeconnect-app >/dev/null 2>&1 &
+            exit 0
+        fi
+    ' >/dev/null 2>&1 &
+    echo '{"success": true, "action": "send_file"}'
+}
+
 ring_kdeconnect() {
     local id="${2:-}"
     if [[ -n "$id" ]] && command -v kdeconnect-cli >/dev/null 2>&1; then
@@ -1535,6 +1566,9 @@ case "$CMD" in
         ;;
     kdeconnect_refresh)
         refresh_kdeconnect
+        ;;
+    send_file_open)
+        open_send_file
         ;;
     screenshot)
         trigger_screenshot "${2:-auto}"

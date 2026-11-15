@@ -537,8 +537,8 @@ Item {
 
                 Kirigami.Icon {
                     anchors.fill: parent
-                    source: "kdeconnect-tray-symbolic"
-                    fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                    source: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
+                    fallback: (backend && backend.connectivityApp === "sendfile") ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
                     isMask: true
                     color: root.activeIndicatorColor
                 }
@@ -553,9 +553,13 @@ Item {
 
                 StatusToolTip {
                     visible: kdeHover.containsMouse && !root.isTrayExpanded
-                    title: (root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : "KDE Connect"
-                    status: (root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? "Device synchronized" : "No device connected")
-                    iconName: "kdeconnect-tray-symbolic"
+                    title: (backend && backend.connectivityApp === "sendfile")
+                           ? ((root.kdeConnectName && root.kdeConnectName !== "") ? (i18n("Send File: ") + root.kdeConnectName) : i18n("Send File"))
+                           : ((root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : i18n("KDE Connect"))
+                    status: (backend && backend.connectivityApp === "sendfile")
+                            ? ((root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Ready to send") : (root.kdeConnectConnected ? i18n("Device ready for file transfer") : i18n("Bluetooth / Device file transfer")))
+                            : ((root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? i18n("Device synchronized") : i18n("No device connected")))
+                    iconName: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
                     iconColor: root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation

@@ -14,6 +14,7 @@ KCM.SimpleKCM {
     property string cfg_panelBackgroundMode: "follow_panel"
     property real cfg_customOpacity: 0.75
     property alias cfg_panelBlurEnabled: blurCheck.checked
+    property string cfg_connectivityApp: "kdeconnect"
 
     function getMeta(key) {
         switch (key) {
@@ -22,7 +23,10 @@ KCM.SimpleKCM {
         case "location": return { name: i18n("Location Access"), icon: "find-location-symbolic" }
         case "mic": return { name: i18n("Microphone Access"), icon: "audio-input-microphone-symbolic" }
         case "camera": return { name: i18n("Camera Access"), icon: "camera-photo-symbolic" }
-        case "kdeconnect": return { name: i18n("KDE Connect"), icon: "kdeconnect" }
+        case "kdeconnect":
+            return (root.cfg_connectivityApp === "sendfile")
+                ? { name: i18n("Send File"), icon: "document-send-symbolic" }
+                : { name: i18n("KDE Connect"), icon: "kdeconnect" }
         case "dark": return { name: i18n("Dark Style"), icon: "weather-clear-night" }
         case "night": return { name: i18n("Night Light"), icon: "redshift-status-on" }
         case "airplane": return { name: i18n("Airplane Mode"), icon: "airplane-mode-symbolic" }
@@ -86,6 +90,10 @@ KCM.SimpleKCM {
         if (togglesListModel.count === 0) {
             syncFromCfg()
         }
+    }
+
+    onCfg_connectivityAppChanged: {
+        syncFromCfg()
     }
 
     ListModel {

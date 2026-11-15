@@ -2,6 +2,18 @@
 
 All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are documented in this file.
 
+## [1.2.0] - 2026-11-15
+
+### Added & Improved
+- **Configurable Connectivity Application (KDE Connect & Send File)**:
+  - Added a configuration option in both the Plasma native configuration dialog (`ConfigGeneral.qml`) and the in-app Quick Settings drawer (`WidgetSettingsView.qml`) allowing users to choose their preferred connectivity application:
+    - **KDE Connect** (Default): Full phone integration, pairing, battery reporting, remote SMS, ringing, and device browsing.
+    - **Send File**: Quick file transfer utility with `document-send-symbolic` paper plane icon.
+  - Clicking the tile when configured to "Send File" seamlessly launches the native Bluetooth File Transfer wizard (`bluedevil-sendfile`), `bluetooth-sendto`, or initiates file sharing to active paired devices via `kdeconnect-cli --share`.
+  - Clicking the chevron `>` menu opens the sub-view (`KdeConnectView.qml`) customized with Send File action triggers and direct file sending buttons for all discovered devices.
+  - The status capsule on the KDE panel dynamically adapts its icon (`document-send-symbolic` vs `kdeconnect-tray-symbolic`) and tooltip descriptions to match the configured mode.
+  - Dynamically updates toggle titles in both the Quick Settings grid and the drag-and-drop tiles ordering manager (`ConfigAppearance.qml`).
+
 ## [1.1.9] - 2026-11-13
 
 ### Added & Improved

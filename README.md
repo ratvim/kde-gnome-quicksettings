@@ -102,6 +102,9 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 - 📸 **Universal Screenshot Tool Integration**:
   - Quick screenshot capture button in the expanded Quick Settings header supporting Spectacle, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp with detached process execution.
   - Automatically detects and displays only utilities installed on the system in both the widget settings drawer and Plasma configuration dialog.
+- 📱 **Configurable Device Sharing & Connectivity (KDE Connect & Send File)**:
+  - Configuration option to choose between **KDE Connect** (full remote phone synchronization) and **Send File** (`bluedevil-sendfile` / Bluetooth file transfer and direct device sending).
+  - The status capsule and quick toggle dynamically adapt their title, icon (`document-send-symbolic`), and subtitle to match your chosen utility.
 
 ---
 
