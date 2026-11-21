@@ -385,6 +385,13 @@ PlasmoidItem {
     ]
     property string screenshotTool: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.screenshotTool !== undefined && plasmoid.configuration.screenshotTool !== "") ? plasmoid.configuration.screenshotTool : "auto"
 
+    // LocalSend / Send Local
+    property bool localsendInstalled: true
+    property bool localsendRunning: false
+    property string localsendStatusText: "Ready"
+    property string localsendLocalIp: ""
+    property var localsendDevices: []
+
     // Executable DataEngine to run system scripts natively in Plasma 6
     Plasma5Support.DataSource {
         id: executable
@@ -511,12 +518,17 @@ PlasmoidItem {
                     mainItem.hasKdeConnect = !!ct.has_kdeconnect
                     mainItem.hasSendFile = !!ct.has_sendfile
                     mainItem.installedConnectivityTools = ct.installed_connectivity_tools || ct.installed_tools || []
-                } else if (source.indexOf("sendfile_status") !== -1) {
+                } else if (source.indexOf("sendfile_status") !== -1 || source.indexOf("localsend_status") !== -1) {
                     var sf = JSON.parse(stdout)
-                    mainItem.sendfileConnected = !!sf.connected
-                    mainItem.sendfileDeviceName = sf.device_name || ""
+                    mainItem.sendfileConnected = !!(sf.running || sf.connected)
+                    mainItem.sendfileDeviceName = sf.status_text || sf.device_name || ""
                     mainItem.sendfileDeviceMac = sf.device_mac || ""
                     mainItem.sendfileDevices = sf.devices || []
+                    mainItem.localsendInstalled = !!sf.installed
+                    mainItem.localsendRunning = !!sf.running
+                    mainItem.localsendStatusText = sf.status_text || "Ready"
+                    mainItem.localsendLocalIp = sf.local_ip || ""
+                    mainItem.localsendDevices = sf.devices || []
                 } else if (source.indexOf("kdeconnect_list") !== -1 || source.indexOf("kdeconnect_devices") !== -1 || source.indexOf("kdeconnect_refresh") !== -1) {
                     var kList = JSON.parse(stdout)
                     if (Array.isArray(kList)) {
@@ -550,15 +562,21 @@ PlasmoidItem {
                         mainItem.kdeConnectId = dev.kdeconnect.device_id || ""
                         mainItem.kdeConnectBattery = (typeof dev.kdeconnect.battery === "number") ? dev.kdeconnect.battery : -1
                     }
-                    if (dev.sendfile) {
-                        mainItem.sendfileConnected = !!dev.sendfile.connected
-                        mainItem.sendfileDeviceName = dev.sendfile.device_name || ""
-                        mainItem.sendfileDeviceMac = dev.sendfile.device_mac || ""
-                        mainItem.sendfileDevices = dev.sendfile.devices || []
+                    if (dev.localsend !== undefined || dev.sendfile !== undefined) {
+                        var ls = dev.localsend || dev.sendfile
+                        mainItem.sendfileConnected = !!(ls.running || ls.connected)
+                        mainItem.sendfileDeviceName = ls.status_text || ls.device_name || ""
+                        mainItem.sendfileDeviceMac = ls.device_mac || ""
+                        mainItem.sendfileDevices = ls.devices || []
+                        mainItem.localsendInstalled = !!ls.installed
+                        mainItem.localsendRunning = !!ls.running
+                        mainItem.localsendStatusText = ls.status_text || "Ready"
+                        mainItem.localsendLocalIp = ls.local_ip || ""
+                        mainItem.localsendDevices = ls.devices || []
                     }
                     if (dev.connectivity_tools) {
                         mainItem.hasKdeConnect = !!dev.connectivity_tools.has_kdeconnect
-                        mainItem.hasSendFile = !!dev.connectivity_tools.has_sendfile
+                        mainItem.hasSendFile = !!(dev.connectivity_tools.has_localsend || dev.connectivity_tools.has_sendfile)
                         mainItem.installedConnectivityTools = dev.connectivity_tools.installed_connectivity_tools || dev.connectivity_tools.installed_tools || []
                     }
                     if (dev.user) {
@@ -614,8 +632,8 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' status")
         executable.exec("bash '" + getScriptPath("power.sh") + "' battery")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' status")
-        if (mainItem.connectivityApp === "sendfile") {
-            executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+        if (mainItem.connectivityApp === "localsend" || mainItem.connectivityApp === "sendlocal" || mainItem.connectivityApp === "sendfile") {
+            executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
         } else {
             executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
         }
@@ -634,8 +652,8 @@ PlasmoidItem {
             refreshAll()
             executable.exec("bash '" + getScriptPath("network.sh") + "' list_wifi")
             executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
-            if (mainItem.connectivityApp === "sendfile") {
-                executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+            if (mainItem.connectivityApp === "localsend" || mainItem.connectivityApp === "sendlocal" || mainItem.connectivityApp === "sendfile") {
+                executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
             } else {
                 executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
             }
@@ -1118,20 +1136,35 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_open")
     }
 
+    function openLocalSend() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' open_localsend")
+        closePopup()
+    }
+
+    function sendLocalSendFile(filePath) {
+        var arg = filePath ? (" '" + filePath + "'") : ""
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_send_file" + arg)
+        closePopup()
+    }
+
+    function refreshLocalSend() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
+    }
+
     function openSendFile() {
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' open_send_file")
+        openLocalSend()
     }
 
     function refreshSendFile() {
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+        refreshLocalSend()
     }
 
     function sendfileShare(devMac) {
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_share '" + (devMac || "") + "'")
+        sendLocalSendFile(devMac)
     }
 
     function openSendFileSettings() {
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' open_sendfile_settings")
+        openLocalSend()
     }
 
     function checkConnectivityTools() {

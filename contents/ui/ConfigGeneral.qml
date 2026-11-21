@@ -222,7 +222,7 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: panelKdeCheck
-                text: (root.cfg_connectivityApp === "sendfile") ? i18n("Send File (when connected)") : i18n("KDE Connect (when connected)")
+                text: (root.cfg_connectivityApp === "localsend" || root.cfg_connectivityApp === "sendlocal" || root.cfg_connectivityApp === "sendfile") ? i18n("Send Local (when active)") : i18n("KDE Connect (when connected)")
             }
         }
 
@@ -358,7 +358,7 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: tileKdeCheck
-                text: (root.cfg_connectivityApp === "sendfile") ? i18n("Send File") : i18n("KDE Connect")
+                text: (root.cfg_connectivityApp === "localsend" || root.cfg_connectivityApp === "sendlocal" || root.cfg_connectivityApp === "sendfile") ? i18n("Send Local") : i18n("KDE Connect")
             }
         }
     }

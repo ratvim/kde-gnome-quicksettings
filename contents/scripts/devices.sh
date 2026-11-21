@@ -806,80 +806,74 @@ open_kdeconnect() {
     echo '{"success": false}'
 }
 
-open_send_file() {
+open_localsend() {
     nohup bash -c '
-        if command -v bluedevil-sendfile >/dev/null 2>&1; then
-            bluedevil-sendfile >/dev/null 2>&1 &
-            exit 0
-        fi
-        if command -v bluetooth-sendto >/dev/null 2>&1; then
-            bluetooth-sendto >/dev/null 2>&1 &
+        if command -v flatpak >/dev/null 2>&1 && flatpak info org.localsend.localsend_app >/dev/null 2>&1; then
+            flatpak run org.localsend.localsend_app >/dev/null 2>&1 &
             exit 0
         fi
         if command -v localsend >/dev/null 2>&1; then
             localsend >/dev/null 2>&1 &
             exit 0
         fi
-        if command -v warpinator >/dev/null 2>&1; then
-            warpinator >/dev/null 2>&1 &
+        if command -v localsend_app >/dev/null 2>&1; then
+            localsend_app >/dev/null 2>&1 &
             exit 0
         fi
-        if command -v sendfile >/dev/null 2>&1; then
-            sendfile >/dev/null 2>&1 &
+        if [ -f /var/lib/flatpak/exports/bin/org.localsend.localsend_app ]; then
+            /var/lib/flatpak/exports/bin/org.localsend.localsend_app >/dev/null 2>&1 &
             exit 0
         fi
     ' >/dev/null 2>&1 &
-    echo '{"success": true, "action": "open_send_file"}'
+    echo '{"success": true, "action": "open_localsend"}'
+}
+
+open_send_file() {
+    open_localsend
+}
+
+localsend_send_file() {
+    local target_file="${1:-}"
+    nohup bash -c '
+        file_to_send="'"$target_file"'"
+        if [[ -z "$file_to_send" ]]; then
+            if command -v kdialog >/dev/null 2>&1; then
+                file_to_send=$(kdialog --getopenfilename --multiple --separate-output "$HOME" 2>/dev/null || true)
+            elif command -v zenity >/dev/null 2>&1; then
+                file_to_send=$(zenity --file-selection --multiple --separator=" " 2>/dev/null || true)
+            fi
+        fi
+
+        if [[ -n "$file_to_send" ]]; then
+            if command -v flatpak >/dev/null 2>&1 && flatpak info org.localsend.localsend_app >/dev/null 2>&1; then
+                flatpak run --command=localsend --file-forwarding org.localsend.localsend_app @@u $file_to_send @@ >/dev/null 2>&1 &
+                exit 0
+            fi
+            if command -v localsend >/dev/null 2>&1; then
+                localsend $file_to_send >/dev/null 2>&1 &
+                exit 0
+            fi
+        fi
+
+        # Fallback: open LocalSend GUI
+        if command -v flatpak >/dev/null 2>&1 && flatpak info org.localsend.localsend_app >/dev/null 2>&1; then
+            flatpak run org.localsend.localsend_app >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v localsend >/dev/null 2>&1; then
+            localsend >/dev/null 2>&1 &
+            exit 0
+        fi
+    ' >/dev/null 2>&1 &
+    echo '{"success": true, "action": "localsend_send_file"}'
 }
 
 sendfile_share() {
-    local target_mac="${1:-}"
-    nohup bash -c '
-        target="'"$target_mac"'"
-        if command -v bluedevil-sendfile >/dev/null 2>&1; then
-            if [[ -n "$target" ]]; then
-                bluedevil-sendfile -k "$target" >/dev/null 2>&1 &
-            else
-                bluedevil-sendfile >/dev/null 2>&1 &
-            fi
-            exit 0
-        fi
-        if command -v bluetooth-sendto >/dev/null 2>&1; then
-            if [[ -n "$target" ]]; then
-                bluetooth-sendto --device="$target" >/dev/null 2>&1 &
-            else
-                bluetooth-sendto >/dev/null 2>&1 &
-            fi
-            exit 0
-        fi
-        if command -v localsend >/dev/null 2>&1; then
-            localsend >/dev/null 2>&1 &
-            exit 0
-        fi
-        if command -v sendfile >/dev/null 2>&1; then
-            sendfile >/dev/null 2>&1 &
-            exit 0
-        fi
-    ' >/dev/null 2>&1 &
-    echo '{"success": true, "action": "sendfile_share"}'
+    localsend_send_file "${1:-}"
 }
 
 open_sendfile_settings() {
-    nohup bash -c '
-        if command -v kcmshell6 >/dev/null 2>&1; then
-            kcmshell6 kcm_bluetooth >/dev/null 2>&1 &
-            exit 0
-        fi
-        if command -v systemsettings >/dev/null 2>&1; then
-            systemsettings kcm_bluetooth >/dev/null 2>&1 &
-            exit 0
-        fi
-        if command -v bluedevil-wizard >/dev/null 2>&1; then
-            bluedevil-wizard >/dev/null 2>&1 &
-            exit 0
-        fi
-    ' >/dev/null 2>&1 &
-    echo '{"success": true, "action": "open_sendfile_settings"}'
+    open_localsend
 }
 
 ring_kdeconnect() {
@@ -1331,37 +1325,38 @@ EOF
 get_installed_connectivity_tools_json() {
     if command -v python3 >/dev/null 2>&1; then
         python3 - << 'PYEOF'
-import os, sys, shutil, json
+import os, sys, shutil, json, subprocess
 
 has_kde = False
 if shutil.which("kdeconnect-cli") or shutil.which("kdeconnect-app") or os.path.isfile("/usr/share/applications/org.kde.kdeconnect.app.desktop"):
     has_kde = True
 
-has_sf = False
-sf_tool = ""
-for tool, name in [
-    ("bluedevil-sendfile", "Send File"),
-    ("bluetooth-sendto", "Send File"),
-    ("localsend", "Send File"),
-    ("warpinator", "Send File"),
-    ("sendfile", "Send File")
-]:
-    if shutil.which(tool) or os.path.isfile(f"/usr/share/applications/org.kde.{tool}.desktop") or os.path.isfile(f"/usr/share/applications/{tool}.desktop"):
-        has_sf = True
-        if not sf_tool:
-            sf_tool = tool
-        break
+has_localsend = False
+if os.path.exists("/var/lib/flatpak/exports/bin/org.localsend.localsend_app") or \
+   os.path.exists("/usr/bin/localsend") or \
+   os.path.exists("/usr/local/bin/localsend") or \
+   shutil.which("localsend") or shutil.which("localsend_app") or \
+   os.path.isfile("/var/lib/flatpak/exports/share/applications/org.localsend.localsend_app.desktop") or \
+   os.path.isfile("/usr/share/applications/org.localsend.localsend_app.desktop"):
+    has_localsend = True
+elif shutil.which("flatpak"):
+    try:
+        proc = subprocess.run(["flatpak", "info", "org.localsend.localsend_app"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if proc.returncode == 0:
+            has_localsend = True
+    except Exception:
+        pass
 
 installed = []
 if has_kde:
     installed.append({"text": "KDE Connect", "value": "kdeconnect"})
-if has_sf:
-    installed.append({"text": "Send File", "value": "sendfile", "tool": sf_tool})
+if has_localsend:
+    installed.append({"text": "Send Local", "value": "localsend"})
 
 print(json.dumps({
     "has_kdeconnect": has_kde,
-    "has_sendfile": has_sf,
-    "sendfile_tool": sf_tool,
+    "has_localsend": has_localsend,
+    "has_sendfile": has_localsend,
     "installed_tools": installed,
     "installed_connectivity_tools": installed
 }))
@@ -1371,106 +1366,140 @@ PYEOF
         if command -v kdeconnect-cli >/dev/null 2>&1 || command -v kdeconnect-app >/dev/null 2>&1 || [ -f /usr/share/applications/org.kde.kdeconnect.app.desktop ]; then
             has_kde="true"
         fi
-        local has_sf="false"
-        local sf_tool=""
-        for t in bluedevil-sendfile bluetooth-sendto localsend warpinator sendfile; do
-            if command -v "$t" >/dev/null 2>&1 || [ -f "/usr/share/applications/org.kde.${t}.desktop" ] || [ -f "/usr/share/applications/${t}.desktop" ]; then
-                has_sf="true"
-                sf_tool="$t"
-                break
-            fi
-        done
+        local has_ls="false"
+        if command -v localsend >/dev/null 2>&1 || [ -f "/var/lib/flatpak/exports/bin/org.localsend.localsend_app" ] || [ -f "/var/lib/flatpak/exports/share/applications/org.localsend.localsend_app.desktop" ]; then
+            has_ls="true"
+        elif command -v flatpak >/dev/null 2>&1 && flatpak info org.localsend.localsend_app >/dev/null 2>&1; then
+            has_ls="true"
+        fi
         local tools="[]"
-        if [ "$has_kde" = "true" ] && [ "$has_sf" = "true" ]; then
-            tools='[{"text": "KDE Connect", "value": "kdeconnect"}, {"text": "Send File", "value": "sendfile"}]'
+        if [ "$has_kde" = "true" ] && [ "$has_ls" = "true" ]; then
+            tools='[{"text": "KDE Connect", "value": "kdeconnect"}, {"text": "Send Local", "value": "localsend"}]'
         elif [ "$has_kde" = "true" ]; then
             tools='[{"text": "KDE Connect", "value": "kdeconnect"}]'
-        elif [ "$has_sf" = "true" ]; then
-            tools='[{"text": "Send File", "value": "sendfile"}]'
+        elif [ "$has_ls" = "true" ]; then
+            tools='[{"text": "Send Local", "value": "localsend"}]'
         fi
-        echo "{\"has_kdeconnect\": $has_kde, \"has_sendfile\": $has_sf, \"sendfile_tool\": \"$sf_tool\", \"installed_tools\": $tools, \"installed_connectivity_tools\": $tools}"
+        echo "{\"has_kdeconnect\": $has_kde, \"has_localsend\": $has_ls, \"has_sendfile\": $has_ls, \"installed_tools\": $tools, \"installed_connectivity_tools\": $tools}"
+    fi
+}
+
+get_localsend_status_json() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - << 'PYEOF'
+import os, sys, socket, json, subprocess, shutil
+
+installed = False
+if os.path.exists("/var/lib/flatpak/exports/bin/org.localsend.localsend_app") or \
+   os.path.exists("/usr/bin/localsend") or \
+   os.path.exists("/usr/local/bin/localsend") or \
+   os.path.isfile("/var/lib/flatpak/exports/share/applications/org.localsend.localsend_app.desktop") or \
+   os.path.isfile("/usr/share/applications/org.localsend.localsend_app.desktop"):
+    installed = True
+elif shutil.which("localsend") or shutil.which("localsend_app"):
+    installed = True
+elif shutil.which("flatpak"):
+    try:
+        proc = subprocess.run(["flatpak", "info", "org.localsend.localsend_app"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if proc.returncode == 0:
+            installed = True
+    except Exception:
+        pass
+
+# Check if running: socket port 53317 or pgrep
+is_running = False
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.2)
+    if s.connect_ex(('127.0.0.1', 53317)) == 0:
+        is_running = True
+    s.close()
+except Exception:
+    pass
+
+if not is_running:
+    try:
+        proc = subprocess.run(["pgrep", "-f", "localsend"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        if proc.returncode == 0 and proc.stdout.strip():
+            is_running = True
+    except Exception:
+        pass
+
+# Get local IP
+local_ip = ""
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    local_ip = s.getsockname()[0]
+    s.close()
+except Exception:
+    pass
+
+devices = []
+# Fast UDP multicast probe for nearby LocalSend peers (timeout 0.3s)
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    sock.settimeout(0.3)
+    msg = json.dumps({
+        "alias": "KDE Plasma",
+        "version": "2.0",
+        "deviceModel": "Linux",
+        "deviceType": "desktop",
+        "fingerprint": "kde-plasma-quicksettings",
+        "port": 53317,
+        "protocol": "https",
+        "download": False,
+        "announcement": True,
+        "announce": True
+    }).encode('utf-8')
+    sock.sendto(msg, ("224.0.0.167", 53317))
+    while True:
+        try:
+            data, addr = sock.recvfrom(4096)
+            if addr[0] != local_ip and addr[0] != "127.0.0.1":
+                parsed = json.loads(data.decode('utf-8', errors='ignore'))
+                devices.append({
+                    "id": addr[0],
+                    "ip": addr[0],
+                    "name": parsed.get("alias", addr[0]),
+                    "deviceModel": parsed.get("deviceModel", "Unknown"),
+                    "deviceType": parsed.get("deviceType", "mobile"),
+                    "port": parsed.get("port", 53317),
+                    "protocol": parsed.get("protocol", "https")
+                })
+        except (socket.timeout, Exception):
+            break
+    sock.close()
+except Exception:
+    pass
+
+status_text = "Ready to share"
+if is_running:
+    status_text = "Running" if not devices else f"{len(devices)} device(s) online"
+elif not installed:
+    status_text = "Not Installed"
+
+print(json.dumps({
+    "installed": installed,
+    "running": is_running,
+    "connected": is_running,
+    "local_ip": local_ip,
+    "port": 53317,
+    "multicast": "224.0.0.167:53317",
+    "status_text": status_text,
+    "device_name": status_text,
+    "devices": devices,
+    "device_count": len(devices)
+}))
+PYEOF
+    else
+        echo '{"installed": true, "running": false, "connected": false, "local_ip": "", "port": 53317, "multicast": "224.0.0.167:53317", "status_text": "Ready", "device_name": "Ready", "devices": [], "device_count": 0}'
     fi
 }
 
 get_sendfile_status_json() {
-    if command -v python3 >/dev/null 2>&1; then
-        python3 - << 'PYEOF'
-import os, sys, subprocess, re, json
-
-devices = []
-connected_dev_name = ""
-connected_dev_mac = ""
-is_connected = False
-
-try:
-    proc = subprocess.run(["bluetoothctl", "devices"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=2)
-    lines = proc.stdout.strip().splitlines() if proc.returncode == 0 else []
-    for line in lines:
-        m = re.match(r"^Device\s+([0-9A-Fa-f:]{17})\s+(.+)$", line.strip())
-        if not m:
-            continue
-        mac, name = m.group(1), m.group(2)
-        try:
-            info_proc = subprocess.run(["bluetoothctl", "info", mac], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=1)
-            info = info_proc.stdout if info_proc.returncode == 0 else ""
-        except Exception:
-            info = ""
-
-        is_paired = "Paired: yes" in info
-        is_conn = "Connected: yes" in info
-        icon_match = re.search(r"Icon:\s*(\S+)", info)
-        icon = icon_match.group(1).lower() if icon_match else ""
-
-        # Filter out mice, keyboards, gamepads, audio headphones/headsets
-        if any(k in icon for k in ["mouse", "keyboard", "gaming", "joystick", "audio", "headset", "headphones"]):
-            continue
-
-        dev_type = "device"
-        if any(k in icon for k in ["phone", "smartphone"]):
-            dev_type = "phone"
-        elif "tablet" in icon:
-            dev_type = "tablet"
-        elif any(k in icon for k in ["computer", "laptop"]):
-            dev_type = "computer"
-        elif "00001105" in info:
-            dev_type = "phone"
-        elif is_paired:
-            dev_type = "device"
-        else:
-            continue
-
-        devices.append({
-            "id": mac,
-            "mac": mac,
-            "name": name,
-            "type": dev_type,
-            "paired": is_paired,
-            "connected": is_conn
-        })
-
-        if is_conn and not is_connected:
-            is_connected = True
-            connected_dev_name = name
-            connected_dev_mac = mac
-except Exception:
-    pass
-
-if not connected_dev_name and devices:
-    paired_list = [d for d in devices if d.get("paired")]
-    if paired_list:
-        connected_dev_name = paired_list[0]["name"]
-        connected_dev_mac = paired_list[0]["mac"]
-
-print(json.dumps({
-    "connected": is_connected,
-    "device_name": connected_dev_name,
-    "device_mac": connected_dev_mac,
-    "devices": devices
-}))
-PYEOF
-    else
-        echo '{"connected": false, "device_name": "", "device_mac": "", "devices": []}'
-    fi
+    get_localsend_status_json
 }
 
 get_all_status() {
@@ -1523,6 +1552,7 @@ get_all_status() {
   "camera_blocked": $cam_blocked,
   "camera_apps": $cam_apps,
   "kdeconnect": $kde_status,
+  "localsend": $sf_status,
   "sendfile": $sf_status,
   "connectivity_tools": $conn_tools,
   "user": $uinfo,
@@ -1763,17 +1793,17 @@ case "$CMD" in
     kdeconnect_refresh)
         refresh_kdeconnect
         ;;
-    send_file_open|open_send_file)
-        open_send_file
+    open_localsend|send_file_open|open_send_file)
+        open_localsend
         ;;
-    sendfile_status)
-        get_sendfile_status_json
+    localsend_status|sendfile_status)
+        get_localsend_status_json
         ;;
-    sendfile_share)
-        sendfile_share "${2:-}"
+    localsend_send_file|sendfile_share)
+        localsend_send_file "${2:-}"
         ;;
-    open_sendfile_settings)
-        open_sendfile_settings
+    open_localsend_settings|open_sendfile_settings)
+        open_localsend
         ;;
     check_connectivity_tools)
         get_installed_connectivity_tools_json

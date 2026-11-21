@@ -491,7 +491,7 @@ Rectangle {
 
                                 RadioButton {
                                     text: modelData.text
-                                    checked: Boolean(backend && (backend.connectivityApp === modelData.value || (modelData.value === "kdeconnect" && (!backend.connectivityApp || backend.connectivityApp === "kdeconnect"))))
+                                    checked: Boolean(backend && (backend.connectivityApp === modelData.value || ((modelData.value === "localsend" || modelData.value === "sendlocal") && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) || (modelData.value === "kdeconnect" && (!backend.connectivityApp || backend.connectivityApp === "kdeconnect"))))
                                     onToggled: if (checked && backend) backend.setWidgetConfig("connectivityApp", modelData.value)
                                 }
                             }
@@ -711,7 +711,7 @@ Rectangle {
                         Layout.fillWidth: true
                         sourceComponent: settingToggleRow
                         onLoaded: {
-                            item.title = Qt.binding(function() { return (backend && backend.connectivityApp === "sendfile") ? "Send File Tile" : "KDE Connect Tile" })
+                            item.title = Qt.binding(function() { return (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? "Send Local Tile" : "KDE Connect Tile" })
                             item.configKey = "tileShowKdeConnect"
                             item.checkedState = Qt.binding(function() { return backend ? backend.tileShowKdeConnect : true })
                         }

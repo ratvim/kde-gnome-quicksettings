@@ -1467,39 +1467,39 @@ Rectangle {
                         }
                     }
 
-                    // 6. KDE Connect / Send File
+                    // 6. KDE Connect / Send Local (LocalSend)
                     PillToggle {
                         id: toggleKde
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowKdeConnect : true
-                        title: (backend && backend.connectivityApp === "sendfile") ? i18n("Send File") : i18n("KDE Connect")
+                        title: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? i18n("Send Local") : i18n("KDE Connect")
                         subtitle: {
-                            if (backend && backend.connectivityApp === "sendfile") {
-                                if (backend.sendfileConnected && backend.sendfileDeviceName) {
-                                    return backend.sendfileDeviceName
+                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                                if (backend.localsendRunning) {
+                                    if (backend.localsendDevices && backend.localsendDevices.length > 0) {
+                                        return backend.localsendDevices.length + " " + i18n("Device(s)")
+                                    }
+                                    return i18n("Running")
                                 }
-                                if (backend.sendfileDevices && backend.sendfileDevices.length > 0) {
-                                    return backend.sendfileDevices[0].name || i18n("Ready to Send")
-                                }
-                                return i18n("No Device Configured")
+                                return i18n("Ready")
                             }
                             return (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
                         }
-                        iconName: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
-                        iconFallback: (backend && backend.connectivityApp === "sendfile") ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                        checked: (backend && backend.connectivityApp === "sendfile") ? (backend.sendfileConnected || (backend.sendfileDevices && backend.sendfileDevices.length > 0)) : (backend ? backend.kdeConnectConnected : false)
+                        iconName: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? "org.localsend.localsend_app" : "kdeconnect-tray-symbolic"
+                        iconFallback: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                        checked: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? (backend.localsendRunning) : (backend ? backend.kdeConnectConnected : false)
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
                         onToggled: {
-                            if (backend && backend.connectivityApp === "sendfile") {
-                                backend.openSendFile()
+                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                                backend.openLocalSend()
                             } else if (backend) {
                                 backend.openKdeConnect()
                             }
                         }
                         onMenuClicked: {
-                            if (backend && backend.connectivityApp === "sendfile") {
-                                backend.refreshSendFile()
+                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                                backend.refreshLocalSend()
                             } else if (backend) {
                                 backend.refreshKdeConnect()
                             }
@@ -1813,17 +1813,19 @@ Rectangle {
         onScanClicked: if (backend) backend.refreshBluetoothDevices()
     }
 
-    // KDE Connect / Send File Sub-View Container
+    // KDE Connect / Send Local Sub-View Container
     KdeConnectView {
         anchors.fill: parent
         visible: root.activeView === "kdeconnect"
         isDarkTheme: root.isDarkTheme
-        isSendFileMode: Boolean(backend && backend.connectivityApp === "sendfile")
-        devicesModel: (backend && backend.connectivityApp === "sendfile") ? (backend.sendfileDevices || []) : ((backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : [])
+        backend: root.backend
+        isLocalSendMode: Boolean(backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile"))
+        isSendFileMode: isLocalSendMode
+        devicesModel: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? (backend.localsendDevices || []) : ((backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : [])
         onBackClicked: root.activeView = "main"
         onRefreshClicked: {
-            if (backend && backend.connectivityApp === "sendfile") {
-                backend.refreshSendFile()
+            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                backend.refreshLocalSend()
             } else if (backend) {
                 backend.refreshKdeConnect()
             }
@@ -1831,8 +1833,8 @@ Rectangle {
         onRingClicked: function(devId) { if (backend) backend.ringKdeConnect(devId) }
         onPingClicked: function(devId) { if (backend) backend.pingKdeConnect(devId) }
         onShareClicked: function(devId) {
-            if (backend && backend.connectivityApp === "sendfile") {
-                backend.sendfileShare(devId)
+            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                backend.sendLocalSendFile()
             } else if (backend) {
                 backend.shareKdeConnect(devId)
             }
@@ -1840,27 +1842,29 @@ Rectangle {
         onSmsClicked: function() { if (backend) backend.smsKdeConnect() }
         onBrowseClicked: function(devId) { if (backend) backend.browseKdeConnect(devId) }
         onPairClicked: function(devId) {
-            if (backend && backend.connectivityApp === "sendfile") {
-                backend.openSendFileSettings()
+            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                backend.openLocalSend()
             } else if (backend) {
                 backend.pairKdeConnect(devId)
             }
         }
         onUnpairClicked: function(devId) {
-            if (backend && backend.connectivityApp === "sendfile") {
-                backend.openSendFileSettings()
+            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                backend.openLocalSend()
             } else if (backend) {
                 backend.unpairKdeConnect(devId)
             }
         }
         onOpenSettingsClicked: {
-            if (backend && backend.connectivityApp === "sendfile") {
-                backend.openSendFileSettings()
+            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
+                backend.openLocalSend()
             } else if (backend) {
                 backend.openKdeConnect()
             }
         }
-        onOpenSendFileClicked: if (backend) backend.openSendFile()
+        onOpenLocalSendClicked: if (backend) backend.openLocalSend()
+        onSendLocalSendFileClicked: if (backend) backend.sendLocalSendFile()
+        onOpenSendFileClicked: if (backend) backend.openLocalSend()
     }
 
     // Power Profile Sub-View Container

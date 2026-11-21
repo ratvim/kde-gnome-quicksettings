@@ -3,7 +3,7 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.2.1-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.2.2-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg)](https://paypal.me/VimleshRaturi)
 
@@ -11,7 +11,23 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 
 ---
 
-## 🚀 What's New in v1.2.1
+## 🚀 What's New in v1.2.2
+
+- 📁 **Native "Send Local" (LocalSend) Integration**:
+  - Replaced generic Bluetooth sendfile integration with first-class **LocalSend** ("Send Local") support.
+  - **Dynamic Backend Detection**: Checks whether LocalSend is installed on the system (Flatpak `org.localsend.localsend_app` or native binary) and only surfaces "Send Local" in configuration settings if detected.
+  - **Isolated Quick Settings Tile & Sub-View**:
+    - When "Send Local" is selected, the tile changes title to **"Send Local"**, uses the official LocalSend icon (`org.localsend.localsend_app`), and tracks live daemon running state and online LAN peers.
+    - Panel capsule displays the LocalSend icon with live status and informative tooltips.
+    - In the expanded sub-view (`KdeConnectView.qml`), all mobile/KDE Connect device actions are hidden and replaced with:
+      - LocalSend daemon status card with live indicator dot and local IP / Port 53317 (LAN) display.
+      - Direct **"Send Files / Media…"** action that invokes KDE's native `kdialog` file picker and forwards files directly to LocalSend.
+      - **"Open LocalSend Application"** launcher for the desktop GUI.
+      - Automatic LAN peer discovery via LocalSend multicast (`224.0.0.167:53317`).
+
+---
+
+## 🚀 Previous Release Highlights (v1.2.1)
 
 - ☀️ **Dedicated Display & Brightness Sub-View (`BrightnessView.qml`)**:
   - Added an expand button (`go-next-symbolic`) next to the Brightness slider that opens a full, dedicated sub-view matching the volume and network sub-view pattern.
@@ -128,10 +144,10 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 - 📸 **Universal Screenshot Tool Integration**:
   - Quick screenshot capture button in the expanded Quick Settings header supporting Spectacle, GNOME Screenshot, Flameshot, Ksnip, XFCE Screenshooter, Scrot, and Grim/Slurp with detached process execution.
   - Automatically detects and displays only utilities installed on the system in both the widget settings drawer and Plasma configuration dialog.
-- 📱 **Configurable Device Sharing & Connectivity (KDE Connect & Send File)**:
-  - Configuration option to choose between **KDE Connect** (full remote phone synchronization) and **Send File** (`bluedevil-sendfile` / Bluetooth file transfer and direct device sending).
+- 📱 **Configurable Device Sharing & Connectivity (KDE Connect & Send Local)**:
+  - Configuration option to choose between **KDE Connect** (full remote phone synchronization) and **Send Local** (LocalSend high-speed local network file transfer).
   - Automatically detects and displays only connectivity applications that are installed on your system in both the widget settings drawer and Plasma configuration dialog.
-  - Full isolation between modes: when Send File is selected, all options and target devices in the toggle and sub-view are dedicated solely to file transfer (hiding phone ringing, pinging, SMS, and SFTP), showing only devices configured for Send File.
+  - Full isolation between modes: when Send Local is selected, all options and target devices in the toggle and sub-view are dedicated solely to LocalSend, showing local network daemon status, LAN discovery, and direct native file forwarding.
 
 ---
 
