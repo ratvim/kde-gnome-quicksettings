@@ -112,36 +112,6 @@ Rectangle {
                     }
                 }
             }
-
-            // System Settings Shortcut Button
-            Rectangle {
-                implicitWidth: Math.round(28 * root.resolutionScale)
-                implicitHeight: implicitWidth
-                radius: implicitWidth / 2
-                color: extSettingsMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent"
-
-                Kirigami.Icon {
-                    anchors.centerIn: parent
-                    source: "preferences-desktop-sound"
-                    fallback: "configure"
-                    implicitWidth: Math.round(14 * root.resolutionScale)
-                    implicitHeight: implicitWidth
-                    isMask: true
-                    color: root.subTextColor
-                }
-
-                MouseArea {
-                    id: extSettingsMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (backend && typeof backend.openSoundSettings === "function") {
-                            backend.openSoundSettings()
-                        }
-                    }
-                }
-            }
         }
 
         // Divider

@@ -2,6 +2,23 @@
 
 All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are documented in this file.
 
+## [1.2.1] - 2026-11-21
+
+### Added & Improved
+- **Dedicated Display & Brightness Sub-View (`BrightnessView.qml`)**:
+  - Added an expand chevron button (`go-next-symbolic`) directly adjacent to the Brightness slider, matching the Volume bar expand pattern.
+  - Opens a dedicated, full-width sub-view (`root.activeView = "brightness"`) without shifting quick toggles or changing the layout of the main view.
+  - Standard sub-view header featuring `<` back button navigation (`root.activeView = "main"`), title, and refresh button.
+  - **Master Brightness**: Full curved slider with live percentage indicator.
+  - **Adaptive Backlight Intensity (ABM)**: Dynamic backlight modulation control integrated with `kscreen-doctor` to adjust backlight based on pixel content, enhancing contrast and saving battery. Supports 5 discrete intensity levels: 0 (Off), 1 (Low), 2 (Medium), 3 (High), and 4 (Maximum).
+  - **sRGB Color Profile & Intensity**: Color profile selector supporting standard sRGB and EDID Native Hardware modes, alongside an interactive sRGB color intensity calibration slider (0% to 100%).
+  - **KDE System Display Settings Shortcut**: Single prominent action button redirecting directly to the KDE Display Configuration module (`kcmshell6 kcm_kscreen`).
+
+### Fixed & Refined
+- **Volume View Setting Button De-duplication**:
+  - Removed redundant settings icon button from the `VolumeView.qml` header bar.
+  - Standardized on a single, clean descriptive button at the bottom of the page ("Configure Audio Devices in System Settings...").
+
 ## [1.2.0] - 2026-11-21
 
 ### Added & Improved

@@ -123,6 +123,19 @@
     <entry name="connectivityApp" type="String">
       <default>kdeconnect</default>
     </entry>
+    <entry name="displayAbmLevel" type="Int">
+      <default>1</default>
+      <min>0</min>
+      <max>4</max>
+    </entry>
+    <entry name="displayColorProfile" type="String">
+      <default>sRGB</default>
+    </entry>
+    <entry name="displaySrgbIntensity" type="Int">
+      <default>100</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
 
     <entry name="isDarkTheme" type="Bool">
       <default>true</default>

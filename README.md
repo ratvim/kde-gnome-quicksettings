@@ -3,7 +3,7 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue.svg)](https://kde.org/plasma-desktop/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Display%20Server-Wayland%20%7C%20X11-orange.svg)]()
-[![Release](https://img.shields.io/badge/Release-v1.1.9-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.2.1-success.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-lightgrey.svg)](LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg)](https://paypal.me/VimleshRaturi)
 
@@ -11,7 +11,30 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 
 ---
 
-## 🚀 What's New in v1.1.9
+## 🚀 What's New in v1.2.1
+
+- ☀️ **Dedicated Display & Brightness Sub-View (`BrightnessView.qml`)**:
+  - Added an expand button (`go-next-symbolic`) next to the Brightness slider that opens a full, dedicated sub-view matching the volume and network sub-view pattern.
+  - **Master Brightness Slider**: Smooth curved slider with live percentage feedback.
+  - **Adaptive Backlight Intensity (ABM)**: Integrated with KDE's `kscreen-doctor` to dynamically adjust screen backlight based on pixel content for better contrast and battery saving. Supports 5 discrete intensity levels: Off (0), Low (1), Medium (2), High (3), and Max (4).
+  - **sRGB Color Profile & Intensity**: Color profile selector (sRGB vs EDID Native Hardware) and an interactive curved slider for sRGB calibration intensity (0%–100%).
+  - **Display Configuration Shortcut**: One-click action button redirecting to KDE System Display Settings (`kcmshell6 kcm_kscreen`).
+  - Standard navigation with `<` back button to return to the main toggles view.
+
+- 🔊 **Volume View Setting Button Cleanup**:
+  - Removed duplicate header icon button from the Volume expanded view, leaving a single descriptive setting button at the bottom of the page.
+
+---
+
+## 🚀 Previous Release Highlights (v1.2.0)
+
+- 📱 **Dynamic Connectivity Application Detection (KDE Connect & Send File)**:
+  - Backend dynamically detects whether `kdeconnect` and/or Send File tools are installed on the system and presents only available utilities in the configuration settings.
+  - Full isolation of Send File state, target devices, and actions from KDE Connect.
+
+---
+
+## 🚀 Previous Release Highlights (v1.1.9)
 
 - 🔊 **Dedicated Volume & Audio Stream Mixer Sub-View (`VolumeView.qml`)**:
   - Replaced inline accordion expansion with a dedicated, full-width sub-view accessed via a clean `>` chevron button next to the volume slider.

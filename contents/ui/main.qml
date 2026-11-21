@@ -218,6 +218,9 @@ PlasmoidItem {
         function onPanelBackgroundModeChanged() { mainItem.panelBackgroundMode = plasmoid.configuration.panelBackgroundMode }
         function onCustomOpacityChanged() { mainItem.customOpacity = plasmoid.configuration.customOpacity }
         function onPanelBlurEnabledChanged() { mainItem.panelBlurEnabled = plasmoid.configuration.panelBlurEnabled }
+        function onDisplayAbmLevelChanged() { if (plasmoid.configuration.displayAbmLevel !== undefined) mainItem.displayAbmLevel = plasmoid.configuration.displayAbmLevel }
+        function onDisplayColorProfileChanged() { if (plasmoid.configuration.displayColorProfile !== undefined) mainItem.displayColorProfile = plasmoid.configuration.displayColorProfile }
+        function onDisplaySrgbIntensityChanged() { if (plasmoid.configuration.displaySrgbIntensity !== undefined) mainItem.displaySrgbIntensity = plasmoid.configuration.displaySrgbIntensity }
     }
 
     // Wi-Fi icon — follows the active system icon pack exactly
@@ -297,6 +300,13 @@ PlasmoidItem {
     property bool hasKdeConnect: true
     property bool hasSendFile: false
     property var installedConnectivityTools: []
+
+    // Advanced Display Properties
+    property int displayAbmLevel: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.displayAbmLevel !== undefined) ? plasmoid.configuration.displayAbmLevel : 1
+    property bool displayAbmSupported: true
+    property string displayColorProfile: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.displayColorProfile !== undefined) ? plasmoid.configuration.displayColorProfile : "sRGB"
+    property int displaySrgbIntensity: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.displaySrgbIntensity !== undefined) ? plasmoid.configuration.displaySrgbIntensity : 100
+    property string displayOutputName: "eDP-1"
 
     // Wi-Fi
     property bool wifiEnabled: false
@@ -431,6 +441,11 @@ PlasmoidItem {
                 } else if (source.indexOf("brightness.sh") !== -1) {
                     var bri = JSON.parse(stdout)
                     mainItem.brightness = parseInt(bri.brightness) || 0
+                    if (bri.abm_level !== undefined) mainItem.displayAbmLevel = parseInt(bri.abm_level)
+                    if (bri.abm_supported !== undefined) mainItem.displayAbmSupported = !!bri.abm_supported
+                    if (bri.color_profile_source !== undefined) mainItem.displayColorProfile = bri.color_profile_source
+                    if (bri.srgb_intensity !== undefined) mainItem.displaySrgbIntensity = parseInt(bri.srgb_intensity)
+                    if (bri.output_name !== undefined) mainItem.displayOutputName = bri.output_name
                 } else if (source.indexOf("bluetooth.sh' status") !== -1 || source.indexOf("bluetooth.sh status") !== -1) {
                     var bt = JSON.parse(stdout)
                     mainItem.btEnabled = !!bt.enabled
@@ -765,6 +780,33 @@ PlasmoidItem {
     function setBrightness(val) {
         mainItem.brightness = val
         executable.exec("bash '" + getScriptPath("brightness.sh") + "' set " + val)
+    }
+
+    function fetchDisplayDetails() {
+        executable.exec("bash '" + getScriptPath("brightness.sh") + "' status")
+    }
+
+    function setAbmLevel(level) {
+        mainItem.displayAbmLevel = level
+        setWidgetConfig("displayAbmLevel", level)
+        executable.exec("bash '" + getScriptPath("brightness.sh") + "' set_abm " + level)
+    }
+
+    function setColorProfileSource(source) {
+        mainItem.displayColorProfile = source
+        setWidgetConfig("displayColorProfile", source)
+        executable.exec("bash '" + getScriptPath("brightness.sh") + "' set_color_profile " + source)
+    }
+
+    function setSrgbIntensity(intensity) {
+        mainItem.displaySrgbIntensity = intensity
+        setWidgetConfig("displaySrgbIntensity", intensity)
+        executable.exec("bash '" + getScriptPath("brightness.sh") + "' set_srgb_intensity " + intensity)
+    }
+
+    function openDisplaySettings() {
+        executable.exec("bash '" + getScriptPath("brightness.sh") + "' open_display_settings")
+        closePopup()
     }
 
     function toggleDarkMode(isDark) {

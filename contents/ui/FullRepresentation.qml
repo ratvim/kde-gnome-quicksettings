@@ -29,7 +29,7 @@ Rectangle {
     property var backend: mainItem
 
     property bool isDarkTheme: backend ? backend.isDarkTheme : true
-    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings" | "volume"
+    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings" | "volume" | "brightness"
     property bool volumeExpanded: false
 
     // =========================================================================
@@ -610,6 +610,8 @@ Rectangle {
             rawH = Math.round(540 * root.resolutionScale)
         } else if (root.activeView === "volume") {
             rawH = Math.round(520 * root.resolutionScale)
+        } else if (root.activeView === "brightness") {
+            rawH = Math.round(480 * root.resolutionScale)
         } else {
             rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect
         }
@@ -1177,18 +1179,59 @@ Rectangle {
                         }
                     }
 
-                    // Display Brightness Slider (Full Width)
-                    CurvedSlider {
+                    // Display Brightness Row: Slider + Expand Button
+                    RowLayout {
                         Layout.fillWidth: true
-                        implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
-                        value: backend ? backend.brightness : 75
-                        isMuted: false
-                        iconName: "brightness-high-symbolic"
-                        isDarkTheme: root.isDarkTheme
-                        accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
-                        accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
-                        onValueChangedByUser: function(newValue) { if (backend) backend.setBrightness(newValue) }
-                        onIconClicked: if (backend) backend.setBrightness(10)
+                        spacing: Math.round(6 * root.resolutionScale)
+
+                        CurvedSlider {
+                            Layout.fillWidth: true
+                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                            value: backend ? backend.brightness : 75
+                            isMuted: false
+                            iconName: "brightness-high-symbolic"
+                            isDarkTheme: root.isDarkTheme
+                            accentColor: (Kirigami.Theme.highlightColor !== undefined && Kirigami.Theme.highlightColor.a > 0) ? Kirigami.Theme.highlightColor : "#3584e4"
+                            accentTextColor: (Kirigami.Theme.highlightedTextColor !== undefined && Kirigami.Theme.highlightedTextColor.a > 0) ? Kirigami.Theme.highlightedTextColor : "#ffffff"
+                            onValueChangedByUser: function(newValue) { if (backend) backend.setBrightness(newValue) }
+                            onIconClicked: if (backend) backend.setBrightness(10)
+                        }
+
+                        // Brightness Details Sub-View Button next to Brightness bar (opens BrightnessView without pushing toggles down)
+                        Rectangle {
+                            id: brightExpandBtn
+                            implicitWidth: Math.max(24, Math.round(26 * root.resolutionScale))
+                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                            radius: implicitHeight / 2
+                            color: brightExpandMouse.containsMouse
+                                ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.10))
+                                : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05))
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
+                            Kirigami.Icon {
+                                anchors.centerIn: parent
+                                width: Math.round(14 * root.resolutionScale)
+                                height: Math.round(14 * root.resolutionScale)
+                                source: "go-next-symbolic"
+                                fallback: "go-down-symbolic"
+                                isMask: true
+                                color: root.isDarkTheme ? "#e0e0e0" : "#222222"
+                            }
+
+                            MouseArea {
+                                id: brightExpandMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (backend && typeof backend.fetchDisplayDetails === "function") {
+                                        backend.fetchDisplayDetails()
+                                    }
+                                    root.activeView = "brightness"
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1923,6 +1966,16 @@ Rectangle {
     VolumeView {
         anchors.fill: parent
         visible: root.activeView === "volume"
+        backend: root.backend
+        isDarkTheme: root.isDarkTheme
+        resolutionScale: root.resolutionScale
+        onBackClicked: root.activeView = "main"
+    }
+
+    // Display & Brightness Sub-View Container
+    BrightnessView {
+        anchors.fill: parent
+        visible: root.activeView === "brightness"
         backend: root.backend
         isDarkTheme: root.isDarkTheme
         resolutionScale: root.resolutionScale
