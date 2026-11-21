@@ -15,9 +15,12 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 
 - ☀️ **Dedicated Display & Brightness Sub-View (`BrightnessView.qml`)**:
   - Added an expand button (`go-next-symbolic`) next to the Brightness slider that opens a full, dedicated sub-view matching the volume and network sub-view pattern.
-  - **Master Brightness Slider**: Smooth curved slider with live percentage feedback.
-  - **Adaptive Backlight Intensity (ABM)**: Integrated with KDE's `kscreen-doctor` to dynamically adjust screen backlight based on pixel content for better contrast and battery saving. Supports 5 discrete intensity levels: Off (0), Low (1), Medium (2), High (3), and Max (4).
-  - **sRGB Color Profile & Intensity**: Color profile selector (sRGB vs EDID Native Hardware) and an interactive curved slider for sRGB calibration intensity (0%–100%).
+  - **Strict Nomenclature Alignment with KDE System Display Settings (`kcm_kscreen`)**:
+    - **Screen brightness**: Primary curved slider (0%–100%).
+    - **Adaptive Backlight Modulation**: Dedicated curved slider (level 0 to 4) directly modulating screen backlight through KWin / KScreen.
+    - **Color profile:** Segmented options matching native settings (`None` and `Built-in`).
+    - **sRGB color intensity**: Calibration curved slider (0%–100%) that only appears when Color profile is set to `Built-in`, automatically hiding when set to `None`.
+  - **Clean & Minimal Bar Design**: Avoids excess UI clutter by displaying only the clean slider bars that exist in KDE global settings.
   - **Display Configuration Shortcut**: One-click action button redirecting to KDE System Display Settings (`kcmshell6 kcm_kscreen`).
   - Standard navigation with `<` back button to return to the main toggles view.
 

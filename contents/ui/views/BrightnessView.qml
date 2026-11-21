@@ -6,12 +6,12 @@ import "../components"
 
 /**
  * BrightnessView.qml - GNOME-style Display & Brightness Sub-View (Plasma 6)
- * Features:
- *   - Master Display Brightness curved slider with instant feedback
- *   - Adaptive Backlight Modulation (ABM) intensity levels (0=Off, 1=Low, 2=Medium, 3=High, 4=Max)
- *   - sRGB Color Profile selection (sRGB / EDID) and sRGB Color Intensity slider (0-100%)
- *   - Direct shortcut button to KDE System Display Settings (kcm_kscreen)
- * Dedicated full sub-view matching VolumeView, NetworkView, and BluetoothView.
+ * Follows exact KDE System Settings (KScreen) nomenclature:
+ *   - "Screen brightness" slider (0-100%)
+ *   - "Adaptive Backlight Modulation" slider (0-4)
+ *   - "Color profile:" selector ("None" | "Built-in")
+ *   - "sRGB color intensity" slider (0-100%, hidden when Color profile is "None")
+ *   - Single button to redirect to System Settings Display Configuration
  */
 Rectangle {
     id: root
@@ -48,7 +48,7 @@ Rectangle {
         anchors.margins: Math.round(14 * root.resolutionScale)
         spacing: Math.round(10 * root.resolutionScale)
 
-        // 1. Header Bar: Back Button, Title, and Refresh Button (NO duplicate settings button)
+        // 1. Header Bar: Back Button (<), Title, and Refresh Button
         RowLayout {
             Layout.fillWidth: true
             spacing: Math.round(8 * root.resolutionScale)
@@ -135,365 +135,289 @@ Rectangle {
             ColumnLayout {
                 id: contentCol
                 width: scrollBody.availableWidth
-                spacing: Math.round(12 * root.resolutionScale)
+                spacing: Math.round(10 * root.resolutionScale)
 
                 // =========================================================================
-                // SECTION 1: MASTER DISPLAY BRIGHTNESS
+                // MAIN CARD: DISPLAY BARS
                 // =========================================================================
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: masterCol.implicitHeight + Math.round(16 * root.resolutionScale)
+                    implicitHeight: cardCol.implicitHeight + Math.round(16 * root.resolutionScale)
                     radius: Math.round(10 * root.resolutionScale)
                     color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)
                     border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
                     border.width: 1
 
                     ColumnLayout {
-                        id: masterCol
-                        anchors.fill: parent
-                        anchors.margins: Math.round(10 * root.resolutionScale)
-                        spacing: Math.round(8 * root.resolutionScale)
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Text {
-                                text: "MASTER BRIGHTNESS"
-                                font.pixelSize: Math.round(10 * root.resolutionScale)
-                                font.weight: Font.Bold
-                                font.capitalization: Font.AllUppercase
-                                color: root.headerColor
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: (backend ? backend.brightness : 75) + "%"
-                                font.pixelSize: Math.round(11 * root.resolutionScale)
-                                font.weight: Font.DemiBold
-                                color: root.subTextColor
-                            }
-                        }
-
-                        CurvedSlider {
-                            Layout.fillWidth: true
-                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
-                            value: backend ? backend.brightness : 75
-                            isMuted: false
-                            iconName: "brightness-high-symbolic"
-                            isDarkTheme: root.isDarkTheme
-                            accentColor: root.accentColor
-                            accentTextColor: root.accentTextColor
-                            onValueChangedByUser: function(newValue) { if (backend) backend.setBrightness(newValue) }
-                            onIconClicked: if (backend) backend.setBrightness(10)
-                        }
-                    }
-                }
-
-                // =========================================================================
-                // SECTION 2: ADAPTIVE BACKLIGHT INTENSITY (ABM)
-                // =========================================================================
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: abmCol.implicitHeight + Math.round(16 * root.resolutionScale)
-                    radius: Math.round(10 * root.resolutionScale)
-                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)
-                    border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
-                    border.width: 1
-
-                    ColumnLayout {
-                        id: abmCol
-                        anchors.fill: parent
-                        anchors.margins: Math.round(10 * root.resolutionScale)
-                        spacing: Math.round(8 * root.resolutionScale)
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Text {
-                                text: "ADAPTIVE BACKLIGHT INTENSITY (ABM)"
-                                font.pixelSize: Math.round(10 * root.resolutionScale)
-                                font.weight: Font.Bold
-                                font.capitalization: Font.AllUppercase
-                                color: root.headerColor
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                property int curLevel: backend ? backend.displayAbmLevel : 1
-                                text: curLevel === 0 ? "Disabled (0)" :
-                                      (curLevel === 1 ? "Low (1)" :
-                                      (curLevel === 2 ? "Medium (2)" :
-                                      (curLevel === 3 ? "High (3)" : "Maximum (4)")))
-                                font.pixelSize: Math.round(11 * root.resolutionScale)
-                                font.weight: Font.DemiBold
-                                color: curLevel > 0 ? root.accentColor : root.subTextColor
-                            }
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: "Dynamically adjusts screen backlight based on pixel content to enhance contrast and save battery power."
-                            font.pixelSize: Math.round(10 * root.resolutionScale)
-                            color: root.subTextColor
-                            wrapMode: Text.WordWrap
-                        }
-
-                        // 5-Level Segmented Controls (0: Off, 1: Low, 2: Med, 3: High, 4: Max)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Math.round(4 * root.resolutionScale)
-
-                            Repeater {
-                                model: [
-                                    { level: 0, label: "Off" },
-                                    { level: 1, label: "Low" },
-                                    { level: 2, label: "Medium" },
-                                    { level: 3, label: "High" },
-                                    { level: 4, label: "Max" }
-                                ]
-
-                                Rectangle {
-                                    id: abmBtn
-                                    Layout.fillWidth: true
-                                    implicitHeight: Math.round(28 * root.resolutionScale)
-                                    radius: Math.round(6 * root.resolutionScale)
-
-                                    readonly property bool isSelected: (backend ? backend.displayAbmLevel : 1) === modelData.level
-
-                                    color: isSelected
-                                        ? root.accentColor
-                                        : (abmMouse.containsMouse
-                                            ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08))
-                                            : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)))
-
-                                    border.color: isSelected ? "transparent" : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06))
-                                    border.width: 1
-
-                                    Behavior on color { ColorAnimation { duration: 150 } }
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        font.pixelSize: Math.round(10 * root.resolutionScale)
-                                        font.weight: abmBtn.isSelected ? Font.Bold : Font.Normal
-                                        color: abmBtn.isSelected ? root.accentTextColor : root.textColor
-                                    }
-
-                                    MouseArea {
-                                        id: abmMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (backend && typeof backend.setAbmLevel === "function") {
-                                                backend.setAbmLevel(modelData.level)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // =========================================================================
-                // SECTION 3: sRGB COLOR INTENSITY & PROFILE
-                // =========================================================================
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: colorCol.implicitHeight + Math.round(16 * root.resolutionScale)
-                    radius: Math.round(10 * root.resolutionScale)
-                    color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)
-                    border.color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
-                    border.width: 1
-
-                    ColumnLayout {
-                        id: colorCol
+                        id: cardCol
                         anchors.fill: parent
                         anchors.margins: Math.round(10 * root.resolutionScale)
                         spacing: Math.round(10 * root.resolutionScale)
 
-                        RowLayout {
+                        // -------------------------------------------------------------
+                        // BAR 1: Screen brightness
+                        // -------------------------------------------------------------
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: Math.round(6 * root.resolutionScale)
 
-                            Text {
-                                text: "SRGB COLOR INTENSITY"
-                                font.pixelSize: Math.round(10 * root.resolutionScale)
-                                font.weight: Font.Bold
-                                font.capitalization: Font.AllUppercase
-                                color: root.headerColor
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Text {
+                                    text: "Screen brightness"
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: root.textColor
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Text {
+                                    text: (backend ? backend.brightness : 75) + "%"
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: root.subTextColor
+                                }
                             }
 
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: (backend ? backend.displaySrgbIntensity : 100) + "%"
-                                font.pixelSize: Math.round(11 * root.resolutionScale)
-                                font.weight: Font.DemiBold
-                                color: root.subTextColor
+                            CurvedSlider {
+                                Layout.fillWidth: true
+                                implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                                value: backend ? backend.brightness : 75
+                                from: 0
+                                to: 100
+                                isMuted: false
+                                iconName: "brightness-high-symbolic"
+                                isDarkTheme: root.isDarkTheme
+                                accentColor: root.accentColor
+                                accentTextColor: root.accentTextColor
+                                onValueChangedByUser: function(newValue) { if (backend) backend.setBrightness(newValue) }
+                                onIconClicked: if (backend) backend.setBrightness(10)
                             }
                         }
 
-                        // sRGB Intensity Curved Slider
-                        CurvedSlider {
-                            Layout.fillWidth: true
-                            implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
-                            value: backend ? backend.displaySrgbIntensity : 100
-                            from: 0
-                            to: 100
-                            isMuted: false
-                            iconName: "color-management-symbolic"
-                            isDarkTheme: root.isDarkTheme
-                            accentColor: root.accentColor
-                            accentTextColor: root.accentTextColor
-                            onValueChangedByUser: function(newValue) {
-                                if (backend && typeof backend.setSrgbIntensity === "function") {
-                                    backend.setSrgbIntensity(newValue)
-                                }
-                            }
-                            onIconClicked: {
-                                if (backend && typeof backend.setSrgbIntensity === "function") {
-                                    backend.setSrgbIntensity(100)
-                                }
-                            }
-                        }
-
-                        // Divider inside card
+                        // Divider
                         Rectangle {
                             Layout.fillWidth: true
                             height: 1
                             color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
                         }
 
-                        // Color Profile Source Selector (sRGB vs EDID Native)
+                        // -------------------------------------------------------------
+                        // BAR 2: Adaptive Backlight Modulation
+                        // -------------------------------------------------------------
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Math.round(6 * root.resolutionScale)
+
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Text {
+                                    text: "Adaptive Backlight Modulation"
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: root.textColor
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Text {
+                                    property int lvl: backend ? backend.displayAbmLevel : 1
+                                    text: lvl === 0 ? "0 (Off)" : lvl.toString()
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: lvl > 0 ? root.accentColor : root.subTextColor
+                                }
+                            }
+
+                            CurvedSlider {
+                                Layout.fillWidth: true
+                                implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                                value: backend ? backend.displayAbmLevel : 1
+                                from: 0
+                                to: 4
+                                isMuted: false
+                                iconName: "contrast-symbolic"
+                                isDarkTheme: root.isDarkTheme
+                                accentColor: root.accentColor
+                                accentTextColor: root.accentTextColor
+                                onValueChangedByUser: function(newValue) {
+                                    if (backend && typeof backend.setAbmLevel === "function") {
+                                        backend.setAbmLevel(newValue)
+                                    }
+                                }
+                                onIconClicked: {
+                                    if (backend && typeof backend.setAbmLevel === "function") {
+                                        backend.setAbmLevel(0)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Divider
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
+                        }
+
+                        // -------------------------------------------------------------
+                        // COLOR PROFILE SELECTOR ("None" vs "Built-in")
+                        // -------------------------------------------------------------
                         RowLayout {
                             Layout.fillWidth: true
+                            spacing: Math.round(8 * root.resolutionScale)
 
                             Text {
-                                text: "COLOR PROFILE"
-                                font.pixelSize: Math.round(10 * root.resolutionScale)
-                                font.weight: Font.Bold
-                                font.capitalization: Font.AllUppercase
-                                color: root.headerColor
+                                text: "Color profile:"
+                                font.pixelSize: Math.round(11 * root.resolutionScale)
+                                font.weight: Font.DemiBold
+                                color: root.textColor
                             }
 
                             Item { Layout.fillWidth: true }
 
-                            Text {
-                                text: backend && backend.displayOutputName ? backend.displayOutputName : "Display"
-                                font.pixelSize: Math.round(10 * root.resolutionScale)
-                                color: root.subTextColor
+                            // Segmented pill: "None" vs "Built-in"
+                            Rectangle {
+                                implicitHeight: Math.round(26 * root.resolutionScale)
+                                implicitWidth: segRow.implicitWidth + Math.round(4 * root.resolutionScale)
+                                radius: implicitHeight / 2
+                                color: root.isDarkTheme ? Qt.rgba(0, 0, 0, 0.3) : Qt.rgba(0, 0, 0, 0.08)
+
+                                RowLayout {
+                                    id: segRow
+                                    anchors.centerIn: parent
+                                    spacing: Math.round(2 * root.resolutionScale)
+
+                                    // Option "None"
+                                    Rectangle {
+                                        id: optNone
+                                        implicitHeight: Math.round(22 * root.resolutionScale)
+                                        implicitWidth: txtNone.implicitWidth + Math.round(14 * root.resolutionScale)
+                                        radius: implicitHeight / 2
+
+                                        readonly property bool isSelected: !backend || backend.displayColorProfile === "None" || backend.displayColorProfile === "sRGB"
+
+                                        color: isSelected ? root.accentColor : (mouseNone.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent")
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                                        Text {
+                                            id: txtNone
+                                            anchors.centerIn: parent
+                                            text: "None"
+                                            font.pixelSize: Math.round(10 * root.resolutionScale)
+                                            font.weight: optNone.isSelected ? Font.Bold : Font.Normal
+                                            color: optNone.isSelected ? root.accentTextColor : root.textColor
+                                        }
+
+                                        MouseArea {
+                                            id: mouseNone
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (backend && typeof backend.setColorProfileSource === "function") {
+                                                    backend.setColorProfileSource("None")
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Option "Built-in"
+                                    Rectangle {
+                                        id: optBuiltIn
+                                        implicitHeight: Math.round(22 * root.resolutionScale)
+                                        implicitWidth: txtBuiltIn.implicitWidth + Math.round(14 * root.resolutionScale)
+                                        radius: implicitHeight / 2
+
+                                        readonly property bool isSelected: Boolean(backend && backend.displayColorProfile !== "None" && backend.displayColorProfile !== "sRGB")
+
+                                        color: isSelected ? root.accentColor : (mouseBuiltIn.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent")
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                                        Text {
+                                            id: txtBuiltIn
+                                            anchors.centerIn: parent
+                                            text: "Built-in"
+                                            font.pixelSize: Math.round(10 * root.resolutionScale)
+                                            font.weight: optBuiltIn.isSelected ? Font.Bold : Font.Normal
+                                            color: optBuiltIn.isSelected ? root.accentTextColor : root.textColor
+                                        }
+
+                                        MouseArea {
+                                            id: mouseBuiltIn
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (backend && typeof backend.setColorProfileSource === "function") {
+                                                    backend.setColorProfileSource("Built-in")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 
-                        RowLayout {
+                        // -------------------------------------------------------------
+                        // BAR 3: sRGB color intensity
+                        // (Visible ONLY when Color profile is NOT "None"!)
+                        // -------------------------------------------------------------
+                        ColumnLayout {
+                            id: srgbIntensityCol
                             Layout.fillWidth: true
                             spacing: Math.round(6 * root.resolutionScale)
+                            visible: Boolean(backend && backend.displayColorProfile !== "None" && backend.displayColorProfile !== "sRGB")
 
-                            // sRGB Profile Button
+                            // Divider before sRGB intensity
                             Rectangle {
-                                id: srgbBtn
                                 Layout.fillWidth: true
-                                implicitHeight: Math.round(30 * root.resolutionScale)
-                                radius: Math.round(6 * root.resolutionScale)
+                                height: 1
+                                color: root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.06)
+                            }
 
-                                readonly property bool isSelected: !backend || !backend.displayColorProfile || backend.displayColorProfile === "sRGB"
+                            RowLayout {
+                                Layout.fillWidth: true
 
-                                color: isSelected
-                                    ? root.accentColor
-                                    : (srgbMouse.containsMouse
-                                        ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08))
-                                        : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)))
-
-                                border.color: isSelected ? "transparent" : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06))
-                                border.width: 1
-
-                                Behavior on color { ColorAnimation { duration: 150 } }
-
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: Math.round(6 * root.resolutionScale)
-
-                                    Kirigami.Icon {
-                                        source: "color-management-symbolic"
-                                        implicitWidth: Math.round(13 * root.resolutionScale)
-                                        implicitHeight: implicitWidth
-                                        isMask: true
-                                        color: srgbBtn.isSelected ? root.accentTextColor : root.textColor
-                                    }
-
-                                    Text {
-                                        text: "sRGB (Standard Profile)"
-                                        font.pixelSize: Math.round(11 * root.resolutionScale)
-                                        font.weight: srgbBtn.isSelected ? Font.Bold : Font.Normal
-                                        color: srgbBtn.isSelected ? root.accentTextColor : root.textColor
-                                    }
+                                Text {
+                                    text: "sRGB color intensity"
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: root.textColor
                                 }
 
-                                MouseArea {
-                                    id: srgbMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (backend && typeof backend.setColorProfileSource === "function") {
-                                            backend.setColorProfileSource("sRGB")
-                                        }
-                                    }
+                                Item { Layout.fillWidth: true }
+
+                                Text {
+                                    text: (backend ? backend.displaySrgbIntensity : 100) + "%"
+                                    font.pixelSize: Math.round(11 * root.resolutionScale)
+                                    font.weight: Font.DemiBold
+                                    color: root.subTextColor
                                 }
                             }
 
-                            // EDID Native Hardware Button
-                            Rectangle {
-                                id: edidBtn
+                            CurvedSlider {
                                 Layout.fillWidth: true
-                                implicitHeight: Math.round(30 * root.resolutionScale)
-                                radius: Math.round(6 * root.resolutionScale)
-
-                                readonly property bool isSelected: Boolean(backend && backend.displayColorProfile === "EDID")
-
-                                color: isSelected
-                                    ? root.accentColor
-                                    : (edidMouse.containsMouse
-                                        ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08))
-                                        : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)))
-
-                                border.color: isSelected ? "transparent" : (root.isDarkTheme ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06))
-                                border.width: 1
-
-                                Behavior on color { ColorAnimation { duration: 150 } }
-
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: Math.round(6 * root.resolutionScale)
-
-                                    Kirigami.Icon {
-                                        source: "video-display"
-                                        implicitWidth: Math.round(13 * root.resolutionScale)
-                                        implicitHeight: implicitWidth
-                                        isMask: true
-                                        color: edidBtn.isSelected ? root.accentTextColor : root.textColor
-                                    }
-
-                                    Text {
-                                        text: "EDID (Native Hardware)"
-                                        font.pixelSize: Math.round(11 * root.resolutionScale)
-                                        font.weight: edidBtn.isSelected ? Font.Bold : Font.Normal
-                                        color: edidBtn.isSelected ? root.accentTextColor : root.textColor
+                                implicitHeight: Math.max(24, Math.round(26 * root.resolutionScale))
+                                value: backend ? backend.displaySrgbIntensity : 100
+                                from: 0
+                                to: 100
+                                isMuted: false
+                                iconName: "color-management-symbolic"
+                                isDarkTheme: root.isDarkTheme
+                                accentColor: root.accentColor
+                                accentTextColor: root.accentTextColor
+                                onValueChangedByUser: function(newValue) {
+                                    if (backend && typeof backend.setSrgbIntensity === "function") {
+                                        backend.setSrgbIntensity(newValue)
                                     }
                                 }
-
-                                MouseArea {
-                                    id: edidMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (backend && typeof backend.setColorProfileSource === "function") {
-                                            backend.setColorProfileSource("EDID")
-                                        }
+                                onIconClicked: {
+                                    if (backend && typeof backend.setSrgbIntensity === "function") {
+                                        backend.setSrgbIntensity(100)
                                     }
                                 }
                             }
@@ -502,11 +426,11 @@ Rectangle {
                 }
 
                 // =========================================================================
-                // SECTION 4: FOOTER - CONFIGURE DISPLAY SETTINGS
+                // FOOTER: REDIRECT TO SYSTEM DISPLAY CONFIGURATION
                 // =========================================================================
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: Math.round(34 * root.resolutionScale)
+                    implicitHeight: Math.round(32 * root.resolutionScale)
                     radius: Math.round(8 * root.resolutionScale)
                     color: displaySettingsMouse.containsMouse
                         ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06))
@@ -516,12 +440,12 @@ Rectangle {
 
                     RowLayout {
                         anchors.centerIn: parent
-                        spacing: Math.round(8 * root.resolutionScale)
+                        spacing: Math.round(6 * root.resolutionScale)
 
                         Kirigami.Icon {
                             source: "preferences-desktop-display"
                             fallback: "video-display"
-                            implicitWidth: Math.round(15 * root.resolutionScale)
+                            implicitWidth: Math.round(14 * root.resolutionScale)
                             implicitHeight: implicitWidth
                             isMask: true
                             color: root.textColor

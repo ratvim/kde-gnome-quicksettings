@@ -85,9 +85,25 @@ if os.path.exists("/usr/bin/kscreen-doctor"):
 
         m_col = re.search(r"Color profile source:\s*(\S+)", clean)
         if m_col:
-            color_profile = m_col.group(1)
+            raw_col = m_col.group(1).strip()
+            if raw_col == "sRGB":
+                color_profile = "None"
+            elif raw_col == "EDID":
+                color_profile = "Built-in"
+            elif raw_col == "ICC":
+                color_profile = "ICC profile"
+            else:
+                color_profile = raw_col
     except Exception:
         pass
+
+# Ensure color_profile uses global settings nomenclature
+if color_profile == "sRGB":
+    color_profile = "None"
+elif color_profile == "EDID":
+    color_profile = "Built-in"
+elif color_profile == "ICC":
+    color_profile = "ICC profile"
 
 print(json.dumps({
     "brightness": brightness,
@@ -104,7 +120,7 @@ PYEOF
   "brightness": $b,
   "abm_level": 1,
   "abm_supported": true,
-  "color_profile_source": "sRGB",
+  "color_profile_source": "Built-in",
   "srgb_intensity": 100,
   "output_name": "eDP-1"
 }
@@ -175,9 +191,17 @@ PYEOF
 }
 
 set_color_profile() {
-    local source="${2:-sRGB}"
-    if [[ "$source" != "sRGB" && "$source" != "EDID" && "$source" != "ICC" ]]; then
-        source="sRGB"
+    local source="${2:-Built-in}"
+    local kscreen_src="EDID"
+    if [[ "$source" == "None" || "$source" == "sRGB" ]]; then
+        source="None"
+        kscreen_src="sRGB"
+    elif [[ "$source" == "Built-in" || "$source" == "EDID" ]]; then
+        source="Built-in"
+        kscreen_src="EDID"
+    elif [[ "$source" == "ICC" || "$source" == "ICC profile" ]]; then
+        source="ICC profile"
+        kscreen_src="ICC"
     fi
 
     if command -v kscreen-doctor >/dev/null 2>&1; then
@@ -187,7 +211,7 @@ set_color_profile() {
         if [[ "$raw" =~ Output:[[:space:]]*([0-9]+)[[:space:]]*([A-Za-z0-9_-]+) ]]; then
             out_name="${BASH_REMATCH[2]}"
         fi
-        kscreen-doctor "output.${out_name}.colorProfileSource.${source}" >/dev/null 2>&1 || true
+        kscreen-doctor "output.${out_name}.colorProfileSource.${kscreen_src}" >/dev/null 2>&1 || true
     fi
 
     # Save to config file
@@ -220,6 +244,18 @@ set_srgb_intensity() {
     local intensity="${2:-100}"
     if (( intensity < 0 )); then intensity=0; fi
     if (( intensity > 100 )); then intensity=100; fi
+
+    if command -v kscreen-doctor >/dev/null 2>&1; then
+        local out_name="1"
+        local raw
+        raw=$(kscreen-doctor -o 2>/dev/null || true)
+        if [[ "$raw" =~ Output:[[:space:]]*([0-9]+)[[:space:]]*([A-Za-z0-9_-]+) ]]; then
+            out_name="${BASH_REMATCH[2]}"
+        fi
+        local float_val
+        float_val=$(awk "BEGIN {printf \"%.2f\", $intensity / 100}")
+        kscreen-doctor "output.${out_name}.sdrGamut.${float_val}" >/dev/null 2>&1 || true
+    fi
 
     # Save to config file
     if command -v python3 >/dev/null 2>&1; then

@@ -9,9 +9,12 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
   - Added an expand chevron button (`go-next-symbolic`) directly adjacent to the Brightness slider, matching the Volume bar expand pattern.
   - Opens a dedicated, full-width sub-view (`root.activeView = "brightness"`) without shifting quick toggles or changing the layout of the main view.
   - Standard sub-view header featuring `<` back button navigation (`root.activeView = "main"`), title, and refresh button.
-  - **Master Brightness**: Full curved slider with live percentage indicator.
-  - **Adaptive Backlight Intensity (ABM)**: Dynamic backlight modulation control integrated with `kscreen-doctor` to adjust backlight based on pixel content, enhancing contrast and saving battery. Supports 5 discrete intensity levels: 0 (Off), 1 (Low), 2 (Medium), 3 (High), and 4 (Maximum).
-  - **sRGB Color Profile & Intensity**: Color profile selector supporting standard sRGB and EDID Native Hardware modes, alongside an interactive sRGB color intensity calibration slider (0% to 100%).
+  - **Strict Nomenclature Alignment with KDE Global Settings (`kcm_kscreen`)**:
+    - **Screen brightness**: Primary curved slider (0%–100%).
+    - **Adaptive Backlight Modulation**: Dedicated curved slider (level 0 to 4) directly controlling ABM in KWin / KScreen.
+    - **Color profile:** Segmented selector with exact native options (`None` and `Built-in`).
+    - **sRGB color intensity**: Curved slider (0%–100%) that dynamically hides when Color profile is set to `None`, perfectly mirroring KDE Display Configuration behavior.
+  - **Clean & Minimal Bar Layout**: Eliminated unnecessary card sections and verbose text descriptions, providing a streamlined, compact view focused purely on the slider bars available in global settings.
   - **KDE System Display Settings Shortcut**: Single prominent action button redirecting directly to the KDE Display Configuration module (`kcmshell6 kcm_kscreen`).
 
 ### Fixed & Refined

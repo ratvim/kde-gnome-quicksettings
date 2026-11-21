@@ -611,7 +611,9 @@ Rectangle {
         } else if (root.activeView === "volume") {
             rawH = Math.round(520 * root.resolutionScale)
         } else if (root.activeView === "brightness") {
-            rawH = Math.round(480 * root.resolutionScale)
+            rawH = (backend && backend.displayColorProfile !== "None" && backend.displayColorProfile !== "sRGB")
+                ? Math.round(330 * root.resolutionScale)
+                : Math.round(270 * root.resolutionScale)
         } else {
             rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect
         }
