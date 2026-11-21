@@ -16,6 +16,20 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
   - **Independent Visibility Settings**:
     - Users can independently configure tile visibility and panel capsule icons for both KDE Connect and Send Local in the Plasma configuration dialog and widget settings drawer.
 
+## [1.2.2] - 2026-11-21
+
+### Added & Improved
+- **Dual Independent Toggles for Both KDE Connect & Send Local (LocalSend)**:
+  - Both **KDE Connect** and **Send Local** now coexist simultaneously as distinct, independent toggles in the Quick Settings grid and top panel capsule.
+  - **Independent Quick Settings Tiles**:
+    - **KDE Connect Tile**: Dedicated phone synchronization (notifications, battery %, ring phone, ping, SMS, and SFTP browsing).
+    - **Send Local Tile**: Dedicated LocalSend file transfer across LAN, tracking daemon status and active LAN peers.
+  - **Dedicated Sub-Views (`KdeConnectView.qml` & `LocalSendView.qml`)**:
+    - Separated into two distinct, focused sub-views: `activeView = "kdeconnect"` for KDE Connect devices and `activeView = "localsend"` for LocalSend transfer.
+    - `LocalSendView.qml` features a live socket status card (Port 53317), direct "Send Files / Media…" button (with native KDE `kdialog` multi-file selection), desktop app launcher, and nearby peer discovery.
+  - **Independent Visibility Settings**:
+    - Users can independently configure tile visibility and panel capsule icons for both KDE Connect and Send Local in the Plasma configuration dialog and widget settings drawer.
+
 ## [1.2.1] - 2026-11-21
 
 ### Added & Improved

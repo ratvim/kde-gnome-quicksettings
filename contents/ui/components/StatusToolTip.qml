@@ -19,6 +19,7 @@ PlasmaCore.Dialog {
     property string status: ""
     property string subStatus: ""
     property string iconName: ""
+    property string iconFallback: ""
     property bool isActive: true
     property color iconColor: isActive
         ? (isDarkTheme ? "#ffffff" : "#1a1a1a")
@@ -68,6 +69,7 @@ PlasmaCore.Dialog {
                 Kirigami.Icon {
                     visible: Boolean(root.iconName && root.iconName !== "")
                     source: root.iconName
+                    fallback: root.iconFallback
                     Layout.preferredWidth: 18
                     Layout.preferredHeight: 18
                     Layout.alignment: Qt.AlignVCenter
