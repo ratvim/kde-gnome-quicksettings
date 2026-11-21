@@ -393,7 +393,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: (!root.devicesModel || root.devicesModel.length === 0)
-            alignment: Qt.AlignCenter
+            Layout.alignment: Qt.AlignCenter
             spacing: 12
 
             Kirigami.Icon {
