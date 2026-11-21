@@ -58,6 +58,21 @@ KCM.SimpleKCM {
             if (!stdout) return
             try {
                 var res = JSON.parse(stdout)
+                if (source.indexOf("check_connectivity_tools") !== -1) {
+                    var cTools = res.installed_connectivity_tools || res.installed_tools
+                    if (cTools && cTools.length > 0) {
+                        connectivityAppCombo.model = cTools
+                        for (var k = 0; k < cTools.length; k++) {
+                            if (cTools[k].value === root.cfg_connectivityApp) {
+                                connectivityAppCombo.currentIndex = k
+                                return
+                            }
+                        }
+                        connectivityAppCombo.currentIndex = 0
+                        root.cfg_connectivityApp = cTools[0].value
+                    }
+                    return
+                }
                 if (res.installed_tools && res.installed_tools.length > 0) {
                     screenshotToolCombo.model = res.installed_tools
                     for (var i = 0; i < res.installed_tools.length; i++) {
@@ -82,14 +97,25 @@ KCM.SimpleKCM {
                 }
             }
         }
-        for (var k = 0; k < connectivityAppCombo.model.length; k++) {
-            if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
-                connectivityAppCombo.currentIndex = k
-                break
+        if (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.installedConnectivityTools && plasmoid.rootItem.installedConnectivityTools.length > 0) {
+            connectivityAppCombo.model = plasmoid.rootItem.installedConnectivityTools
+            for (var k = 0; k < connectivityAppCombo.model.length; k++) {
+                if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
+                    connectivityAppCombo.currentIndex = k
+                    break
+                }
+            }
+        } else {
+            for (var k = 0; k < connectivityAppCombo.model.length; k++) {
+                if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
+                    connectivityAppCombo.currentIndex = k
+                    break
+                }
             }
         }
         var scriptUrl = Qt.resolvedUrl("../scripts/devices.sh").toString().replace(/^file:\/\//, "")
         execSource.connectSource("bash '" + scriptUrl + "' check_screenshot_tools")
+        execSource.connectSource("bash '" + scriptUrl + "' check_connectivity_tools")
     }
 
     Kirigami.FormLayout {
@@ -212,8 +238,7 @@ KCM.SimpleKCM {
             textRole: "text"
             valueRole: "value"
             model: [
-                { text: i18n("KDE Connect"), value: "kdeconnect" },
-                { text: i18n("Send File"), value: "sendfile" }
+                { text: i18n("KDE Connect"), value: "kdeconnect" }
             ]
             currentIndex: {
                 for (var i = 0; i < model.length; i++) {

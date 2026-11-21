@@ -2,17 +2,19 @@
 
 All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are documented in this file.
 
-## [1.2.0] - 2026-11-15
+## [1.2.0] - 2026-11-21
 
 ### Added & Improved
-- **Configurable Connectivity Application (KDE Connect & Send File)**:
-  - Added a configuration option in both the Plasma native configuration dialog (`ConfigGeneral.qml`) and the in-app Quick Settings drawer (`WidgetSettingsView.qml`) allowing users to choose their preferred connectivity application:
-    - **KDE Connect** (Default): Full phone integration, pairing, battery reporting, remote SMS, ringing, and device browsing.
-    - **Send File**: Quick file transfer utility with `document-send-symbolic` paper plane icon.
-  - Clicking the tile when configured to "Send File" seamlessly launches the native Bluetooth File Transfer wizard (`bluedevil-sendfile`), `bluetooth-sendto`, or initiates file sharing to active paired devices via `kdeconnect-cli --share`.
-  - Clicking the chevron `>` menu opens the sub-view (`KdeConnectView.qml`) customized with Send File action triggers and direct file sending buttons for all discovered devices.
-  - The status capsule on the KDE panel dynamically adapts its icon (`document-send-symbolic` vs `kdeconnect-tray-symbolic`) and tooltip descriptions to match the configured mode.
-  - Dynamically updates toggle titles in both the Quick Settings grid and the drag-and-drop tiles ordering manager (`ConfigAppearance.qml`).
+- **Dynamic Connectivity Application Detection (KDE Connect & Send File)**:
+  - Added dynamic backend inspection (`check_connectivity_tools`) in `devices.sh`:
+    - Only applications actually installed on the system (`kdeconnect-cli`/`kdeconnect-app` and Send File utilities like `bluedevil-sendfile`, `bluetooth-sendto`, `localsend`, `warpinator`, or `sendfile`) appear in the configuration settings dialog (`ConfigGeneral.qml`) and the widget settings drawer (`WidgetSettingsView.qml`).
+    - If a connectivity utility is not installed, it is omitted from settings instead of being hardcoded.
+- **Dedicated Send File Device Management & Action Isolation**:
+  - Completely decoupled Send File state and devices from KDE Connect:
+    - **Device Configured for Send File**: When "Send File" is selected, the quick toggle subtitle and panel status capsule display the device configured for file transfer (e.g. paired Bluetooth phone, tablet, or PC), or "No Device Configured" / "Ready to Send" when no device is paired. The user's mobile device from KDE Connect is never displayed under Send File mode.
+    - **Send File Only Toggle Actions**: When opening the sub-view (`KdeConnectView.qml`) in Send File mode, all KDE Connect-specific action buttons (Ring Phone, Ping, SMS Messaging, and Browse Storage SFTP) are completely hidden.
+    - **Direct File Transfer Controls**: Each discovered Send File target device displays a direct "Send File to Device" trigger and quick send action.
+    - **Dedicated Empty & Settings State**: When no devices are paired, clean empty state controls provide shortcuts to "Choose File & Device to Send..." and "Bluetooth & Pairing Settings" (`kcmshell6 kcm_bluetooth`).
 
 ## [1.1.9] - 2026-11-13
 

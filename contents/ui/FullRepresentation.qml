@@ -1430,13 +1430,19 @@ Rectangle {
                         title: (backend && backend.connectivityApp === "sendfile") ? i18n("Send File") : i18n("KDE Connect")
                         subtitle: {
                             if (backend && backend.connectivityApp === "sendfile") {
-                                return (backend.kdeConnectConnected && backend.kdeConnectName) ? backend.kdeConnectName : i18n("Send to Device")
+                                if (backend.sendfileConnected && backend.sendfileDeviceName) {
+                                    return backend.sendfileDeviceName
+                                }
+                                if (backend.sendfileDevices && backend.sendfileDevices.length > 0) {
+                                    return backend.sendfileDevices[0].name || i18n("Ready to Send")
+                                }
+                                return i18n("No Device Configured")
                             }
                             return (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
                         }
                         iconName: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
                         iconFallback: (backend && backend.connectivityApp === "sendfile") ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                        checked: (backend && backend.connectivityApp === "sendfile") ? false : (backend ? backend.kdeConnectConnected : false)
+                        checked: (backend && backend.connectivityApp === "sendfile") ? (backend.sendfileConnected || (backend.sendfileDevices && backend.sendfileDevices.length > 0)) : (backend ? backend.kdeConnectConnected : false)
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
                         onToggled: {
@@ -1447,7 +1453,11 @@ Rectangle {
                             }
                         }
                         onMenuClicked: {
-                            if (backend) backend.refreshKdeConnect()
+                            if (backend && backend.connectivityApp === "sendfile") {
+                                backend.refreshSendFile()
+                            } else if (backend) {
+                                backend.refreshKdeConnect()
+                            }
                             root.activeView = "kdeconnect"
                         }
                     }
@@ -1764,17 +1774,47 @@ Rectangle {
         visible: root.activeView === "kdeconnect"
         isDarkTheme: root.isDarkTheme
         isSendFileMode: Boolean(backend && backend.connectivityApp === "sendfile")
-        devicesModel: (backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : []
+        devicesModel: (backend && backend.connectivityApp === "sendfile") ? (backend.sendfileDevices || []) : ((backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : [])
         onBackClicked: root.activeView = "main"
-        onRefreshClicked: if (backend) backend.refreshKdeConnect()
+        onRefreshClicked: {
+            if (backend && backend.connectivityApp === "sendfile") {
+                backend.refreshSendFile()
+            } else if (backend) {
+                backend.refreshKdeConnect()
+            }
+        }
         onRingClicked: function(devId) { if (backend) backend.ringKdeConnect(devId) }
         onPingClicked: function(devId) { if (backend) backend.pingKdeConnect(devId) }
-        onShareClicked: function(devId) { if (backend) backend.shareKdeConnect(devId) }
+        onShareClicked: function(devId) {
+            if (backend && backend.connectivityApp === "sendfile") {
+                backend.sendfileShare(devId)
+            } else if (backend) {
+                backend.shareKdeConnect(devId)
+            }
+        }
         onSmsClicked: function() { if (backend) backend.smsKdeConnect() }
         onBrowseClicked: function(devId) { if (backend) backend.browseKdeConnect(devId) }
-        onPairClicked: function(devId) { if (backend) backend.pairKdeConnect(devId) }
-        onUnpairClicked: function(devId) { if (backend) backend.unpairKdeConnect(devId) }
-        onOpenSettingsClicked: if (backend) backend.openKdeConnect()
+        onPairClicked: function(devId) {
+            if (backend && backend.connectivityApp === "sendfile") {
+                backend.openSendFileSettings()
+            } else if (backend) {
+                backend.pairKdeConnect(devId)
+            }
+        }
+        onUnpairClicked: function(devId) {
+            if (backend && backend.connectivityApp === "sendfile") {
+                backend.openSendFileSettings()
+            } else if (backend) {
+                backend.unpairKdeConnect(devId)
+            }
+        }
+        onOpenSettingsClicked: {
+            if (backend && backend.connectivityApp === "sendfile") {
+                backend.openSendFileSettings()
+            } else if (backend) {
+                backend.openKdeConnect()
+            }
+        }
         onOpenSendFileClicked: if (backend) backend.openSendFile()
     }
 

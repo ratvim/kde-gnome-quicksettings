@@ -252,6 +252,8 @@ Item {
     property bool kdeConnectConnected: backend ? backend.kdeConnectConnected : false
     property string kdeConnectName: backend ? backend.kdeConnectName : ""
     property int kdeConnectBattery: (backend && backend.kdeConnectBattery !== undefined) ? backend.kdeConnectBattery : -1
+    property bool sendfileConnected: backend ? backend.sendfileConnected : false
+    property string sendfileDeviceName: backend ? backend.sendfileDeviceName : ""
     property bool nightLightEnabled: backend ? backend.nightLightEnabled : false
     property bool dndEnabled: backend ? backend.dndEnabled : false
     property string dndUntilText: backend ? backend.dndUntilText : ""
@@ -347,7 +349,13 @@ Item {
         if (root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)) return true
         if (root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)) return true
         if (root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)) return true
-        if (root.panelShowKdeConnect && root.kdeConnectConnected) return true
+        if (root.panelShowKdeConnect) {
+            if (backend && backend.connectivityApp === "sendfile") {
+                if (root.sendfileConnected || (backend.sendfileDevices && backend.sendfileDevices.length > 0)) return true
+            } else if (root.kdeConnectConnected) {
+                return true
+            }
+        }
         return false
     }
 
@@ -527,10 +535,15 @@ Item {
             // ACTIVE TOGGLE ICONS (LEFT TO RIGHT)
             // ========================================================
 
-            // 1. KDE Connect (when connected)
+            // 1. KDE Connect / Send File (when connected)
             Item {
                 id: kdeItem
-                visible: root.panelShowKdeConnect && root.kdeConnectConnected
+                visible: {
+                    if (backend && backend.connectivityApp === "sendfile") {
+                        return root.panelShowKdeConnect && (root.sendfileConnected || (backend.sendfileDevices && backend.sendfileDevices.length > 0))
+                    }
+                    return root.panelShowKdeConnect && root.kdeConnectConnected
+                }
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -554,13 +567,15 @@ Item {
                 StatusToolTip {
                     visible: kdeHover.containsMouse && !root.isTrayExpanded
                     title: (backend && backend.connectivityApp === "sendfile")
-                           ? ((root.kdeConnectName && root.kdeConnectName !== "") ? (i18n("Send File: ") + root.kdeConnectName) : i18n("Send File"))
+                           ? ((root.sendfileDeviceName && root.sendfileDeviceName !== "") ? (i18n("Send File: ") + root.sendfileDeviceName) : i18n("Send File"))
                            : ((root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : i18n("KDE Connect"))
                     status: (backend && backend.connectivityApp === "sendfile")
-                            ? ((root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Ready to send") : (root.kdeConnectConnected ? i18n("Device ready for file transfer") : i18n("Bluetooth / Device file transfer")))
+                            ? (root.sendfileConnected ? i18n("Device ready for file transfer") : i18n("Ready to send files"))
                             : ((root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? i18n("Device synchronized") : i18n("No device connected")))
                     iconName: (backend && backend.connectivityApp === "sendfile") ? "document-send-symbolic" : "kdeconnect-tray-symbolic"
-                    iconColor: root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
+                    iconColor: (backend && backend.connectivityApp === "sendfile")
+                              ? (root.sendfileConnected ? root.tooltipActiveColor : root.tooltipInactiveColor)
+                              : (root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor)
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect

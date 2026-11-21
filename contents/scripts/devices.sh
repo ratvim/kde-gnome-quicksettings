@@ -816,25 +816,70 @@ open_send_file() {
             bluetooth-sendto >/dev/null 2>&1 &
             exit 0
         fi
-        if command -v kdeconnect-cli >/dev/null 2>&1; then
-            dev_id=$(kdeconnect-cli --id-only --list-devices 2>/dev/null | head -n 1 || true)
-            if [[ -n "$dev_id" ]]; then
-                file=""
-                if command -v kdialog >/dev/null 2>&1; then
-                    file=$(kdialog --getopenfilename "$HOME" "All Files (*)" 2>/dev/null || true)
-                elif command -v zenity >/dev/null 2>&1; then
-                    file=$(zenity --file-selection 2>/dev/null || true)
-                fi
-                if [[ -n "$file" ]]; then
-                    kdeconnect-cli -d "$dev_id" --share "$file" >/dev/null 2>&1 &
-                    exit 0
-                fi
-            fi
-            kdeconnect-app >/dev/null 2>&1 &
+        if command -v localsend >/dev/null 2>&1; then
+            localsend >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v warpinator >/dev/null 2>&1; then
+            warpinator >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v sendfile >/dev/null 2>&1; then
+            sendfile >/dev/null 2>&1 &
             exit 0
         fi
     ' >/dev/null 2>&1 &
-    echo '{"success": true, "action": "send_file"}'
+    echo '{"success": true, "action": "open_send_file"}'
+}
+
+sendfile_share() {
+    local target_mac="${1:-}"
+    nohup bash -c '
+        target="'"$target_mac"'"
+        if command -v bluedevil-sendfile >/dev/null 2>&1; then
+            if [[ -n "$target" ]]; then
+                bluedevil-sendfile -k "$target" >/dev/null 2>&1 &
+            else
+                bluedevil-sendfile >/dev/null 2>&1 &
+            fi
+            exit 0
+        fi
+        if command -v bluetooth-sendto >/dev/null 2>&1; then
+            if [[ -n "$target" ]]; then
+                bluetooth-sendto --device="$target" >/dev/null 2>&1 &
+            else
+                bluetooth-sendto >/dev/null 2>&1 &
+            fi
+            exit 0
+        fi
+        if command -v localsend >/dev/null 2>&1; then
+            localsend >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v sendfile >/dev/null 2>&1; then
+            sendfile >/dev/null 2>&1 &
+            exit 0
+        fi
+    ' >/dev/null 2>&1 &
+    echo '{"success": true, "action": "sendfile_share"}'
+}
+
+open_sendfile_settings() {
+    nohup bash -c '
+        if command -v kcmshell6 >/dev/null 2>&1; then
+            kcmshell6 kcm_bluetooth >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v systemsettings >/dev/null 2>&1; then
+            systemsettings kcm_bluetooth >/dev/null 2>&1 &
+            exit 0
+        fi
+        if command -v bluedevil-wizard >/dev/null 2>&1; then
+            bluedevil-wizard >/dev/null 2>&1 &
+            exit 0
+        fi
+    ' >/dev/null 2>&1 &
+    echo '{"success": true, "action": "open_sendfile_settings"}'
 }
 
 ring_kdeconnect() {
@@ -1283,6 +1328,151 @@ PYEOF
 EOF
 }
 
+get_installed_connectivity_tools_json() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - << 'PYEOF'
+import os, sys, shutil, json
+
+has_kde = False
+if shutil.which("kdeconnect-cli") or shutil.which("kdeconnect-app") or os.path.isfile("/usr/share/applications/org.kde.kdeconnect.app.desktop"):
+    has_kde = True
+
+has_sf = False
+sf_tool = ""
+for tool, name in [
+    ("bluedevil-sendfile", "Send File"),
+    ("bluetooth-sendto", "Send File"),
+    ("localsend", "Send File"),
+    ("warpinator", "Send File"),
+    ("sendfile", "Send File")
+]:
+    if shutil.which(tool) or os.path.isfile(f"/usr/share/applications/org.kde.{tool}.desktop") or os.path.isfile(f"/usr/share/applications/{tool}.desktop"):
+        has_sf = True
+        if not sf_tool:
+            sf_tool = tool
+        break
+
+installed = []
+if has_kde:
+    installed.append({"text": "KDE Connect", "value": "kdeconnect"})
+if has_sf:
+    installed.append({"text": "Send File", "value": "sendfile", "tool": sf_tool})
+
+print(json.dumps({
+    "has_kdeconnect": has_kde,
+    "has_sendfile": has_sf,
+    "sendfile_tool": sf_tool,
+    "installed_tools": installed,
+    "installed_connectivity_tools": installed
+}))
+PYEOF
+    else
+        local has_kde="false"
+        if command -v kdeconnect-cli >/dev/null 2>&1 || command -v kdeconnect-app >/dev/null 2>&1 || [ -f /usr/share/applications/org.kde.kdeconnect.app.desktop ]; then
+            has_kde="true"
+        fi
+        local has_sf="false"
+        local sf_tool=""
+        for t in bluedevil-sendfile bluetooth-sendto localsend warpinator sendfile; do
+            if command -v "$t" >/dev/null 2>&1 || [ -f "/usr/share/applications/org.kde.${t}.desktop" ] || [ -f "/usr/share/applications/${t}.desktop" ]; then
+                has_sf="true"
+                sf_tool="$t"
+                break
+            fi
+        done
+        local tools="[]"
+        if [ "$has_kde" = "true" ] && [ "$has_sf" = "true" ]; then
+            tools='[{"text": "KDE Connect", "value": "kdeconnect"}, {"text": "Send File", "value": "sendfile"}]'
+        elif [ "$has_kde" = "true" ]; then
+            tools='[{"text": "KDE Connect", "value": "kdeconnect"}]'
+        elif [ "$has_sf" = "true" ]; then
+            tools='[{"text": "Send File", "value": "sendfile"}]'
+        fi
+        echo "{\"has_kdeconnect\": $has_kde, \"has_sendfile\": $has_sf, \"sendfile_tool\": \"$sf_tool\", \"installed_tools\": $tools, \"installed_connectivity_tools\": $tools}"
+    fi
+}
+
+get_sendfile_status_json() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - << 'PYEOF'
+import os, sys, subprocess, re, json
+
+devices = []
+connected_dev_name = ""
+connected_dev_mac = ""
+is_connected = False
+
+try:
+    proc = subprocess.run(["bluetoothctl", "devices"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=2)
+    lines = proc.stdout.strip().splitlines() if proc.returncode == 0 else []
+    for line in lines:
+        m = re.match(r"^Device\s+([0-9A-Fa-f:]{17})\s+(.+)$", line.strip())
+        if not m:
+            continue
+        mac, name = m.group(1), m.group(2)
+        try:
+            info_proc = subprocess.run(["bluetoothctl", "info", mac], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=1)
+            info = info_proc.stdout if info_proc.returncode == 0 else ""
+        except Exception:
+            info = ""
+
+        is_paired = "Paired: yes" in info
+        is_conn = "Connected: yes" in info
+        icon_match = re.search(r"Icon:\s*(\S+)", info)
+        icon = icon_match.group(1).lower() if icon_match else ""
+
+        # Filter out mice, keyboards, gamepads, audio headphones/headsets
+        if any(k in icon for k in ["mouse", "keyboard", "gaming", "joystick", "audio", "headset", "headphones"]):
+            continue
+
+        dev_type = "device"
+        if any(k in icon for k in ["phone", "smartphone"]):
+            dev_type = "phone"
+        elif "tablet" in icon:
+            dev_type = "tablet"
+        elif any(k in icon for k in ["computer", "laptop"]):
+            dev_type = "computer"
+        elif "00001105" in info:
+            dev_type = "phone"
+        elif is_paired:
+            dev_type = "device"
+        else:
+            continue
+
+        devices.append({
+            "id": mac,
+            "mac": mac,
+            "name": name,
+            "type": dev_type,
+            "paired": is_paired,
+            "connected": is_conn
+        })
+
+        if is_conn and not is_connected:
+            is_connected = True
+            connected_dev_name = name
+            connected_dev_mac = mac
+except Exception:
+    pass
+
+if not connected_dev_name and devices:
+    paired_list = [d for d in devices if d.get("paired")]
+    if paired_list:
+        connected_dev_name = paired_list[0]["name"]
+        connected_dev_mac = paired_list[0]["mac"]
+
+print(json.dumps({
+    "connected": is_connected,
+    "device_name": connected_dev_name,
+    "device_mac": connected_dev_mac,
+    "devices": devices
+}))
+PYEOF
+    else
+        echo '{"connected": false, "device_name": "", "device_mac": "", "devices": []}'
+    fi
+}
+
 get_all_status() {
     local mic_muted
     mic_muted=$(get_mic_status)
@@ -1301,6 +1491,10 @@ get_all_status() {
     cam_apps=$(get_camera_apps)
     local kde_status
     kde_status=$(get_kdeconnect_status)
+    local sf_status
+    sf_status=$(get_sendfile_status_json)
+    local conn_tools
+    conn_tools=$(get_installed_connectivity_tools_json)
     local uinfo
     uinfo=$(get_user_info)
     local dnd_info
@@ -1329,6 +1523,8 @@ get_all_status() {
   "camera_blocked": $cam_blocked,
   "camera_apps": $cam_apps,
   "kdeconnect": $kde_status,
+  "sendfile": $sf_status,
+  "connectivity_tools": $conn_tools,
   "user": $uinfo,
   "dnd": $dnd_info,
   "airplane_mode": $air_info,
@@ -1567,8 +1763,20 @@ case "$CMD" in
     kdeconnect_refresh)
         refresh_kdeconnect
         ;;
-    send_file_open)
+    send_file_open|open_send_file)
         open_send_file
+        ;;
+    sendfile_status)
+        get_sendfile_status_json
+        ;;
+    sendfile_share)
+        sendfile_share "${2:-}"
+        ;;
+    open_sendfile_settings)
+        open_sendfile_settings
+        ;;
+    check_connectivity_tools)
+        get_installed_connectivity_tools_json
         ;;
     screenshot)
         trigger_screenshot "${2:-auto}"
@@ -1577,7 +1785,7 @@ case "$CMD" in
         get_installed_screenshot_tools_json
         ;;
     *)
-        echo "Usage: $0 {status|camera_status|toggle_camera|dnd_status|toggle_dnd|user_info|open_user_management|mic_status|toggle_mic|location_status|toggle_location|kdeconnect_status|kdeconnect_devices|kdeconnect_open|kdeconnect_ring|kdeconnect_ping|kdeconnect_share|kdeconnect_sms|kdeconnect_browse|kdeconnect_pair|kdeconnect_unpair|kdeconnect_refresh}"
+        echo "Usage: $0 {status|camera_status|toggle_camera|dnd_status|toggle_dnd|user_info|open_user_management|mic_status|toggle_mic|location_status|toggle_location|kdeconnect_status|kdeconnect_devices|kdeconnect_open|kdeconnect_ring|kdeconnect_ping|kdeconnect_share|kdeconnect_sms|kdeconnect_browse|kdeconnect_pair|kdeconnect_unpair|kdeconnect_refresh|sendfile_status|open_send_file|sendfile_share|open_sendfile_settings|check_connectivity_tools}"
         exit 1
         ;;
 esac

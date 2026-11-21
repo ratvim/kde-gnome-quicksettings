@@ -289,6 +289,15 @@ PlasmoidItem {
     property int kdeConnectBattery: -1
     property var kdeConnectDevices: []
 
+    // Send File & Connectivity tools
+    property bool sendfileConnected: false
+    property string sendfileDeviceName: ""
+    property string sendfileDeviceMac: ""
+    property var sendfileDevices: []
+    property bool hasKdeConnect: true
+    property bool hasSendFile: false
+    property var installedConnectivityTools: []
+
     // Wi-Fi
     property bool wifiEnabled: false
     property bool wifiConnected: false
@@ -463,6 +472,17 @@ PlasmoidItem {
                     if (bat.night_light !== undefined) {
                         mainItem.nightLightEnabled = !!bat.night_light
                     }
+                } else if (source.indexOf("check_connectivity_tools") !== -1) {
+                    var ct = JSON.parse(stdout)
+                    mainItem.hasKdeConnect = !!ct.has_kdeconnect
+                    mainItem.hasSendFile = !!ct.has_sendfile
+                    mainItem.installedConnectivityTools = ct.installed_connectivity_tools || ct.installed_tools || []
+                } else if (source.indexOf("sendfile_status") !== -1) {
+                    var sf = JSON.parse(stdout)
+                    mainItem.sendfileConnected = !!sf.connected
+                    mainItem.sendfileDeviceName = sf.device_name || ""
+                    mainItem.sendfileDeviceMac = sf.device_mac || ""
+                    mainItem.sendfileDevices = sf.devices || []
                 } else if (source.indexOf("kdeconnect_list") !== -1 || source.indexOf("kdeconnect_devices") !== -1 || source.indexOf("kdeconnect_refresh") !== -1) {
                     var kList = JSON.parse(stdout)
                     if (Array.isArray(kList)) {
@@ -495,6 +515,17 @@ PlasmoidItem {
                         mainItem.kdeConnectName = dev.kdeconnect.device_name || "No Device"
                         mainItem.kdeConnectId = dev.kdeconnect.device_id || ""
                         mainItem.kdeConnectBattery = (typeof dev.kdeconnect.battery === "number") ? dev.kdeconnect.battery : -1
+                    }
+                    if (dev.sendfile) {
+                        mainItem.sendfileConnected = !!dev.sendfile.connected
+                        mainItem.sendfileDeviceName = dev.sendfile.device_name || ""
+                        mainItem.sendfileDeviceMac = dev.sendfile.device_mac || ""
+                        mainItem.sendfileDevices = dev.sendfile.devices || []
+                    }
+                    if (dev.connectivity_tools) {
+                        mainItem.hasKdeConnect = !!dev.connectivity_tools.has_kdeconnect
+                        mainItem.hasSendFile = !!dev.connectivity_tools.has_sendfile
+                        mainItem.installedConnectivityTools = dev.connectivity_tools.installed_connectivity_tools || dev.connectivity_tools.installed_tools || []
                     }
                     if (dev.user) {
                         if (dev.user.user_real_name) mainItem.userRealName = dev.user.user_real_name
@@ -549,7 +580,12 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' status")
         executable.exec("bash '" + getScriptPath("power.sh") + "' battery")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' status")
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+        if (mainItem.connectivityApp === "sendfile") {
+            executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+        } else {
+            executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+        }
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' check_connectivity_tools")
         syncDndState()
     }
 
@@ -564,7 +600,11 @@ PlasmoidItem {
             refreshAll()
             executable.exec("bash '" + getScriptPath("network.sh") + "' list_wifi")
             executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
-            executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+            if (mainItem.connectivityApp === "sendfile") {
+                executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+            } else {
+                executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+            }
         }
         pollTimer.restart()
     }
@@ -1018,7 +1058,23 @@ PlasmoidItem {
     }
 
     function openSendFile() {
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' send_file_open")
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' open_send_file")
+    }
+
+    function refreshSendFile() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_status")
+    }
+
+    function sendfileShare(devMac) {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' sendfile_share '" + (devMac || "") + "'")
+    }
+
+    function openSendFileSettings() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' open_sendfile_settings")
+    }
+
+    function checkConnectivityTools() {
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' check_connectivity_tools")
     }
 
     function refreshKdeConnect() {

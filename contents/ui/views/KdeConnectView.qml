@@ -198,31 +198,44 @@ Rectangle {
                                 height: 20
                                 source: {
                                     if (modelData.type === "tablet") return "tablet-symbolic"
-                                    if (modelData.type === "laptop" || modelData.type === "desktop") return "computer-symbolic"
-                                    return "phone-symbolic"
+                                    if (modelData.type === "laptop" || modelData.type === "desktop" || modelData.type === "computer") return "computer-symbolic"
+                                    if (modelData.type === "phone" || modelData.type === "smartphone") return "phone-symbolic"
+                                    return root.isSendFileMode ? "document-send-symbolic" : "phone-symbolic"
                                 }
                                 isMask: true
-                                color: modelData.paired ? root.accentColor : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
+                                color: (modelData.paired || root.isSendFileMode) ? root.accentColor : (root.isDarkTheme ? "#f6f8fa" : "#1a1a1a")
                             }
                         }
 
-                        // Pair / Unpair Action Button - locked rigidly to parent.right
+                        // Pair / Unpair (KDE Connect) or Send Action Button (Send File Mode)
                         Rectangle {
                             id: pairActionBtn
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 72
+                            width: root.isSendFileMode ? 64 : 72
                             height: 28
                             radius: 14
-                            color: pairBtnMouse.containsMouse ? (modelData.paired ? "#e74c3c" : root.accentColor)
+                            color: pairBtnMouse.containsMouse ? (root.isSendFileMode ? root.accentColor : (modelData.paired ? "#e74c3c" : root.accentColor))
                                                               : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08))
 
-                            Text {
+                            RowLayout {
                                 anchors.centerIn: parent
-                                text: modelData.paired ? "Unpair" : "Pair"
-                                font.pixelSize: 11
-                                font.weight: Font.Medium
-                                color: pairBtnMouse.containsMouse ? root.accentTextColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
+                                spacing: 4
+                                Kirigami.Icon {
+                                    visible: root.isSendFileMode
+                                    implicitWidth: 12
+                                    implicitHeight: 12
+                                    source: "document-send-symbolic"
+                                    fallback: Qt.resolvedUrl("../../icons/document-send-symbolic.svg")
+                                    isMask: true
+                                    color: pairBtnMouse.containsMouse ? root.accentTextColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
+                                }
+                                Text {
+                                    text: root.isSendFileMode ? i18n("Send") : (modelData.paired ? "Unpair" : "Pair")
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: pairBtnMouse.containsMouse ? root.accentTextColor : (root.isDarkTheme ? "#ffffff" : "#1a1a1a")
+                                }
                             }
 
                             MouseArea {
@@ -231,7 +244,9 @@ Rectangle {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    if (modelData.paired) {
+                                    if (root.isSendFileMode) {
+                                        root.shareClicked(modelData.id || modelData.mac)
+                                    } else if (modelData.paired) {
                                         root.unpairClicked(modelData.id)
                                     } else {
                                         root.pairClicked(modelData.id)
@@ -251,7 +266,7 @@ Rectangle {
 
                             Text {
                                 width: parent.width
-                                text: modelData.name || "KDE Connect Device"
+                                text: modelData.name || (root.isSendFileMode ? i18n("File Transfer Target") : i18n("KDE Connect Device"))
                                 font.pixelSize: 14
                                 font.weight: Font.DemiBold
                                 color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -263,10 +278,15 @@ Rectangle {
                                 spacing: 5
 
                                 Text {
-                                    text: modelData.paired ? (modelData.reachable ? "Connected" : "Offline") : (modelData.reachable ? "Available to Pair" : "Not Reachable")
+                                    text: {
+                                        if (root.isSendFileMode) {
+                                            return modelData.connected ? i18n("Connected Device") : (modelData.paired ? i18n("Paired Device") : i18n("Available"))
+                                        }
+                                        return modelData.paired ? (modelData.reachable ? "Connected" : "Offline") : (modelData.reachable ? "Available to Pair" : "Not Reachable")
+                                    }
                                     font.pixelSize: 11
                                     font.weight: Font.Medium
-                                    color: modelData.paired ? (modelData.reachable ? root.accentColor : (root.isDarkTheme ? "#9aa0a6" : "#606770")) : root.accentColor
+                                    color: (modelData.connected || (modelData.paired && modelData.reachable)) ? root.accentColor : (root.isDarkTheme ? "#9aa0a6" : "#606770")
                                 }
 
                                 // Battery Status (if reported)
@@ -304,10 +324,49 @@ Rectangle {
                         }
                     }
 
-                    // Action Tiles Row (Ring, Send File, SMS, Browse SFTP, Ping)
+                    // In Send File mode: Dedicated direct Send File action button
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 38
+                        radius: 10
+                        visible: root.isSendFileMode
+                        color: sendFileCardMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : (root.isDarkTheme ? Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.22) : Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.12))
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Kirigami.Icon {
+                                implicitWidth: 16
+                                implicitHeight: 16
+                                source: "document-send-symbolic"
+                                fallback: Qt.resolvedUrl("../../icons/document-send-symbolic.svg")
+                                isMask: true
+                                color: root.accentColor
+                            }
+
+                            Text {
+                                text: i18n("Send File to %1").arg(modelData.name || "Device")
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            }
+                        }
+
+                        MouseArea {
+                            id: sendFileCardMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.shareClicked(modelData.id || modelData.mac)
+                        }
+                    }
+
+                    // In KDE Connect mode: Action Tiles Row (Ring, Send File, SMS, Browse SFTP, Ping)
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
+                        visible: !root.isSendFileMode
 
                         // 1. Ring Phone Action
                         Rectangle {
@@ -539,7 +598,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: root.isSendFileMode ? i18n("No Connected Devices") : i18n("No Devices Found")
+                    text: root.isSendFileMode ? i18n("No File Transfer Devices") : i18n("No Devices Found")
                     font.pixelSize: 15
                     font.weight: Font.Bold
                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
@@ -551,52 +610,92 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     text: root.isSendFileMode
-                          ? i18n("Make sure your device has Bluetooth or KDE Connect active and paired to send files.")
+                          ? i18n("No paired Bluetooth phone, tablet, or PC found for file transfer. You can launch Send File directly to select a destination, or configure Bluetooth pairing.")
                           : i18n("Make sure your phone or tablet has the KDE Connect app open and is connected to the same Wi-Fi network.")
                     font.pixelSize: 12
                     color: root.isDarkTheme ? "#9aa0a6" : "#606770"
                 }
 
-                Rectangle {
+                RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 8
-                    width: root.isSendFileMode ? 170 : 160
-                    height: 34
-                    radius: 17
-                    color: pairNewMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : root.accentColor
+                    spacing: 10
 
-                    RowLayout {
-                        anchors.centerIn: parent
-                        spacing: 6
+                    Rectangle {
+                        implicitWidth: root.isSendFileMode ? 170 : 160
+                        implicitHeight: 34
+                        radius: 17
+                        color: pairNewMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : root.accentColor
 
-                        Kirigami.Icon {
-                            implicitWidth: 14
-                            implicitHeight: 14
-                            source: root.isSendFileMode ? "document-send-symbolic" : "kdeconnect-symbolic"
-                            fallback: root.isSendFileMode ? Qt.resolvedUrl("../../icons/document-send-symbolic.svg") : ""
-                            isMask: true
-                            color: root.accentTextColor
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Kirigami.Icon {
+                                implicitWidth: 14
+                                implicitHeight: 14
+                                source: root.isSendFileMode ? "document-send-symbolic" : "kdeconnect-symbolic"
+                                fallback: root.isSendFileMode ? Qt.resolvedUrl("../../icons/document-send-symbolic.svg") : ""
+                                isMask: true
+                                color: root.accentTextColor
+                            }
+
+                            Text {
+                                text: root.isSendFileMode ? i18n("Choose File & Device…") : i18n("Open KDE Connect")
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                color: root.accentTextColor
+                            }
                         }
 
-                        Text {
-                            text: root.isSendFileMode ? i18n("Send File…") : i18n("Open KDE Connect")
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
-                            color: root.accentTextColor
+                        MouseArea {
+                            id: pairNewMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.isSendFileMode) {
+                                    root.openSendFileClicked()
+                                } else {
+                                    root.openSettingsClicked()
+                                }
+                            }
                         }
                     }
 
-                    MouseArea {
-                        id: pairNewMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.isSendFileMode) {
-                                root.openSendFileClicked()
-                            } else {
-                                root.openSettingsClicked()
+                    Rectangle {
+                        visible: root.isSendFileMode
+                        implicitWidth: 150
+                        implicitHeight: 34
+                        radius: 17
+                        color: btSettingMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.12)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(0, 0, 0, 0.06))
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Kirigami.Icon {
+                                implicitWidth: 14
+                                implicitHeight: 14
+                                source: "preferences-system-bluetooth"
+                                isMask: true
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
                             }
+
+                            Text {
+                                text: i18n("Bluetooth Settings")
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                            }
+                        }
+
+                        MouseArea {
+                            id: btSettingMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.openSettingsClicked()
                         }
                     }
                 }
@@ -627,7 +726,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: root.isSendFileMode ? i18n("Launch Send File") : i18n("Configure KDE Connect")
+                    text: root.isSendFileMode ? i18n("Launch File Transfer Wizard") : i18n("Configure KDE Connect")
                     font.pixelSize: 12
                     font.weight: Font.Medium
                     color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
