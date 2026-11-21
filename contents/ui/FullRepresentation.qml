@@ -1850,7 +1850,9 @@ Rectangle {
         onBackClicked: root.activeView = "main"
         onRefreshClicked: if (backend) backend.refreshLocalSend()
         onOpenLocalSendClicked: if (backend) backend.openLocalSend()
-        onSendLocalSendFileClicked: function(filePath) { if (backend) backend.sendLocalSendFile(filePath) }
+        onSendToPeerClicked: function(peerIp, peerPort, peerName) {
+            if (backend) backend.sendLocalSendToPeer(peerIp, peerPort, peerName)
+        }
     }
 
     // Power Profile Sub-View Container

@@ -832,6 +832,130 @@ open_send_file() {
     open_localsend
 }
 
+localsend_send_to_peer() {
+    local target_ip="${1:-}"
+    local target_port="${2:-53317}"
+    local target_name="${3:-Device}"
+    local target_file="${4:-}"
+
+    if [[ -z "$target_file" ]]; then
+        if command -v kdialog >/dev/null 2>&1; then
+            target_file=$(kdialog --getopenfilename --multiple --separate-output "$HOME" 2>/dev/null || true)
+        elif command -v zenity >/dev/null 2>&1; then
+            target_file=$(zenity --file-selection --multiple --separator=" " 2>/dev/null || true)
+        fi
+    fi
+
+    if [[ -z "$target_file" ]]; then
+        echo '{"success": false, "error": "No file selected"}'
+        return 0
+    fi
+
+    python3 - << 'PYEOF' "$target_ip" "$target_port" "$target_name" "$target_file" >/dev/null 2>&1 &
+import os, sys, json, socket, ssl, mimetypes, uuid, subprocess
+import urllib.request
+import urllib.error
+
+target_ip = sys.argv[1] if len(sys.argv) > 1 else ""
+target_port = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else 53317
+target_name = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else target_ip
+file_paths = sys.argv[4].strip().split("\n") if len(sys.argv) > 4 else []
+
+if not target_ip or not file_paths:
+    sys.exit(0)
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+def notify(title, msg, icon="org.localsend.localsend_app"):
+    try:
+        subprocess.run(["notify-send", "-a", "Send Local", "-i", icon, title, msg], check=False)
+    except Exception:
+        pass
+
+active_proto = "https"
+for proto in ["https", "http"]:
+    try:
+        url = f"{proto}://{target_ip}:{target_port}/api/localsend/v2/info"
+        req = urllib.request.Request(url, headers={"User-Agent": "KDE-Plasma-QuickSettings"})
+        with urllib.request.urlopen(req, context=ctx, timeout=2.0) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode('utf-8'))
+                active_proto = data.get("protocol", proto)
+                break
+    except Exception:
+        continue
+
+for fp in file_paths:
+    fp = fp.strip()
+    if not fp or not os.path.isfile(fp):
+        continue
+    file_name = os.path.basename(fp)
+    file_size = os.path.getsize(fp)
+    mime_type, _ = mimetypes.guess_type(fp)
+    if not mime_type:
+        mime_type = "application/octet-stream"
+
+    file_id = str(uuid.uuid4())
+    notify("Sending File", f"Sending {file_name} to {target_name}...")
+
+    prepare_payload = {
+        "info": {
+            "alias": socket.gethostname() or "KDE Plasma",
+            "version": "2.0",
+            "deviceModel": "Linux",
+            "deviceType": "desktop",
+            "fingerprint": "kde-plasma-" + str(uuid.uuid4())[:8],
+            "port": 53317,
+            "protocol": active_proto,
+            "download": False
+        },
+        "files": {
+            file_id: {
+                "id": file_id,
+                "fileName": file_name,
+                "size": file_size,
+                "fileType": mime_type,
+                "sha256": None
+            }
+        }
+    }
+
+    try:
+        url = f"{active_proto}://{target_ip}:{target_port}/api/localsend/v2/prepare-upload"
+        req = urllib.request.Request(url, data=json.dumps(prepare_payload).encode('utf-8'),
+                                     headers={"Content-Type": "application/json", "User-Agent": "KDE-Plasma-QuickSettings"})
+        with urllib.request.urlopen(req, context=ctx, timeout=60.0) as resp:
+            if resp.status != 200:
+                notify("Transfer Declined", f"{target_name} declined {file_name}")
+                continue
+            resp_data = json.loads(resp.read().decode('utf-8'))
+            session_id = resp_data.get("sessionId")
+            files_map = resp_data.get("files", {})
+            file_token = files_map.get(file_id)
+
+        token_param = f"&token={file_token}" if file_token else ""
+        upload_url = f"{active_proto}://{target_ip}:{target_port}/api/localsend/v2/upload?sessionId={session_id}&fileId={file_id}{token_param}"
+        with open(fp, "rb") as f:
+            file_bytes = f.read()
+        req = urllib.request.Request(upload_url, data=file_bytes, headers={
+            "Content-Type": "application/octet-stream",
+            "Content-Length": str(len(file_bytes)),
+            "User-Agent": "KDE-Plasma-QuickSettings"
+        })
+        with urllib.request.urlopen(req, context=ctx, timeout=120.0) as resp:
+            if resp.status == 200:
+                notify("Transfer Complete", f"Successfully sent {file_name} to {target_name}")
+            else:
+                notify("Transfer Failed", f"Failed uploading {file_name}")
+    except Exception as e:
+        notify("Transfer Error", f"Could not transfer {file_name}: {str(e)}")
+
+PYEOF
+    echo '{"success": true, "action": "localsend_send_to_peer"}'
+}
+
 localsend_send_file() {
     local target_file="${1:-}"
     nohup bash -c '
@@ -1801,6 +1925,9 @@ case "$CMD" in
         ;;
     localsend_send_file|sendfile_share)
         localsend_send_file "${2:-}"
+        ;;
+    localsend_send_to_peer)
+        localsend_send_to_peer "${2:-}" "${3:-}" "${4:-}" "${5:-}"
         ;;
     open_localsend_settings|open_sendfile_settings)
         open_localsend

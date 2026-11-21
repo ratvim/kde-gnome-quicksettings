@@ -1139,6 +1139,15 @@ PlasmoidItem {
         closePopup()
     }
 
+    function sendLocalSendToPeer(peerIp, peerPort, peerName, filePath) {
+        var ip = peerIp || ""
+        var port = peerPort || 53317
+        var name = peerName || ""
+        var file = filePath || ""
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_send_to_peer '" + ip + "' '" + port + "' '" + name + "' '" + file + "'")
+        closePopup()
+    }
+
     function sendLocalSendFile(filePath) {
         var arg = filePath ? (" '" + filePath + "'") : ""
         executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_send_file" + arg)
