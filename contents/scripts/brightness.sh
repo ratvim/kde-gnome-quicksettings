@@ -2,6 +2,19 @@
 # brightness.sh - Helper script for Display Brightness & Advanced Display Controls in KDE GNOME Quick Settings (Plasma 6)
 set -euo pipefail
 
+# Ensure environment for kscreen-doctor and Wayland compositor connection
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [[ -z "${WAYLAND_DISPLAY:-}" && -d "${XDG_RUNTIME_DIR:-}" ]]; then
+    for s in "$XDG_RUNTIME_DIR"/wayland-*; do
+        if [[ -S "$s" ]]; then
+            export WAYLAND_DISPLAY="$(basename "$s")"
+            break
+        fi
+    done
+fi
+
 CMD="${1:-status}"
 CACHE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gnomequicksettings"
 if ! mkdir -p "$CACHE_DIR" 2>/dev/null; then
@@ -43,7 +56,7 @@ get_display_status() {
         b=$(printf "%.0f" "$cur_f")
     fi
 
-    # Read advanced display properties (ABM, sRGB, Color Profile, Output Name)
+    # Read advanced display properties directly from KDE KWin/KScreen live & config state
     if command -v python3 >/dev/null 2>&1; then
         python3 - "$b" "$CONFIG_FILE" << 'PYEOF'
 import sys, os, subprocess, re, json
@@ -53,24 +66,25 @@ config_file = sys.argv[2]
 
 abm_level = 1
 abm_supported = False
-color_profile = "sRGB"
+color_profile = "Built-in"
 srgb_intensity = 100
 output_name = "eDP-1"
 
-# Load saved user config if exists
-if os.path.isfile(config_file):
-    try:
-        with open(config_file, "r") as f:
-            cfg = json.load(f)
-            abm_level = cfg.get("abm_level", 1)
-            color_profile = cfg.get("color_profile_source", "sRGB")
-            srgb_intensity = cfg.get("srgb_intensity", 100)
-    except Exception:
-        pass
-
+# 1. Inspect live outputs from kscreen-doctor -o
 if os.path.exists("/usr/bin/kscreen-doctor"):
     try:
-        raw = subprocess.check_output(["kscreen-doctor", "-o"], universal_newlines=True, stderr=subprocess.DEVNULL)
+        env = dict(os.environ)
+        if "XDG_RUNTIME_DIR" not in env or not env["XDG_RUNTIME_DIR"]:
+            env["XDG_RUNTIME_DIR"] = f"/run/user/{os.getuid()}"
+        if "WAYLAND_DISPLAY" not in env or not env["WAYLAND_DISPLAY"]:
+            rdir = env.get("XDG_RUNTIME_DIR", "")
+            if os.path.isdir(rdir):
+                for name in os.listdir(rdir):
+                    if name.startswith("wayland-") and not name.endswith(".lock"):
+                        env["WAYLAND_DISPLAY"] = name
+                        break
+
+        raw = subprocess.check_output(["kscreen-doctor", "-o"], universal_newlines=True, stderr=subprocess.DEVNULL, env=env)
         clean = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw)
 
         m_out = re.search(r"Output:\s*\d+\s+([A-Za-z0-9\-_]+)", clean)
@@ -97,7 +111,65 @@ if os.path.exists("/usr/bin/kscreen-doctor"):
     except Exception:
         pass
 
-# Ensure color_profile uses global settings nomenclature
+# 2. Read authoritative state from ~/.config/kwinoutputconfig.json (shared with KDE System Settings)
+kwin_cfg = os.path.expanduser("~/.config/kwinoutputconfig.json")
+if os.path.isfile(kwin_cfg):
+    try:
+        with open(kwin_cfg, "r") as f:
+            cfg = json.load(f)
+            outputs = []
+            for item in cfg:
+                if item.get("name") == "outputs":
+                    outputs = item.get("data", [])
+                    break
+            target = None
+            for out in outputs:
+                if out.get("connectorName") == output_name:
+                    target = out
+                    break
+            if not target and outputs:
+                target = outputs[0]
+                output_name = target.get("connectorName", output_name)
+
+            if target:
+                if "sdrGamutWideness" in target:
+                    try:
+                        # sdrGamutWideness is 0.0 to 1.0; convert to 0 to 100 percentage
+                        srgb_intensity = int(round(float(target["sdrGamutWideness"]) * 100))
+                    except (ValueError, TypeError):
+                        pass
+                if "colorProfileSource" in target:
+                    raw_col = target["colorProfileSource"]
+                    if raw_col == "sRGB":
+                        color_profile = "None"
+                    elif raw_col == "EDID":
+                        color_profile = "Built-in"
+                    elif raw_col == "ICC":
+                        color_profile = "ICC profile"
+                if "abmLevel" in target:
+                    try:
+                        abm_level = int(target["abmLevel"])
+                    except (ValueError, TypeError):
+                        pass
+                if "brightness" in target and brightness == 100:
+                    try:
+                        brightness = int(round(float(target["brightness"]) * 100))
+                    except (ValueError, TypeError):
+                        pass
+    except Exception:
+        pass
+elif os.path.isfile(config_file):
+    # Fallback to local cache if kwinoutputconfig.json does not exist
+    try:
+        with open(config_file, "r") as f:
+            c = json.load(f)
+            abm_level = c.get("abm_level", abm_level)
+            color_profile = c.get("color_profile_source", color_profile)
+            srgb_intensity = c.get("srgb_intensity", srgb_intensity)
+    except Exception:
+        pass
+
+# Normalize nomenclature matching KDE System Settings exactly
 if color_profile == "sRGB":
     color_profile = "None"
 elif color_profile == "EDID":
@@ -154,8 +226,8 @@ set_abm() {
     if (( level < 0 )); then level=0; fi
     if (( level > 4 )); then level=4; fi
 
+    local out_name="eDP-1"
     if command -v kscreen-doctor >/dev/null 2>&1; then
-        local out_name="1"
         local raw
         raw=$(kscreen-doctor -o 2>/dev/null || true)
         if [[ "$raw" =~ Output:[[:space:]]*([0-9]+)[[:space:]]*([A-Za-z0-9_-]+) ]]; then
@@ -164,26 +236,26 @@ set_abm() {
         kscreen-doctor "output.${out_name}.abm.${level}" >/dev/null 2>&1 || true
     fi
 
-    # Save to config file
+    # Update kwinoutputconfig.json directly as sync safeguard
     if command -v python3 >/dev/null 2>&1; then
-        python3 - "$CONFIG_FILE" "$level" << 'PYEOF'
+        python3 - "$out_name" "$level" << 'PYEOF'
 import sys, os, json
-cfg_file = sys.argv[1]
+out_name = sys.argv[1]
 level = int(sys.argv[2])
-data = {}
-if os.path.isfile(cfg_file):
+kwin_cfg = os.path.expanduser("~/.config/kwinoutputconfig.json")
+if os.path.isfile(kwin_cfg):
     try:
-        with open(cfg_file, "r") as f:
+        with open(kwin_cfg, "r") as f:
             data = json.load(f)
+        for item in data:
+            if item.get("name") == "outputs":
+                for out in item.get("data", []):
+                    if out.get("connectorName") == out_name or not out_name:
+                        out["abmLevel"] = level
+        with open(kwin_cfg, "w") as f:
+            json.dump(data, f, indent=4)
     except Exception:
         pass
-data["abm_level"] = level
-try:
-    os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
-    with open(cfg_file, "w") as f:
-        json.dump(data, f)
-except Exception:
-    pass
 PYEOF
     fi
 
@@ -204,8 +276,8 @@ set_color_profile() {
         kscreen_src="ICC"
     fi
 
+    local out_name="eDP-1"
     if command -v kscreen-doctor >/dev/null 2>&1; then
-        local out_name="1"
         local raw
         raw=$(kscreen-doctor -o 2>/dev/null || true)
         if [[ "$raw" =~ Output:[[:space:]]*([0-9]+)[[:space:]]*([A-Za-z0-9_-]+) ]]; then
@@ -214,26 +286,26 @@ set_color_profile() {
         kscreen-doctor "output.${out_name}.colorProfileSource.${kscreen_src}" >/dev/null 2>&1 || true
     fi
 
-    # Save to config file
+    # Update kwinoutputconfig.json directly as sync safeguard
     if command -v python3 >/dev/null 2>&1; then
-        python3 - "$CONFIG_FILE" "$source" << 'PYEOF'
+        python3 - "$out_name" "$kscreen_src" << 'PYEOF'
 import sys, os, json
-cfg_file = sys.argv[1]
-src = sys.argv[2]
-data = {}
-if os.path.isfile(cfg_file):
+out_name = sys.argv[1]
+kscreen_src = sys.argv[2]
+kwin_cfg = os.path.expanduser("~/.config/kwinoutputconfig.json")
+if os.path.isfile(kwin_cfg):
     try:
-        with open(cfg_file, "r") as f:
+        with open(kwin_cfg, "r") as f:
             data = json.load(f)
+        for item in data:
+            if item.get("name") == "outputs":
+                for out in item.get("data", []):
+                    if out.get("connectorName") == out_name or not out_name:
+                        out["colorProfileSource"] = kscreen_src
+        with open(kwin_cfg, "w") as f:
+            json.dump(data, f, indent=4)
     except Exception:
         pass
-data["color_profile_source"] = src
-try:
-    os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
-    with open(cfg_file, "w") as f:
-        json.dump(data, f)
-except Exception:
-    pass
 PYEOF
     fi
 
@@ -245,38 +317,38 @@ set_srgb_intensity() {
     if (( intensity < 0 )); then intensity=0; fi
     if (( intensity > 100 )); then intensity=100; fi
 
+    local out_name="eDP-1"
     if command -v kscreen-doctor >/dev/null 2>&1; then
-        local out_name="1"
         local raw
         raw=$(kscreen-doctor -o 2>/dev/null || true)
         if [[ "$raw" =~ Output:[[:space:]]*([0-9]+)[[:space:]]*([A-Za-z0-9_-]+) ]]; then
             out_name="${BASH_REMATCH[2]}"
         fi
-        local float_val
-        float_val=$(awk "BEGIN {printf \"%.2f\", $intensity / 100}")
-        kscreen-doctor "output.${out_name}.sdrGamut.${float_val}" >/dev/null 2>&1 || true
+        # kscreen-doctor parses sdrGamut as an integer 0..100 and divides by 100.0
+        kscreen-doctor "output.${out_name}.sdrGamut.${intensity}" >/dev/null 2>&1 || true
     fi
 
-    # Save to config file
+    # Update kwinoutputconfig.json directly as sync safeguard
     if command -v python3 >/dev/null 2>&1; then
-        python3 - "$CONFIG_FILE" "$intensity" << 'PYEOF'
+        python3 - "$out_name" "$intensity" << 'PYEOF'
 import sys, os, json
-cfg_file = sys.argv[1]
+out_name = sys.argv[1]
 intensity = int(sys.argv[2])
-data = {}
-if os.path.isfile(cfg_file):
+val = round(intensity / 100.0, 2)
+kwin_cfg = os.path.expanduser("~/.config/kwinoutputconfig.json")
+if os.path.isfile(kwin_cfg):
     try:
-        with open(cfg_file, "r") as f:
+        with open(kwin_cfg, "r") as f:
             data = json.load(f)
+        for item in data:
+            if item.get("name") == "outputs":
+                for out in item.get("data", []):
+                    if out.get("connectorName") == out_name or not out_name:
+                        out["sdrGamutWideness"] = val
+        with open(kwin_cfg, "w") as f:
+            json.dump(data, f, indent=4)
     except Exception:
         pass
-data["srgb_intensity"] = intensity
-try:
-    os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
-    with open(cfg_file, "w") as f:
-        json.dump(data, f)
-except Exception:
-    pass
 PYEOF
     fi
 

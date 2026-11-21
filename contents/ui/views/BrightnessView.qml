@@ -43,6 +43,18 @@ Rectangle {
         }
     }
 
+    Component.onCompleted: {
+        if (backend && typeof backend.fetchDisplayDetails === "function") {
+            backend.fetchDisplayDetails()
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible && backend && typeof backend.fetchDisplayDetails === "function") {
+            backend.fetchDisplayDetails()
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Math.round(14 * root.resolutionScale)

@@ -439,13 +439,32 @@ PlasmoidItem {
                         console.warn("Could not parse audio.sh output:", e)
                     }
                 } else if (source.indexOf("brightness.sh") !== -1) {
-                    var bri = JSON.parse(stdout)
-                    mainItem.brightness = parseInt(bri.brightness) || 0
-                    if (bri.abm_level !== undefined) mainItem.displayAbmLevel = parseInt(bri.abm_level)
-                    if (bri.abm_supported !== undefined) mainItem.displayAbmSupported = !!bri.abm_supported
-                    if (bri.color_profile_source !== undefined) mainItem.displayColorProfile = bri.color_profile_source
-                    if (bri.srgb_intensity !== undefined) mainItem.displaySrgbIntensity = parseInt(bri.srgb_intensity)
-                    if (bri.output_name !== undefined) mainItem.displayOutputName = bri.output_name
+                    try {
+                        var jsonStr = stdout.trim()
+                        var sIdx = jsonStr.indexOf("{")
+                        var eIdx = jsonStr.lastIndexOf("}")
+                        if (sIdx !== -1 && eIdx !== -1) {
+                            jsonStr = jsonStr.substring(sIdx, eIdx + 1)
+                        }
+                        var bri = JSON.parse(jsonStr)
+                        if (bri.brightness !== undefined) mainItem.brightness = parseInt(bri.brightness) || 0
+                        if (bri.abm_level !== undefined) {
+                            mainItem.displayAbmLevel = parseInt(bri.abm_level)
+                            setWidgetConfig("displayAbmLevel", parseInt(bri.abm_level))
+                        }
+                        if (bri.abm_supported !== undefined) mainItem.displayAbmSupported = !!bri.abm_supported
+                        if (bri.color_profile_source !== undefined) {
+                            mainItem.displayColorProfile = bri.color_profile_source
+                            setWidgetConfig("displayColorProfile", bri.color_profile_source)
+                        }
+                        if (bri.srgb_intensity !== undefined) {
+                            mainItem.displaySrgbIntensity = parseInt(bri.srgb_intensity)
+                            setWidgetConfig("displaySrgbIntensity", parseInt(bri.srgb_intensity))
+                        }
+                        if (bri.output_name !== undefined) mainItem.displayOutputName = bri.output_name
+                    } catch (e) {
+                        console.warn("Could not parse brightness.sh output:", e)
+                    }
                 } else if (source.indexOf("bluetooth.sh' status") !== -1 || source.indexOf("bluetooth.sh status") !== -1) {
                     var bt = JSON.parse(stdout)
                     mainItem.btEnabled = !!bt.enabled
