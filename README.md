@@ -13,17 +13,12 @@ A modern, pixel-perfect GNOME 43+ style **Quick Settings Control Center** applet
 
 ## 🚀 What's New in v1.2.2
 
-- 📁 **Native "Send Local" (LocalSend) Integration**:
-  - Replaced generic Bluetooth sendfile integration with first-class **LocalSend** ("Send Local") support.
-  - **Dynamic Backend Detection**: Checks whether LocalSend is installed on the system (Flatpak `org.localsend.localsend_app` or native binary) and only surfaces "Send Local" in configuration settings if detected.
-  - **Isolated Quick Settings Tile & Sub-View**:
-    - When "Send Local" is selected, the tile changes title to **"Send Local"**, uses the official LocalSend icon (`org.localsend.localsend_app`), and tracks live daemon running state and online LAN peers.
-    - Panel capsule displays the LocalSend icon with live status and informative tooltips.
-    - In the expanded sub-view (`KdeConnectView.qml`), all mobile/KDE Connect device actions are hidden and replaced with:
-      - LocalSend daemon status card with live indicator dot and local IP / Port 53317 (LAN) display.
-      - Direct **"Send Files / Media…"** action that invokes KDE's native `kdialog` file picker and forwards files directly to LocalSend.
-      - **"Open LocalSend Application"** launcher for the desktop GUI.
-      - Automatic LAN peer discovery via LocalSend multicast (`224.0.0.167:53317`).
+- 📱 **Dual Independent Toggles for Both KDE Connect & Send Local (LocalSend)**:
+  - Both **KDE Connect** (phone sync, battery %, SMS, remote ring, SFTP) and **Send Local** (LocalSend high-speed local network file transfer) now coexist simultaneously as distinct, independent toggles in the Quick Settings grid and panel capsule.
+  - **Dedicated Sub-Views**:
+    - `activeView = "kdeconnect"` (`KdeConnectView.qml`): Pure KDE Connect view with paired mobile devices, battery levels, phone ringing, and SMS/browse actions.
+    - `activeView = "localsend"` (`LocalSendView.qml`): Dedicated LocalSend view with live daemon status (Port 53317), direct "Send Files / Media…" action (KDE `kdialog` multi-file picker), desktop app launcher, and nearby LAN peer discovery.
+  - **Independent Visibility Controls**: Users can independently show or hide KDE Connect and Send Local tiles and capsule icons in settings.
 
 ---
 

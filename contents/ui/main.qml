@@ -166,6 +166,7 @@ PlasmoidItem {
     property bool panelShowCamera: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowCamera !== undefined) ? plasmoid.configuration.panelShowCamera : true
     property bool panelShowMic: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowMic !== undefined) ? plasmoid.configuration.panelShowMic : true
     property bool panelShowKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowKdeConnect !== undefined) ? plasmoid.configuration.panelShowKdeConnect : true
+    property bool panelShowSendLocal: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowSendLocal !== undefined) ? plasmoid.configuration.panelShowSendLocal : true
 
     // Quick Settings Tiles Visibility
     property bool tileShowWifi: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowWifi !== undefined) ? plasmoid.configuration.tileShowWifi : true
@@ -180,8 +181,9 @@ PlasmoidItem {
     property bool tileShowCamera: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowCamera !== undefined) ? plasmoid.configuration.tileShowCamera : true
     property bool tileShowMic: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowMic !== undefined) ? plasmoid.configuration.tileShowMic : true
     property bool tileShowKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowKdeConnect !== undefined) ? plasmoid.configuration.tileShowKdeConnect : true
+    property bool tileShowSendLocal: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowSendLocal !== undefined) ? plasmoid.configuration.tileShowSendLocal : true
     property string connectivityApp: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.connectivityApp !== undefined) ? plasmoid.configuration.connectivityApp : "kdeconnect"
-    property string tilesOrder: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tilesOrder !== undefined && plasmoid.configuration.tilesOrder.length > 0) ? plasmoid.configuration.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
+    property string tilesOrder: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tilesOrder !== undefined && plasmoid.configuration.tilesOrder.length > 0) ? plasmoid.configuration.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power"
     property int toggleRowsPerPage: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleRowsPerPage !== undefined) ? Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) : 4
 
     // Keep visibility properties synced when configuration changes
@@ -199,6 +201,7 @@ PlasmoidItem {
         function onTileShowCameraChanged() { mainItem.tileShowCamera = plasmoid.configuration.tileShowCamera }
         function onTileShowMicChanged() { mainItem.tileShowMic = plasmoid.configuration.tileShowMic }
         function onTileShowKdeConnectChanged() { mainItem.tileShowKdeConnect = plasmoid.configuration.tileShowKdeConnect }
+        function onTileShowSendLocalChanged() { mainItem.tileShowSendLocal = plasmoid.configuration.tileShowSendLocal }
         function onTilesOrderChanged() { mainItem.tilesOrder = plasmoid.configuration.tilesOrder }
         function onToggleRowsPerPageChanged() { mainItem.toggleRowsPerPage = Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) }
 
@@ -214,6 +217,7 @@ PlasmoidItem {
         function onPanelShowCameraChanged() { mainItem.panelShowCamera = plasmoid.configuration.panelShowCamera }
         function onPanelShowMicChanged() { mainItem.panelShowMic = plasmoid.configuration.panelShowMic }
         function onPanelShowKdeConnectChanged() { mainItem.panelShowKdeConnect = plasmoid.configuration.panelShowKdeConnect }
+        function onPanelShowSendLocalChanged() { mainItem.panelShowSendLocal = plasmoid.configuration.panelShowSendLocal }
         function onConnectivityAppChanged() { mainItem.connectivityApp = plasmoid.configuration.connectivityApp }
         function onPanelBackgroundModeChanged() { mainItem.panelBackgroundMode = plasmoid.configuration.panelBackgroundMode }
         function onCustomOpacityChanged() { mainItem.customOpacity = plasmoid.configuration.customOpacity }
@@ -632,11 +636,8 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' status")
         executable.exec("bash '" + getScriptPath("power.sh") + "' battery")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' status")
-        if (mainItem.connectivityApp === "localsend" || mainItem.connectivityApp === "sendlocal" || mainItem.connectivityApp === "sendfile") {
-            executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
-        } else {
-            executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
-        }
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+        executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' check_connectivity_tools")
         syncDndState()
     }
@@ -652,11 +653,8 @@ PlasmoidItem {
             refreshAll()
             executable.exec("bash '" + getScriptPath("network.sh") + "' list_wifi")
             executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
-            if (mainItem.connectivityApp === "localsend" || mainItem.connectivityApp === "sendlocal" || mainItem.connectivityApp === "sendfile") {
-                executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
-            } else {
-                executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
-            }
+            executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+            executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
         }
         pollTimer.restart()
     }

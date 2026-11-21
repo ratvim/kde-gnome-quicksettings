@@ -30,6 +30,7 @@ KCM.SimpleKCM {
     property alias cfg_panelShowCamera: panelCameraCheck.checked
     property alias cfg_panelShowMic: panelMicCheck.checked
     property alias cfg_panelShowKdeConnect: panelKdeCheck.checked
+    property alias cfg_panelShowSendLocal: panelSendLocalCheck.checked
 
     // Tile visibility properties (inside dropdown)
     property alias cfg_tileShowWifi: tileWifiCheck.checked
@@ -44,6 +45,7 @@ KCM.SimpleKCM {
     property alias cfg_tileShowCamera: tileCameraCheck.checked
     property alias cfg_tileShowMic: tileMicCheck.checked
     property alias cfg_tileShowKdeConnect: tileKdeCheck.checked
+    property alias cfg_tileShowSendLocal: tileSendLocalCheck.checked
 
     property string cfg_screenshotTool: "auto"
     property string cfg_connectivityApp: "kdeconnect"
@@ -222,32 +224,12 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: panelKdeCheck
-                text: (root.cfg_connectivityApp === "localsend" || root.cfg_connectivityApp === "sendlocal" || root.cfg_connectivityApp === "sendfile") ? i18n("Send Local (when active)") : i18n("KDE Connect (when connected)")
+                text: i18n("KDE Connect (when connected)")
             }
-        }
 
-        // --- Device Sharing & Connectivity Section ---
-        Kirigami.Separator {
-            Kirigami.FormData.label: i18n("Device Sharing & Connectivity")
-            Kirigami.FormData.isSection: true
-        }
-
-        ComboBox {
-            id: connectivityAppCombo
-            Kirigami.FormData.label: i18n("Default Application:")
-            textRole: "text"
-            valueRole: "value"
-            model: [
-                { text: i18n("KDE Connect"), value: "kdeconnect" }
-            ]
-            currentIndex: {
-                for (var i = 0; i < model.length; i++) {
-                    if (model[i].value === root.cfg_connectivityApp) return i;
-                }
-                return 0;
-            }
-            onActivated: {
-                root.cfg_connectivityApp = currentValue
+            CheckBox {
+                id: panelSendLocalCheck
+                text: i18n("Send Local (when active)")
             }
         }
 
@@ -358,7 +340,12 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: tileKdeCheck
-                text: (root.cfg_connectivityApp === "localsend" || root.cfg_connectivityApp === "sendlocal" || root.cfg_connectivityApp === "sendfile") ? i18n("Send Local") : i18n("KDE Connect")
+                text: i18n("KDE Connect")
+            }
+
+            CheckBox {
+                id: tileSendLocalCheck
+                text: i18n("Send Local")
             }
         }
     }

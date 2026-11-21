@@ -63,6 +63,9 @@
     <entry name="panelShowKdeConnect" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="panelShowSendLocal" type="Bool">
+      <default>true</default>
+    </entry>
 
     <!-- Icon Sizing -->
     <entry name="panelIconSize" type="Int">
@@ -109,8 +112,11 @@
     <entry name="tileShowKdeConnect" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="tileShowSendLocal" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="tilesOrder" type="String">
-      <default>wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power</default>
+      <default>wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power</default>
     </entry>
     <entry name="toggleRowsPerPage" type="Int">
       <default>4</default>

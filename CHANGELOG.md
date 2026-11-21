@@ -5,17 +5,16 @@ All notable changes to the **GNOME Quick Settings** applet for KDE Plasma 6 are 
 ## [1.2.2] - 2026-11-21
 
 ### Added & Improved
-- **Native "Send Local" (LocalSend) Integration**:
-  - Replaced the generic Bluetooth sendfile integration with dedicated support for **LocalSend** ("Send Local").
-  - **Dynamic Backend Detection**: Inspects whether LocalSend is installed (Flatpak `org.localsend.localsend_app` or native binary) and only surfaces "Send Local" in the configuration settings and widget drawer if installed.
-  - **Isolated Quick Settings Tile & Sub-View**:
-    - When "Send Local" is selected, the tile changes title to **"Send Local"**, uses the official LocalSend icon (`org.localsend.localsend_app`), and tracks live daemon running state and online LAN peers.
-    - Panel capsule displays the LocalSend icon with live status and informative tooltips.
-    - In the expanded sub-view (`KdeConnectView.qml`), all mobile/KDE Connect device actions are hidden and replaced with:
-      - LocalSend daemon status card with live indicator dot and local IP / Port 53317 (LAN) display.
-      - Direct **"Send Files / Media…"** action that invokes KDE's native `kdialog` file picker and forwards files directly to LocalSend.
-      - **"Open LocalSend Application"** launcher for the desktop GUI.
-      - Automatic LAN peer discovery via LocalSend multicast (`224.0.0.167:53317`).
+- **Dual Independent Toggles for Both KDE Connect & Send Local (LocalSend)**:
+  - Both **KDE Connect** and **Send Local** now coexist simultaneously as distinct, independent toggles in the Quick Settings grid and top panel capsule.
+  - **Independent Quick Settings Tiles**:
+    - **KDE Connect Tile**: Dedicated phone synchronization (notifications, battery %, ring phone, ping, SMS, and SFTP browsing).
+    - **Send Local Tile**: Dedicated LocalSend file transfer across LAN, tracking daemon status and active LAN peers.
+  - **Dedicated Sub-Views (`KdeConnectView.qml` & `LocalSendView.qml`)**:
+    - Separated into two distinct, focused sub-views: `activeView = "kdeconnect"` for KDE Connect devices and `activeView = "localsend"` for LocalSend transfer.
+    - `LocalSendView.qml` features a live socket status card (Port 53317), direct "Send Files / Media…" button (with native KDE `kdialog` multi-file selection), desktop app launcher, and nearby peer discovery.
+  - **Independent Visibility Settings**:
+    - Users can independently configure tile visibility and panel capsule icons for both KDE Connect and Send Local in the Plasma configuration dialog and widget settings drawer.
 
 ## [1.2.1] - 2026-11-21
 

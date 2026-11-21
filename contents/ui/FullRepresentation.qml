@@ -29,7 +29,7 @@ Rectangle {
     property var backend: mainItem
 
     property bool isDarkTheme: backend ? backend.isDarkTheme : true
-    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "power" | "dnd" | "settings" | "volume" | "brightness"
+    property string activeView: "main" // "main" | "network" | "bluetooth" | "camera" | "kdeconnect" | "localsend" | "power" | "dnd" | "settings" | "volume" | "brightness"
     property bool volumeExpanded: false
 
     // =========================================================================
@@ -615,7 +615,7 @@ Rectangle {
                 ? Math.round(330 * root.resolutionScale)
                 : Math.round(270 * root.resolutionScale)
         } else {
-            rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect
+            rawH = Math.round(500 * root.resolutionScale) // network, bluetooth, kdeconnect, localsend
         }
         return Math.max(200, Math.min(rawH, root.maxScreenSafeHeight))
     }
@@ -636,6 +636,7 @@ Rectangle {
         case "mic": return backend.tileShowMic
         case "camera": return backend.tileShowCamera
         case "kdeconnect": return backend.tileShowKdeConnect
+        case "localsend": return backend.tileShowSendLocal
         case "dark": return backend.tileShowDarkTheme
         case "night": return backend.tileShowNightLight
         case "airplane": return backend.tileShowAirplane
@@ -647,7 +648,7 @@ Rectangle {
     }
 
     readonly property var orderedTileKeys: {
-        var str = (backend && backend.tilesOrder && backend.tilesOrder.length > 0) ? backend.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
+        var str = (backend && backend.tilesOrder && backend.tilesOrder.length > 0) ? backend.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power"
         var parts = str.split(",")
         var res = []
         var valid = allToggleKeys
@@ -696,6 +697,7 @@ Rectangle {
         case "mic": return toggleMic
         case "camera": return toggleCamera
         case "kdeconnect": return toggleKde
+        case "localsend": return toggleLocalSend
         case "dark": return toggleDark
         case "night": return toggleNight
         case "airplane": return toggleAir
@@ -706,7 +708,7 @@ Rectangle {
         }
     }
 
-    readonly property var allToggleKeys: ["wifi", "bluetooth", "location", "mic", "camera", "kdeconnect", "dark", "night", "airplane", "dnd", "hotspot", "power"]
+    readonly property var allToggleKeys: ["wifi", "bluetooth", "location", "mic", "camera", "kdeconnect", "localsend", "dark", "night", "airplane", "dnd", "hotspot", "power"]
 
     function syncSwipePages() {
         if (typeof togglesSwipeView === "undefined" || !togglesSwipeView || typeof page2Item === "undefined" || typeof page3Item === "undefined" || typeof hiddenPagesContainer === "undefined") return
@@ -1467,43 +1469,49 @@ Rectangle {
                         }
                     }
 
-                    // 6. KDE Connect / Send Local (LocalSend)
+                    // 6. KDE Connect
                     PillToggle {
                         id: toggleKde
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowKdeConnect : true
-                        title: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? i18n("Send Local") : i18n("KDE Connect")
-                        subtitle: {
-                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                                if (backend.localsendRunning) {
-                                    if (backend.localsendDevices && backend.localsendDevices.length > 0) {
-                                        return backend.localsendDevices.length + " " + i18n("Device(s)")
-                                    }
-                                    return i18n("Running")
-                                }
-                                return i18n("Ready")
-                            }
-                            return (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
-                        }
-                        iconName: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? "org.localsend.localsend_app" : "kdeconnect-tray-symbolic"
-                        iconFallback: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                        checked: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? (backend.localsendRunning) : (backend ? backend.kdeConnectConnected : false)
+                        title: i18n("KDE Connect")
+                        subtitle: (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
+                        iconName: "kdeconnect-tray-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                        checked: backend ? backend.kdeConnectConnected : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: {
-                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                                backend.openLocalSend()
-                            } else if (backend) {
-                                backend.openKdeConnect()
-                            }
-                        }
+                        onToggled: if (backend) backend.openKdeConnect()
                         onMenuClicked: {
-                            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                                backend.refreshLocalSend()
-                            } else if (backend) {
-                                backend.refreshKdeConnect()
-                            }
+                            if (backend) backend.refreshKdeConnect()
                             root.activeView = "kdeconnect"
+                        }
+                    }
+
+                    // 6b. Send Local (LocalSend)
+                    PillToggle {
+                        id: toggleLocalSend
+                        width: root.tileWidth()
+                        visible: backend ? backend.tileShowSendLocal : true
+                        title: i18n("Send Local")
+                        subtitle: {
+                            if (backend && backend.localsendRunning) {
+                                if (backend.localsendDevices && backend.localsendDevices.length > 0) {
+                                    return backend.localsendDevices.length + " " + i18n("Device(s)")
+                                }
+                                return i18n("Running")
+                            }
+                            return i18n("Ready")
+                        }
+                        iconName: "org.localsend.localsend_app"
+                        iconFallback: Qt.resolvedUrl("../icons/document-send-symbolic.svg")
+                        checked: Boolean(backend && backend.localsendRunning)
+                        hasMenu: true
+                        isDarkTheme: root.isDarkTheme
+                        onToggled: if (backend) backend.openLocalSend()
+                        onMenuClicked: {
+                            if (backend) backend.refreshLocalSend()
+                            root.activeView = "localsend"
                         }
                     }
 
@@ -1813,58 +1821,36 @@ Rectangle {
         onScanClicked: if (backend) backend.refreshBluetoothDevices()
     }
 
-    // KDE Connect / Send Local Sub-View Container
+    // KDE Connect Sub-View Container
     KdeConnectView {
         anchors.fill: parent
         visible: root.activeView === "kdeconnect"
         isDarkTheme: root.isDarkTheme
         backend: root.backend
-        isLocalSendMode: Boolean(backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile"))
-        isSendFileMode: isLocalSendMode
-        devicesModel: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? (backend.localsendDevices || []) : ((backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : [])
+        devicesModel: (backend && backend.kdeConnectDevices) ? backend.kdeConnectDevices : []
         onBackClicked: root.activeView = "main"
-        onRefreshClicked: {
-            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                backend.refreshLocalSend()
-            } else if (backend) {
-                backend.refreshKdeConnect()
-            }
-        }
+        onRefreshClicked: if (backend) backend.refreshKdeConnect()
         onRingClicked: function(devId) { if (backend) backend.ringKdeConnect(devId) }
         onPingClicked: function(devId) { if (backend) backend.pingKdeConnect(devId) }
-        onShareClicked: function(devId) {
-            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                backend.sendLocalSendFile()
-            } else if (backend) {
-                backend.shareKdeConnect(devId)
-            }
-        }
+        onShareClicked: function(devId) { if (backend) backend.shareKdeConnect(devId) }
         onSmsClicked: function() { if (backend) backend.smsKdeConnect() }
         onBrowseClicked: function(devId) { if (backend) backend.browseKdeConnect(devId) }
-        onPairClicked: function(devId) {
-            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                backend.openLocalSend()
-            } else if (backend) {
-                backend.pairKdeConnect(devId)
-            }
-        }
-        onUnpairClicked: function(devId) {
-            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                backend.openLocalSend()
-            } else if (backend) {
-                backend.unpairKdeConnect(devId)
-            }
-        }
-        onOpenSettingsClicked: {
-            if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                backend.openLocalSend()
-            } else if (backend) {
-                backend.openKdeConnect()
-            }
-        }
+        onPairClicked: function(devId) { if (backend) backend.pairKdeConnect(devId) }
+        onUnpairClicked: function(devId) { if (backend) backend.unpairKdeConnect(devId) }
+        onOpenSettingsClicked: if (backend) backend.openKdeConnect()
+    }
+
+    // Send Local (LocalSend) Sub-View Container
+    LocalSendView {
+        anchors.fill: parent
+        visible: root.activeView === "localsend"
+        isDarkTheme: root.isDarkTheme
+        backend: root.backend
+        devicesModel: (backend && backend.localsendDevices) ? backend.localsendDevices : []
+        onBackClicked: root.activeView = "main"
+        onRefreshClicked: if (backend) backend.refreshLocalSend()
         onOpenLocalSendClicked: if (backend) backend.openLocalSend()
-        onSendLocalSendFileClicked: if (backend) backend.sendLocalSendFile()
-        onOpenSendFileClicked: if (backend) backend.openLocalSend()
+        onSendLocalSendFileClicked: function(filePath) { if (backend) backend.sendLocalSendFile(filePath) }
     }
 
     // Power Profile Sub-View Container

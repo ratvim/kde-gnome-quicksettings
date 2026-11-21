@@ -241,6 +241,7 @@ Item {
     property bool panelShowCamera: (backend && backend.panelShowCamera !== undefined) ? backend.panelShowCamera : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowCamera !== undefined) ? plasmoid.configuration.panelShowCamera : true)
     property bool panelShowMic: (backend && backend.panelShowMic !== undefined) ? backend.panelShowMic : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowMic !== undefined) ? plasmoid.configuration.panelShowMic : true)
     property bool panelShowKdeConnect: (backend && backend.panelShowKdeConnect !== undefined) ? backend.panelShowKdeConnect : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowKdeConnect !== undefined) ? plasmoid.configuration.panelShowKdeConnect : true)
+    property bool panelShowSendLocal: (backend && backend.panelShowSendLocal !== undefined) ? backend.panelShowSendLocal : ((typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.panelShowSendLocal !== undefined) ? plasmoid.configuration.panelShowSendLocal : true)
 
     // Device, Privacy & Quick Setting States
     property bool locationEnabled: Boolean(backend && (backend.locationEnabled || (backend.locationApps && backend.locationApps.length > 0)))
@@ -349,13 +350,8 @@ Item {
         if (root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)) return true
         if (root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)) return true
         if (root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)) return true
-        if (root.panelShowKdeConnect) {
-            if (backend && backend.connectivityApp === "sendfile") {
-                if (root.sendfileConnected || (backend.sendfileDevices && backend.sendfileDevices.length > 0)) return true
-            } else if (root.kdeConnectConnected) {
-                return true
-            }
-        }
+        if (root.panelShowKdeConnect && root.kdeConnectConnected) return true
+        if (root.panelShowSendLocal && Boolean(backend && backend.localsendRunning)) return true
         return false
     }
 
@@ -535,23 +531,18 @@ Item {
             // ACTIVE TOGGLE ICONS (LEFT TO RIGHT)
             // ========================================================
 
-            // 1. KDE Connect / Send Local (when connected/active)
+            // 1. KDE Connect (when connected)
             Item {
                 id: kdeItem
-                visible: {
-                    if (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) {
-                        return root.panelShowKdeConnect && (backend.localsendRunning || backend.localsendInstalled)
-                    }
-                    return root.panelShowKdeConnect && root.kdeConnectConnected
-                }
+                visible: root.panelShowKdeConnect && root.kdeConnectConnected
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
 
                 Kirigami.Icon {
                     anchors.fill: parent
-                    source: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? "org.localsend.localsend_app" : "kdeconnect-tray-symbolic"
-                    fallback: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                    source: "kdeconnect-tray-symbolic"
+                    fallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
                     isMask: true
                     color: root.activeIndicatorColor
                 }
@@ -566,21 +557,53 @@ Item {
 
                 StatusToolTip {
                     visible: kdeHover.containsMouse && !root.isTrayExpanded
-                    title: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile"))
-                           ? i18n("Send Local")
-                           : ((root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : i18n("KDE Connect"))
-                    status: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile"))
-                            ? (backend.localsendRunning ? i18n("LocalSend is active") : i18n("Ready to share files locally"))
-                            : ((root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? i18n("Device synchronized") : i18n("No device connected")))
-                    iconName: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? "org.localsend.localsend_app" : "kdeconnect-tray-symbolic"
-                    iconFallback: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile")) ? Qt.resolvedUrl("../icons/document-send-symbolic.svg") : Qt.resolvedUrl("../icons/phone-symbolic.svg")
-                    iconColor: (backend && (backend.connectivityApp === "localsend" || backend.connectivityApp === "sendlocal" || backend.connectivityApp === "sendfile"))
-                              ? (backend.localsendRunning ? root.tooltipActiveColor : root.tooltipInactiveColor)
-                              : (root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor)
+                    title: (root.kdeConnectName && root.kdeConnectName !== "") ? root.kdeConnectName : i18n("KDE Connect")
+                    status: (root.kdeConnectBattery > 0) ? (root.kdeConnectBattery + "% Battery • Synced") : (root.kdeConnectConnected ? i18n("Device synchronized") : i18n("No device connected"))
+                    iconName: "kdeconnect-tray-symbolic"
+                    iconFallback: Qt.resolvedUrl("../icons/phone-symbolic.svg")
+                    iconColor: root.kdeConnectConnected ? root.tooltipActiveColor : root.tooltipInactiveColor
                     isDarkTheme: root.isDarkTheme
                     panelLocation: root.panelLocation
                     capsuleItem: pillRect
                     targetItem: kdeItem
+                }
+            }
+
+            // 1b. Send Local (LocalSend, when active/running)
+            Item {
+                id: localSendItem
+                visible: root.panelShowSendLocal && Boolean(backend && backend.localsendRunning)
+                implicitWidth: root.panelIconSize
+                implicitHeight: root.panelIconSize
+                Layout.alignment: Qt.AlignVCenter
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    source: "org.localsend.localsend_app"
+                    fallback: Qt.resolvedUrl("../icons/document-send-symbolic.svg")
+                    isMask: true
+                    color: root.activeIndicatorColor
+                }
+
+                MouseArea {
+                    id: localSendHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleQuickSettings()
+                }
+
+                StatusToolTip {
+                    visible: localSendHover.containsMouse && !root.isTrayExpanded
+                    title: i18n("Send Local")
+                    status: (backend && backend.localsendRunning) ? i18n("LocalSend is active") : i18n("Ready to share files locally")
+                    iconName: "org.localsend.localsend_app"
+                    iconFallback: Qt.resolvedUrl("../icons/document-send-symbolic.svg")
+                    iconColor: (backend && backend.localsendRunning) ? root.tooltipActiveColor : root.tooltipInactiveColor
+                    isDarkTheme: root.isDarkTheme
+                    panelLocation: root.panelLocation
+                    capsuleItem: pillRect
+                    targetItem: localSendItem
                 }
             }
 
