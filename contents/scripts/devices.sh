@@ -670,34 +670,37 @@ get_kdeconnect_status() {
         qcmd="qdbus"
     fi
 
+    local qdbus_ok="false"
     if [[ -n "$qcmd" ]]; then
         local devs
-        devs=$($qcmd org.kde.kdeconnect /modules/kdeconnect org.kde.kdeconnect.daemon.devices 2>/dev/null || true)
-        for id in $devs; do
-            [[ -z "$id" ]] && continue
-            local is_p
-            is_p=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.isPaired 2>/dev/null || echo "false")
-            local is_r
-            is_r=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.isReachable 2>/dev/null || echo "false")
-            if [[ "$is_p" == "true" && "$is_r" == "true" ]] || [[ -z "$dev_id" ]]; then
-                dev_id="$id"
-                dev_name=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.name 2>/dev/null || echo "Device")
-                paired="$is_p"
-                reachable="$is_r"
-                dev_type=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.type 2>/dev/null || echo "phone")
-                local bat
-                bat=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id/battery" org.kde.kdeconnect.device.battery.charge 2>/dev/null || echo "-1")
-                if [[ "$bat" =~ ^[0-9]+$ ]]; then
-                    battery=$bat
+        if devs=$($qcmd org.kde.kdeconnect /modules/kdeconnect org.kde.kdeconnect.daemon.devices 2>/dev/null); then
+            qdbus_ok="true"
+            for id in $devs; do
+                [[ -z "$id" ]] && continue
+                local is_p
+                is_p=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.isPaired 2>/dev/null || echo "false")
+                local is_r
+                is_r=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.isReachable 2>/dev/null || echo "false")
+                if [[ "$is_p" == "true" && "$is_r" == "true" ]] || [[ -z "$dev_id" ]]; then
+                    dev_id="$id"
+                    dev_name=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.name 2>/dev/null || echo "Device")
+                    paired="$is_p"
+                    reachable="$is_r"
+                    dev_type=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id" org.kde.kdeconnect.device.type 2>/dev/null || echo "phone")
+                    local bat
+                    bat=$($qcmd org.kde.kdeconnect "/modules/kdeconnect/devices/$id/battery" org.kde.kdeconnect.device.battery.charge 2>/dev/null || echo "-1")
+                    if [[ "$bat" =~ ^[0-9]+$ ]]; then
+                        battery=$bat
+                    fi
+                    if [[ "$is_p" == "true" && "$is_r" == "true" ]]; then
+                        break
+                    fi
                 fi
-                if [[ "$is_p" == "true" && "$is_r" == "true" ]]; then
-                    break
-                fi
-            fi
-        done
+            done
+        fi
     fi
 
-    if [[ -z "$dev_name" ]] && command -v kdeconnect-cli >/dev/null 2>&1; then
+    if [[ "$qdbus_ok" != "true" && -z "$dev_name" ]] && command -v kdeconnect-cli >/dev/null 2>&1; then
         local line
         line=$(kdeconnect-cli -l 2>/dev/null | grep -E '^\s*-\s*' | head -n 1 || true)
         if [[ -n "$line" ]]; then
@@ -1530,11 +1533,11 @@ elif shutil.which("flatpak"):
     except Exception:
         pass
 
-# Check if running: socket port 53317 or pgrep
+# Check if running: socket port 53317 or flatpak ps or exact binary in /proc
 is_running = False
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.2)
+    s.settimeout(0.15)
     if s.connect_ex(('127.0.0.1', 53317)) == 0:
         is_running = True
     s.close()
@@ -1543,9 +1546,34 @@ except Exception:
 
 if not is_running:
     try:
-        proc = subprocess.run(["pgrep", "-f", "localsend"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        if proc.returncode == 0 and proc.stdout.strip():
+        proc = subprocess.run(["flatpak", "ps", "--columns=application"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=0.8)
+        if proc.returncode == 0 and "org.localsend.localsend_app" in proc.stdout:
             is_running = True
+    except Exception:
+        pass
+
+if not is_running:
+    try:
+        my_pid = os.getpid()
+        my_ppid = os.getppid()
+        for pid_dir in os.listdir('/proc'):
+            if not pid_dir.isdigit():
+                continue
+            pid = int(pid_dir)
+            if pid in (my_pid, my_ppid):
+                continue
+            try:
+                with open(f"/proc/{pid}/comm", "r") as f:
+                    comm = f.read().strip()
+                if comm in ("localsend", "localsend_app"):
+                    is_running = True
+                    break
+                exe = os.path.realpath(f"/proc/{pid}/exe")
+                if os.path.basename(exe) in ("localsend", "localsend_app"):
+                    is_running = True
+                    break
+            except Exception:
+                continue
     except Exception:
         pass
 
@@ -1560,45 +1588,46 @@ except Exception:
     pass
 
 devices = []
-# Fast UDP multicast probe for nearby LocalSend peers (timeout 0.3s)
-try:
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-    sock.settimeout(0.3)
-    msg = json.dumps({
-        "alias": "KDE Plasma",
-        "version": "2.0",
-        "deviceModel": "Linux",
-        "deviceType": "desktop",
-        "fingerprint": "kde-plasma-quicksettings",
-        "port": 53317,
-        "protocol": "https",
-        "download": False,
-        "announcement": True,
-        "announce": True
-    }).encode('utf-8')
-    sock.sendto(msg, ("224.0.0.167", 53317))
-    while True:
-        try:
-            data, addr = sock.recvfrom(4096)
-            if addr[0] != local_ip and addr[0] != "127.0.0.1":
-                parsed = json.loads(data.decode('utf-8', errors='ignore'))
-                devices.append({
-                    "id": addr[0],
-                    "ip": addr[0],
-                    "name": parsed.get("alias", addr[0]),
-                    "deviceModel": parsed.get("deviceModel", "Unknown"),
-                    "deviceType": parsed.get("deviceType", "mobile"),
-                    "port": parsed.get("port", 53317),
-                    "protocol": parsed.get("protocol", "https")
-                })
-        except (socket.timeout, Exception):
-            break
-    sock.close()
-except Exception:
-    pass
+# Fast UDP multicast probe for nearby LocalSend peers (only when running)
+if is_running:
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        sock.settimeout(0.25)
+        msg = json.dumps({
+            "alias": "KDE Plasma",
+            "version": "2.0",
+            "deviceModel": "Linux",
+            "deviceType": "desktop",
+            "fingerprint": "kde-plasma-quicksettings",
+            "port": 53317,
+            "protocol": "https",
+            "download": False,
+            "announcement": True,
+            "announce": True
+        }).encode('utf-8')
+        sock.sendto(msg, ("224.0.0.167", 53317))
+        while True:
+            try:
+                data, addr = sock.recvfrom(4096)
+                if addr[0] != local_ip and addr[0] != "127.0.0.1":
+                    parsed = json.loads(data.decode('utf-8', errors='ignore'))
+                    devices.append({
+                        "id": addr[0],
+                        "ip": addr[0],
+                        "name": parsed.get("alias", addr[0]),
+                        "deviceModel": parsed.get("deviceModel", "Unknown"),
+                        "deviceType": parsed.get("deviceType", "mobile"),
+                        "port": parsed.get("port", 53317),
+                        "protocol": parsed.get("protocol", "https")
+                    })
+            except (socket.timeout, Exception):
+                break
+        sock.close()
+    except Exception:
+        pass
 
-status_text = "Ready to share"
+status_text = "Ready"
 if is_running:
     status_text = "Running" if not devices else f"{len(devices)} device(s) online"
 elif not installed:

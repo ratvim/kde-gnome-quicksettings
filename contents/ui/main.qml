@@ -639,8 +639,6 @@ PlasmoidItem {
         executable.exec("bash '" + getScriptPath("power.sh") + "' battery")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' status")
         executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
-        executable.exec("bash '" + getScriptPath("devices.sh") + "' check_connectivity_tools")
         syncDndState()
     }
 
@@ -656,7 +654,6 @@ PlasmoidItem {
             executable.exec("bash '" + getScriptPath("network.sh") + "' list_wifi")
             executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
             executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
-            executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
         }
         pollTimer.restart()
     }
@@ -682,6 +679,8 @@ PlasmoidItem {
                     executable.exec("bash '" + getScriptPath("bluetooth.sh") + "' devices")
                 } else if (av === "kdeconnect") {
                     executable.exec("bash '" + getScriptPath("devices.sh") + "' kdeconnect_list")
+                } else if (av === "localsend") {
+                    executable.exec("bash '" + getScriptPath("devices.sh") + "' localsend_status")
                 }
             }
         }
