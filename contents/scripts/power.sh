@@ -98,6 +98,8 @@ get_battery() {
 
     local nl
     nl=$(get_nightlight)
+    local nlt
+    nlt=$(get_nightlight_temp)
 
     cat <<EOF
 {
@@ -106,28 +108,64 @@ get_battery() {
   "state": "$state",
   "dark_mode": $is_dark,
   "power_profile": "$prof",
-  "night_light": $nl
+  "night_light": $nl,
+  "night_light_temp": $nlt
 }
 EOF
+}
+
+get_nightlight_temp() {
+    local qcmd
+    qcmd=$(get_qdbus)
+    local temp=""
+    if [[ -n "$qcmd" ]]; then
+        temp=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.targetTemperature 2>/dev/null || echo "")
+        if [[ -z "$temp" || "$temp" == "0" || "$temp" == "6500" ]]; then
+            temp=""
+        fi
+    fi
+    if [[ -z "$temp" ]] && command -v kreadconfig6 >/dev/null 2>&1; then
+        temp=$(kreadconfig6 --file kwinrc --group NightColor --key NightTemperature 2>/dev/null || echo "")
+    fi
+    if [[ -z "$temp" || "$temp" == "0" ]]; then
+        temp="4500"
+    fi
+    echo "$temp"
 }
 
 get_nightlight() {
     local qcmd
     qcmd=$(get_qdbus)
     local nl="false"
+    local kwin_active=""
+    if command -v kreadconfig6 >/dev/null 2>&1; then
+        kwin_active=$(kreadconfig6 --file kwinrc --group NightColor --key Active 2>/dev/null || echo "")
+    fi
+
     if [[ -n "$qcmd" ]]; then
-        local running
+        local running enabled act_manual deact_manual inhibited
         running=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.running 2>/dev/null || echo "")
-        if [[ "$running" == "true" ]]; then
-            nl="true"
-        elif [[ "$running" == "false" ]]; then
+        enabled=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.enabled 2>/dev/null || echo "")
+        act_manual=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.activatedManual 2>/dev/null || echo "")
+        deact_manual=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.deactivatedManual 2>/dev/null || echo "")
+        inhibited=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.inhibited 2>/dev/null || echo "")
+
+        if [[ "$deact_manual" == "true" || "$inhibited" == "true" ]]; then
             nl="false"
+        elif [[ "$act_manual" == "true" || "$running" == "true" ]]; then
+            nl="true"
+        elif [[ "$enabled" == "true" || "$kwin_active" == "true" ]]; then
+            nl="true"
         else
             local cc
             cc=$($qcmd org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.nightColorActive 2>/dev/null || echo "false")
             if [[ "$cc" == "true" ]]; then
                 nl="true"
             fi
+        fi
+    else
+        if [[ "$kwin_active" == "true" ]]; then
+            nl="true"
         fi
     fi
     echo "$nl"
@@ -262,16 +300,58 @@ toggle_darkmode() {
 }
 
 toggle_nightlight() {
+    local target="${1:-toggle}"
     local qcmd
     qcmd=$(get_qdbus)
-    if command -v qdbus6 >/dev/null 2>&1; then
-        qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "Toggle Night Color" >/dev/null 2>&1 || true
-    elif [[ -n "$qcmd" ]]; then
-        $qcmd org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "Toggle Night Color" >/dev/null 2>&1 || true
+    local current
+    current=$(get_nightlight)
+
+    if [[ "$target" == "toggle" ]]; then
+        if [[ "$current" == "true" ]]; then
+            target="off"
+        else
+            target="on"
+        fi
     fi
-    local nl
-    nl=$(get_nightlight)
-    echo "{\"night_light\": $nl}"
+
+    if [[ "$target" == "on" ]]; then
+        if [[ -n "$qcmd" ]]; then
+            $qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.deactivateManual false 2>/dev/null || true
+            $qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.activateManual true 2>/dev/null || true
+            local inhib
+            inhib=$($qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.inhibited 2>/dev/null || echo "")
+            if [[ "$inhib" == "true" ]]; then
+                if command -v qdbus6 >/dev/null 2>&1; then
+                    qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "Toggle Night Color" >/dev/null 2>&1 || true
+                elif [[ -n "$qcmd" ]]; then
+                    $qcmd org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "Toggle Night Color" >/dev/null 2>&1 || true
+                fi
+            fi
+        fi
+        if command -v kwriteconfig6 >/dev/null 2>&1; then
+            kwriteconfig6 --file kwinrc --group NightColor --key Active --type bool true --notify 2>/dev/null || true
+        fi
+        if [[ -n "$qcmd" ]]; then
+            $qcmd org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
+        fi
+        nl="true"
+    else
+        if [[ -n "$qcmd" ]]; then
+            $qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.activateManual false 2>/dev/null || true
+            $qcmd org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.deactivateManual true 2>/dev/null || true
+        fi
+        if command -v kwriteconfig6 >/dev/null 2>&1; then
+            kwriteconfig6 --file kwinrc --group NightColor --key Active --type bool false --notify 2>/dev/null || true
+        fi
+        if [[ -n "$qcmd" ]]; then
+            $qcmd org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
+        fi
+        nl="false"
+    fi
+
+    local nlt
+    nlt=$(get_nightlight_temp)
+    echo "{\"night_light\": $nl, \"night_light_temp\": $nlt}"
 }
 
 case "$CMD" in
@@ -306,7 +386,7 @@ case "$CMD" in
         toggle_darkmode "$@"
         ;;
     nightlight)
-        toggle_nightlight
+        toggle_nightlight "${2:-toggle}"
         ;;
     *)
         echo "Usage: $0 {battery|lock|logout|suspend|reboot|shutdown|settings|darkmode|nightlight}"

@@ -256,6 +256,7 @@ Item {
     property bool sendfileConnected: backend ? backend.sendfileConnected : false
     property string sendfileDeviceName: backend ? backend.sendfileDeviceName : ""
     property bool nightLightEnabled: backend ? backend.nightLightEnabled : false
+    property int nightLightTemp: (backend && backend.nightLightTemp !== undefined) ? backend.nightLightTemp : 4500
     property bool dndEnabled: backend ? backend.dndEnabled : false
     property string dndUntilText: backend ? backend.dndUntilText : ""
     property bool hotspotEnabled: backend ? backend.hotspotEnabled : false
@@ -833,7 +834,7 @@ Item {
                 StatusToolTip {
                     visible: nightHover.containsMouse && !root.isTrayExpanded
                     title: root.nightLightEnabled ? "Night Light Active" : "Night Light Off"
-                    status: root.nightLightEnabled ? "Warm color temperature for eye comfort" : "Standard color temperature"
+                    status: root.nightLightEnabled ? (root.nightLightTemp + " K · Warm color temperature for eye comfort") : "Standard color temperature"
                     iconName: "redshift-status-on-symbolic"
                     iconColor: root.tooltipActiveColor
                     isDarkTheme: root.isDarkTheme

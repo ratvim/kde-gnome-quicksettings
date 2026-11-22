@@ -1536,10 +1536,10 @@ Rectangle {
                         width: root.tileWidth()
                         visible: backend ? backend.tileShowNightLight : true
                         title: "Night Light"
-                        subtitle: (backend && backend.nightLightEnabled) ? "3400 K" : "Off"
+                        subtitle: (backend && backend.nightLightEnabled) ? ((backend.nightLightTemp || 4500) + " K") : i18n("Off")
                         iconName: "redshift-status-on-symbolic"
                         iconFallback: Qt.resolvedUrl("../icons/night-light-symbolic.svg")
-                        checked: backend ? backend.nightLightEnabled : false
+                        checked: Boolean(backend && backend.nightLightEnabled)
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
                         onToggled: if (backend) backend.toggleNightLight(newState)

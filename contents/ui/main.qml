@@ -340,6 +340,7 @@ PlasmoidItem {
 
     // Toggles
     property bool nightLightEnabled: false
+    property int nightLightTemp: 4500
     property bool airplaneMode: false
     property bool dndEnabled: false
     property string dndMode: "until_off"
@@ -516,6 +517,9 @@ PlasmoidItem {
                     }
                     if (bat.night_light !== undefined) {
                         mainItem.nightLightEnabled = !!bat.night_light
+                    }
+                    if (bat.night_light_temp !== undefined) {
+                        mainItem.nightLightTemp = parseInt(bat.night_light_temp) || 4500
                     }
                 } else if (source.indexOf("check_connectivity_tools") !== -1) {
                     var ct = JSON.parse(stdout)
@@ -852,8 +856,11 @@ PlasmoidItem {
     }
 
     function toggleNightLight(active) {
-        mainItem.nightLightEnabled = active
-        executable.exec("bash '" + getScriptPath("power.sh") + "' nightlight")
+        var arg = (active !== undefined) ? (active ? "on" : "off") : "toggle"
+        if (active !== undefined) {
+            mainItem.nightLightEnabled = active
+        }
+        executable.exec("bash '" + getScriptPath("power.sh") + "' nightlight " + arg)
     }
 
     function toggleAirplaneMode(active) {
