@@ -49,6 +49,8 @@ KCM.SimpleKCM {
 
     property string cfg_screenshotTool: "auto"
     property string cfg_connectivityApp: "kdeconnect"
+    property bool hasKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.hasKdeConnect !== undefined) ? plasmoid.rootItem.hasKdeConnect : true
+    property bool hasLocalSend: (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.localsendInstalled !== undefined) ? plasmoid.rootItem.localsendInstalled : true
 
     Plasma5Support.DataSource {
         id: execSource
@@ -61,17 +63,11 @@ KCM.SimpleKCM {
             try {
                 var res = JSON.parse(stdout)
                 if (source.indexOf("check_connectivity_tools") !== -1) {
-                    var cTools = res.installed_connectivity_tools || res.installed_tools
-                    if (cTools && cTools.length > 0) {
-                        connectivityAppCombo.model = cTools
-                        for (var k = 0; k < cTools.length; k++) {
-                            if (cTools[k].value === root.cfg_connectivityApp) {
-                                connectivityAppCombo.currentIndex = k
-                                return
-                            }
-                        }
-                        connectivityAppCombo.currentIndex = 0
-                        root.cfg_connectivityApp = cTools[0].value
+                    if (res.has_kdeconnect !== undefined) {
+                        root.hasKdeConnect = Boolean(res.has_kdeconnect)
+                    }
+                    if (res.has_localsend !== undefined) {
+                        root.hasLocalSend = Boolean(res.has_localsend)
                     }
                     return
                 }
@@ -90,28 +86,20 @@ KCM.SimpleKCM {
     }
 
     Component.onCompleted: {
-        if (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.installedScreenshotTools && plasmoid.rootItem.installedScreenshotTools.length > 0) {
-            screenshotToolCombo.model = plasmoid.rootItem.installedScreenshotTools
-            for (var i = 0; i < screenshotToolCombo.model.length; i++) {
-                if (screenshotToolCombo.model[i].value === root.cfg_screenshotTool) {
-                    screenshotToolCombo.currentIndex = i
-                    break
-                }
+        if (typeof plasmoid !== "undefined" && plasmoid.rootItem) {
+            if (plasmoid.rootItem.hasKdeConnect !== undefined) {
+                root.hasKdeConnect = plasmoid.rootItem.hasKdeConnect
             }
-        }
-        if (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.installedConnectivityTools && plasmoid.rootItem.installedConnectivityTools.length > 0) {
-            connectivityAppCombo.model = plasmoid.rootItem.installedConnectivityTools
-            for (var k = 0; k < connectivityAppCombo.model.length; k++) {
-                if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
-                    connectivityAppCombo.currentIndex = k
-                    break
-                }
+            if (plasmoid.rootItem.localsendInstalled !== undefined) {
+                root.hasLocalSend = plasmoid.rootItem.localsendInstalled
             }
-        } else {
-            for (var k = 0; k < connectivityAppCombo.model.length; k++) {
-                if (connectivityAppCombo.model[k].value === root.cfg_connectivityApp) {
-                    connectivityAppCombo.currentIndex = k
-                    break
+            if (plasmoid.rootItem.installedScreenshotTools && plasmoid.rootItem.installedScreenshotTools.length > 0) {
+                screenshotToolCombo.model = plasmoid.rootItem.installedScreenshotTools
+                for (var i = 0; i < screenshotToolCombo.model.length; i++) {
+                    if (screenshotToolCombo.model[i].value === root.cfg_screenshotTool) {
+                        screenshotToolCombo.currentIndex = i
+                        break
+                    }
                 }
             }
         }
@@ -224,12 +212,16 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: panelKdeCheck
-                text: i18n("KDE Connect (when connected)")
+                enabled: root.hasKdeConnect
+                opacity: root.hasKdeConnect ? 1.0 : 0.5
+                text: root.hasKdeConnect ? i18n("KDE Connect (when connected)") : i18n("KDE Connect (Not Installed)")
             }
 
             CheckBox {
                 id: panelSendLocalCheck
-                text: i18n("Send Local (when active)")
+                enabled: root.hasLocalSend
+                opacity: root.hasLocalSend ? 1.0 : 0.5
+                text: root.hasLocalSend ? i18n("Send Local (when active)") : i18n("Send Local (Not Installed)")
             }
         }
 
@@ -340,12 +332,16 @@ KCM.SimpleKCM {
 
             CheckBox {
                 id: tileKdeCheck
-                text: i18n("KDE Connect")
+                enabled: root.hasKdeConnect
+                opacity: root.hasKdeConnect ? 1.0 : 0.5
+                text: root.hasKdeConnect ? i18n("KDE Connect") : i18n("KDE Connect (Not Installed)")
             }
 
             CheckBox {
                 id: tileSendLocalCheck
-                text: i18n("Send Local")
+                enabled: root.hasLocalSend
+                opacity: root.hasLocalSend ? 1.0 : 0.5
+                text: root.hasLocalSend ? i18n("Send Local") : i18n("Send Local (Not Installed)")
             }
         }
     }

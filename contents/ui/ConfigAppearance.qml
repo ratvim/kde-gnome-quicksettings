@@ -4,17 +4,39 @@ import QtQuick.Layouts
 import QtQml.Models
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
+import org.kde.plasma.plasma5support as Plasma5Support
 
 KCM.SimpleKCM {
     id: root
 
-    readonly property string defaultOrder: "wifi,bluetooth,location,mic,camera,kdeconnect,dark,night,airplane,dnd,hotspot,power"
+    readonly property string defaultOrder: "wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power"
     property string cfg_tilesOrder: defaultOrder
     property alias cfg_toggleRowsPerPage: rowsSpinBox.value
     property string cfg_panelBackgroundMode: "follow_panel"
     property real cfg_customOpacity: 0.75
     property alias cfg_panelBlurEnabled: blurCheck.checked
     property string cfg_connectivityApp: "kdeconnect"
+    property bool hasKdeConnect: (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.hasKdeConnect !== undefined) ? plasmoid.rootItem.hasKdeConnect : true
+    property bool hasLocalSend: (typeof plasmoid !== "undefined" && plasmoid.rootItem && plasmoid.rootItem.localsendInstalled !== undefined) ? plasmoid.rootItem.localsendInstalled : true
+
+    Plasma5Support.DataSource {
+        id: execSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            var stdout = data["stdout"] ? data["stdout"].trim() : ""
+            disconnectSource(source)
+            if (!stdout) return
+            try {
+                var res = JSON.parse(stdout)
+                if (source.indexOf("check_connectivity_tools") !== -1) {
+                    if (res.has_kdeconnect !== undefined) root.hasKdeConnect = Boolean(res.has_kdeconnect)
+                    if (res.has_localsend !== undefined) root.hasLocalSend = Boolean(res.has_localsend)
+                    root.syncFromCfg()
+                }
+            } catch (e) {}
+        }
+    }
 
     function getMeta(key) {
         switch (key) {
@@ -24,9 +46,15 @@ KCM.SimpleKCM {
         case "mic": return { name: i18n("Microphone Access"), icon: "audio-input-microphone-symbolic" }
         case "camera": return { name: i18n("Camera Access"), icon: "camera-photo-symbolic" }
         case "kdeconnect":
-            return (root.cfg_connectivityApp === "sendfile")
-                ? { name: i18n("Send File"), icon: "document-send-symbolic" }
-                : { name: i18n("KDE Connect"), icon: "kdeconnect" }
+            return {
+                name: root.hasKdeConnect ? i18n("KDE Connect") : i18n("KDE Connect (Not Installed)"),
+                icon: "kdeconnect"
+            }
+        case "localsend":
+            return {
+                name: root.hasLocalSend ? i18n("Send Local") : i18n("Send Local (Not Installed)"),
+                icon: "org.localsend.localsend_app"
+            }
         case "dark": return { name: i18n("Dark Style"), icon: "weather-clear-night" }
         case "night": return { name: i18n("Night Light"), icon: "redshift-status-on" }
         case "airplane": return { name: i18n("Airplane Mode"), icon: "airplane-mode-symbolic" }
@@ -82,6 +110,16 @@ KCM.SimpleKCM {
     }
 
     Component.onCompleted: {
+        if (typeof plasmoid !== "undefined" && plasmoid.rootItem) {
+            if (plasmoid.rootItem.hasKdeConnect !== undefined) {
+                root.hasKdeConnect = plasmoid.rootItem.hasKdeConnect
+            }
+            if (plasmoid.rootItem.localsendInstalled !== undefined) {
+                root.hasLocalSend = plasmoid.rootItem.localsendInstalled
+            }
+        }
+        var scriptUrl = Qt.resolvedUrl("../scripts/devices.sh").toString().replace(/^file:\/\//, "")
+        execSource.connectSource("bash '" + scriptUrl + "' check_connectivity_tools")
         syncFromCfg()
     }
 
@@ -109,9 +147,11 @@ KCM.SimpleKCM {
             readonly property int visualIndex: DelegateModel.itemsIndex
             readonly property int itemsPerPage: rowsSpinBox.value * 2
             readonly property int pageNum: Math.floor(visualIndex / itemsPerPage) + 1
+            readonly property bool isNotInstalled: (model.key === "kdeconnect" && !root.hasKdeConnect) || (model.key === "localsend" && !root.hasLocalSend)
 
             width: reorderListView.width
             height: 50
+            opacity: isNotInstalled ? 0.45 : 1.0
 
             DropArea {
                 anchors.fill: parent

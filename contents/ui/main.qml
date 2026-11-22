@@ -521,6 +521,7 @@ PlasmoidItem {
                     var ct = JSON.parse(stdout)
                     mainItem.hasKdeConnect = !!ct.has_kdeconnect
                     mainItem.hasSendFile = !!ct.has_sendfile
+                    mainItem.localsendInstalled = !!ct.has_localsend
                     mainItem.installedConnectivityTools = ct.installed_connectivity_tools || ct.installed_tools || []
                 } else if (source.indexOf("sendfile_status") !== -1 || source.indexOf("localsend_status") !== -1) {
                     var sf = JSON.parse(stdout)
@@ -581,6 +582,7 @@ PlasmoidItem {
                     if (dev.connectivity_tools) {
                         mainItem.hasKdeConnect = !!dev.connectivity_tools.has_kdeconnect
                         mainItem.hasSendFile = !!(dev.connectivity_tools.has_localsend || dev.connectivity_tools.has_sendfile)
+                        mainItem.localsendInstalled = !!dev.connectivity_tools.has_localsend
                         mainItem.installedConnectivityTools = dev.connectivity_tools.installed_connectivity_tools || dev.connectivity_tools.installed_tools || []
                     }
                     if (dev.user) {

@@ -236,11 +236,13 @@ Rectangle {
                             property string subtitle: ""
                             property bool checkedState: false
                             property string configKey: ""
+                            property bool itemEnabled: true
 
                             Layout.fillWidth: true
                             height: 44
                             radius: 12
-                            color: rowMouse.containsMouse ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03))
+                            opacity: itemEnabled ? 1.0 : 0.45
+                            color: (rowCard.itemEnabled && rowMouse.containsMouse) ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03))
 
                             // Switch rigidly locked to right margin: 12
                             Switch {
@@ -248,9 +250,10 @@ Rectangle {
                                 anchors.right: parent.right
                                 anchors.rightMargin: 12
                                 anchors.verticalCenter: parent.verticalCenter
+                                enabled: rowCard.itemEnabled
                                 checked: rowCard.checkedState
                                 onToggled: {
-                                    if (backend) backend.setWidgetConfig(rowCard.configKey, checked)
+                                    if (rowCard.itemEnabled && backend) backend.setWidgetConfig(rowCard.configKey, checked)
                                 }
                             }
 
@@ -285,10 +288,11 @@ Rectangle {
                                 id: rowMouse
                                 anchors.fill: parent
                                 anchors.rightMargin: 56
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                enabled: rowCard.itemEnabled
+                                hoverEnabled: rowCard.itemEnabled
+                                cursorShape: rowCard.itemEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: {
-                                    if (backend) backend.setWidgetConfig(rowCard.configKey, !rowCard.checkedState)
+                                    if (rowCard.itemEnabled && backend) backend.setWidgetConfig(rowCard.configKey, !rowCard.checkedState)
                                 }
                             }
                         }
@@ -644,8 +648,9 @@ Rectangle {
                         Layout.fillWidth: true
                         sourceComponent: settingToggleRow
                         onLoaded: {
-                            item.title = "KDE Connect Tile"
                             item.configKey = "tileShowKdeConnect"
+                            item.itemEnabled = Qt.binding(function() { return Boolean(backend && backend.hasKdeConnect) })
+                            item.title = Qt.binding(function() { return (backend && backend.hasKdeConnect) ? "KDE Connect Tile" : "KDE Connect Tile (Not Installed)" })
                             item.checkedState = Qt.binding(function() { return backend ? backend.tileShowKdeConnect : true })
                         }
                     }
@@ -654,8 +659,9 @@ Rectangle {
                         Layout.fillWidth: true
                         sourceComponent: settingToggleRow
                         onLoaded: {
-                            item.title = "Send Local Tile"
                             item.configKey = "tileShowSendLocal"
+                            item.itemEnabled = Qt.binding(function() { return Boolean(backend && backend.localsendInstalled) })
+                            item.title = Qt.binding(function() { return (backend && backend.localsendInstalled) ? "Send Local Tile" : "Send Local Tile (Not Installed)" })
                             item.checkedState = Qt.binding(function() { return backend ? backend.tileShowSendLocal : true })
                         }
                     }

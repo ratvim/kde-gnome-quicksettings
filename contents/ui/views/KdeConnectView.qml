@@ -481,76 +481,80 @@ Rectangle {
         }
 
         // Empty state when no KDE Connect devices are discovered
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: (!root.devicesModel || root.devicesModel.length === 0)
-            Layout.alignment: Qt.AlignCenter
-            spacing: 12
 
-            Kirigami.Icon {
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 48
-                implicitHeight: 48
-                source: "kdeconnect-symbolic"
-                fallback: Qt.resolvedUrl("../../icons/kdeconnect-symbolic.svg")
-                isMask: true
-                color: root.isDarkTheme ? "#9aa0a6" : "#606770"
-            }
+            ColumnLayout {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: 12
 
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: i18n("No Connected Devices")
-                font.pixelSize: 14
-                font.weight: Font.Bold
-                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
-            }
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.maximumWidth: parent.width - 40
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                text: i18n("Make sure your phone or tablet has the KDE Connect app open and is connected to the same Wi-Fi network.")
-                font.pixelSize: 12
-                color: root.isDarkTheme ? "#9aa0a6" : "#606770"
-            }
-
-            Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: 8
-                implicitWidth: 160
-                implicitHeight: 34
-                radius: 17
-                color: pairNewMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : root.accentColor
-
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 6
-
-                    Kirigami.Icon {
-                        implicitWidth: 14
-                        implicitHeight: 14
-                        source: "kdeconnect-symbolic"
-                        fallback: Qt.resolvedUrl("../../icons/kdeconnect-symbolic.svg")
-                        isMask: true
-                        color: root.accentTextColor
-                    }
-
-                    Text {
-                        text: i18n("Open KDE Connect")
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                        color: root.accentTextColor
-                    }
+                Kirigami.Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    implicitWidth: 48
+                    implicitHeight: 48
+                    source: "kdeconnect-symbolic"
+                    fallback: Qt.resolvedUrl("../../icons/kdeconnect-symbolic.svg")
+                    isMask: true
+                    color: root.isDarkTheme ? "#9aa0a6" : "#606770"
                 }
 
-                MouseArea {
-                    id: pairNewMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openSettingsClicked()
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: i18n("No Connected Devices")
+                    font.pixelSize: 14
+                    font.weight: Font.Bold
+                    color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: parent.width - 40
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: i18n("Make sure your phone or tablet has the KDE Connect app open and is connected to the same Wi-Fi network.")
+                    font.pixelSize: 12
+                    color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                }
+
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 8
+                    implicitWidth: 160
+                    implicitHeight: 34
+                    radius: 17
+                    color: pairNewMouse.containsMouse ? Qt.darker(root.accentColor, 1.15) : root.accentColor
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Kirigami.Icon {
+                            implicitWidth: 14
+                            implicitHeight: 14
+                            source: "kdeconnect-symbolic"
+                            fallback: Qt.resolvedUrl("../../icons/kdeconnect-symbolic.svg")
+                            isMask: true
+                            color: root.accentTextColor
+                        }
+
+                        Text {
+                            text: i18n("Open KDE Connect")
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: root.accentTextColor
+                        }
+                    }
+
+                    MouseArea {
+                        id: pairNewMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.openSettingsClicked()
+                    }
                 }
             }
         }

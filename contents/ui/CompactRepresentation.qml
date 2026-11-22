@@ -350,8 +350,8 @@ Item {
         if (root.panelShowLocation && Boolean(root.locationApps && root.locationApps.length > 0)) return true
         if (root.panelShowMic && Boolean(root.micApps && root.micApps.length > 0)) return true
         if (root.panelShowCamera && Boolean(root.cameraApps && root.cameraApps.length > 0)) return true
-        if (root.panelShowKdeConnect && root.kdeConnectConnected) return true
-        if (root.panelShowSendLocal && Boolean(backend && backend.localsendRunning)) return true
+        if (root.panelShowKdeConnect && Boolean(backend && backend.hasKdeConnect && root.kdeConnectConnected)) return true
+        if (root.panelShowSendLocal && Boolean(backend && backend.localsendInstalled && backend.localsendRunning)) return true
         return false
     }
 
@@ -534,7 +534,7 @@ Item {
             // 1. KDE Connect (when connected)
             Item {
                 id: kdeItem
-                visible: root.panelShowKdeConnect && root.kdeConnectConnected
+                visible: root.panelShowKdeConnect && Boolean(backend && backend.hasKdeConnect && root.kdeConnectConnected)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter
@@ -572,7 +572,7 @@ Item {
             // 1b. Send Local (LocalSend, when active/running)
             Item {
                 id: localSendItem
-                visible: root.panelShowSendLocal && Boolean(backend && backend.localsendRunning)
+                visible: root.panelShowSendLocal && Boolean(backend && backend.localsendInstalled && backend.localsendRunning)
                 implicitWidth: root.panelIconSize
                 implicitHeight: root.panelIconSize
                 Layout.alignment: Qt.AlignVCenter

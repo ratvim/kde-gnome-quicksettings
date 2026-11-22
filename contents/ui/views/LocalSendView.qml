@@ -297,38 +297,42 @@ Rectangle {
         }
 
         // Clean Empty State when no peers are discovered (Zero redundant buttons)
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: (!root.devicesModel || root.devicesModel.length === 0)
-            Layout.alignment: Qt.AlignCenter
-            spacing: 10
 
-            Kirigami.Icon {
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 44
-                implicitHeight: 44
-                source: "org.localsend.localsend_app"
-                fallback: Qt.resolvedUrl("../../icons/document-send-symbolic.svg")
-                opacity: 0.65
-            }
+            ColumnLayout {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: 10
 
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: i18n("No Nearby Devices Discovered")
-                font.pixelSize: 13
-                font.weight: Font.Bold
-                color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
-            }
+                Kirigami.Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    implicitWidth: 44
+                    implicitHeight: 44
+                    source: "org.localsend.localsend_app"
+                    fallback: Qt.resolvedUrl("../../icons/document-send-symbolic.svg")
+                    opacity: 0.65
+                }
 
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.maximumWidth: parent.width - 40
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                text: i18n("LocalSend transfers files securely over your local network. Make sure other devices on this Wi-Fi network have LocalSend open.")
-                font.pixelSize: 11
-                color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: i18n("No Nearby Devices Discovered")
+                    font.pixelSize: 13
+                    font.weight: Font.Bold
+                    color: root.isDarkTheme ? "#ffffff" : "#1a1a1a"
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: parent.width - 40
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: i18n("LocalSend transfers files securely over your local network. Make sure other devices on this Wi-Fi network have LocalSend open.")
+                    font.pixelSize: 11
+                    color: root.isDarkTheme ? "#9aa0a6" : "#606770"
+                }
             }
         }
 

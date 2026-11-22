@@ -635,8 +635,8 @@ Rectangle {
         case "location": return backend.tileShowLocation
         case "mic": return backend.tileShowMic
         case "camera": return backend.tileShowCamera
-        case "kdeconnect": return backend.tileShowKdeConnect
-        case "localsend": return backend.tileShowSendLocal
+        case "kdeconnect": return (backend ? backend.tileShowKdeConnect : true) && Boolean(backend && backend.hasKdeConnect)
+        case "localsend": return (backend ? backend.tileShowSendLocal : true) && Boolean(backend && backend.localsendInstalled)
         case "dark": return backend.tileShowDarkTheme
         case "night": return backend.tileShowNightLight
         case "airplane": return backend.tileShowAirplane
@@ -1473,7 +1473,7 @@ Rectangle {
                     PillToggle {
                         id: toggleKde
                         width: root.tileWidth()
-                        visible: backend ? backend.tileShowKdeConnect : true
+                        visible: (backend ? backend.tileShowKdeConnect : true) && Boolean(backend && backend.hasKdeConnect)
                         title: i18n("KDE Connect")
                         subtitle: (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
                         iconName: "kdeconnect-tray-symbolic"
@@ -1492,7 +1492,7 @@ Rectangle {
                     PillToggle {
                         id: toggleLocalSend
                         width: root.tileWidth()
-                        visible: backend ? backend.tileShowSendLocal : true
+                        visible: (backend ? backend.tileShowSendLocal : true) && Boolean(backend && backend.localsendInstalled)
                         title: i18n("Send Local")
                         subtitle: {
                             if (backend && backend.localsendRunning) {
