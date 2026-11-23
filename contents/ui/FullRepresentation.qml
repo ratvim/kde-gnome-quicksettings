@@ -565,13 +565,16 @@ Rectangle {
 
     // Dynamic Height Calculation: Configurable toggle rows per page (min 3, max 8)
     readonly property int maxRowsPerPage: (backend && backend.toggleRowsPerPage) ? Math.max(3, Math.min(8, backend.toggleRowsPerPage)) : 4
-    readonly property int tilesPerPage: maxRowsPerPage * 2
+    readonly property string toggleShape: (backend && backend.toggleShape) ? backend.toggleShape : "pill"
+    readonly property bool isCompactShape: toggleShape !== "pill"
+    readonly property int columnsCount: isCompactShape ? 4 : 2
+    readonly property int tilesPerPage: maxRowsPerPage * columnsCount
     readonly property int togglePageCount: Math.max(1, Math.ceil(activeTileKeys.length / tilesPerPage))
     readonly property int visibleRowsOnPage: {
         var totalTiles = activeTileKeys.length
         if (totalTiles === 0) return 0
         if (totalTiles >= tilesPerPage) return maxRowsPerPage
-        return Math.ceil(totalTiles / 2)
+        return Math.ceil(totalTiles / columnsCount)
     }
 
     onMaxRowsPerPageChanged: {
@@ -580,9 +583,12 @@ Rectangle {
     onTogglePageCountChanged: {
         updateTogglePages()
     }
+    onToggleShapeChanged: {
+        updateTogglePages()
+    }
 
     readonly property real mainCalculatedHeight: {
-        var tileH = (backend && backend.tileIconSize) ? Math.max(60, backend.tileIconSize + 38) : Math.round(62 * root.resolutionScale)
+        var tileH = root.tileHeight()
         var togglesH = visibleRowsOnPage > 0 ? (visibleRowsOnPage * tileH + Math.max(0, visibleRowsOnPage - 1) * root.tileSpacing) : 0
         var dotsH = (togglePageCount > 1) ? Math.round(18 * root.resolutionScale) : 0
         var hasMedia = (backend && backend.mediaTitle && backend.mediaTitle !== "")
@@ -683,10 +689,21 @@ Rectangle {
         updateTogglePages()
     }
 
-    // Dynamically calculate 2-column tile width based on actual responsive panel width
+    // Dynamically calculate tile width and height based on shape and responsive panel width
     function tileWidth() {
-        var availWidth = root.responsiveWidth - (root.contentMargin * 2) - root.tileSpacing
-        return Math.max(130, Math.floor(availWidth / 2))
+        var cols = columnsCount
+        var availWidth = (typeof togglesSwipeView !== "undefined" && togglesSwipeView && togglesSwipeView.width > 0)
+            ? togglesSwipeView.width
+            : (root.responsiveWidth - (root.contentMargin * 2))
+        var totalGaps = root.tileSpacing * (cols - 1)
+        return Math.max(48, Math.floor((availWidth - totalGaps - 0.5) / cols))
+    }
+
+    function tileHeight() {
+        if (root.isCompactShape) {
+            return tileWidth()
+        }
+        return (backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : Math.round(56 * root.resolutionScale)
     }
 
     function getToggleByKey(k) {
@@ -1250,7 +1267,7 @@ Rectangle {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        implicitHeight: root.visibleRowsOnPage > 0 ? (root.visibleRowsOnPage * ((backend && backend.tileIconSize) ? Math.max(56, backend.tileIconSize + 36) : Math.round(56 * root.resolutionScale)) + Math.max(0, root.visibleRowsOnPage - 1) * root.tileSpacing) : 0
+                        implicitHeight: root.visibleRowsOnPage > 0 ? (root.visibleRowsOnPage * root.tileHeight() + Math.max(0, root.visibleRowsOnPage - 1) * root.tileSpacing) : 0
                         height: implicitHeight
                         clip: true
                         currentIndex: 0
@@ -1360,6 +1377,8 @@ Rectangle {
                     PillToggle {
                         id: toggleWifi
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowWifi : true
                         title: "Wi-Fi"
                         subtitle: (backend && backend.wifiConnected) ? (backend.wifiSsid || "Connected") : ((backend && backend.wifiEnabled) ? "Disconnected" : "Off")
@@ -1368,7 +1387,7 @@ Rectangle {
                         checked: backend ? (backend.wifiConnected || backend.wifiEnabled) : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleWifi(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleWifi(newState) }
                         onMenuClicked: {
                             if (backend) backend.refreshWifi()
                             root.activeView = "network"
@@ -1379,6 +1398,8 @@ Rectangle {
                     PillToggle {
                         id: toggleBt
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowBluetooth : true
                         title: "Bluetooth"
                         subtitle: (backend && backend.btConnected) ? ((backend.btDeviceName || "Connected") + (backend.btBattery > 0 ? " • " + backend.btBattery + "%" : "")) : ((backend && backend.btEnabled) ? "On" : "Off")
@@ -1387,7 +1408,7 @@ Rectangle {
                         checked: backend ? backend.btEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleBluetooth(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleBluetooth(newState) }
                         onMenuClicked: {
                             if (backend) backend.refreshBluetoothDevices()
                             root.activeView = "bluetooth"
@@ -1398,6 +1419,8 @@ Rectangle {
                     PillToggle {
                         id: toggleLocation
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowLocation : true
                         title: "Location"
                         subtitle: {
@@ -1412,7 +1435,7 @@ Rectangle {
                         checked: backend ? backend.locationEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleLocation()
+                        onToggled: function() { if (backend) backend.toggleLocation() }
                         onMenuClicked: {
                             if (backend) backend.refreshLocation()
                             root.activeView = "location"
@@ -1423,6 +1446,8 @@ Rectangle {
                     PillToggle {
                         id: toggleMic
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowMic : true
                         title: "Microphone"
                         subtitle: {
@@ -1437,7 +1462,7 @@ Rectangle {
                         checked: backend ? !backend.micMuted : true
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleMic()
+                        onToggled: function() { if (backend) backend.toggleMic() }
                         onMenuClicked: {
                             if (backend) backend.refreshMic()
                             root.activeView = "microphone"
@@ -1448,6 +1473,8 @@ Rectangle {
                     PillToggle {
                         id: toggleCamera
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowCamera : true
                         title: "Camera"
                         subtitle: {
@@ -1462,7 +1489,7 @@ Rectangle {
                         checked: backend ? !backend.cameraBlocked : true
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleCamera()
+                        onToggled: function() { if (backend) backend.toggleCamera() }
                         onMenuClicked: {
                             if (backend) backend.refreshCamera()
                             root.activeView = "camera"
@@ -1473,6 +1500,8 @@ Rectangle {
                     PillToggle {
                         id: toggleKde
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: (backend ? backend.tileShowKdeConnect : true) && Boolean(backend && backend.hasKdeConnect)
                         title: i18n("KDE Connect")
                         subtitle: (backend && backend.kdeConnectConnected) ? (backend.kdeConnectName || i18n("Connected")) : ((backend && backend.kdeConnectDevices && backend.kdeConnectDevices.length > 0) ? (backend.kdeConnectDevices.length + " Device(s)") : i18n("Disconnected"))
@@ -1481,7 +1510,7 @@ Rectangle {
                         checked: backend ? backend.kdeConnectConnected : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.openKdeConnect()
+                        onToggled: function() { if (backend) backend.openKdeConnect() }
                         onMenuClicked: {
                             if (backend) backend.refreshKdeConnect()
                             root.activeView = "kdeconnect"
@@ -1492,6 +1521,8 @@ Rectangle {
                     PillToggle {
                         id: toggleLocalSend
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: (backend ? backend.tileShowSendLocal : true) && Boolean(backend && backend.localsendInstalled)
                         title: i18n("Send Local")
                         subtitle: {
@@ -1508,7 +1539,7 @@ Rectangle {
                         checked: Boolean(backend && backend.localsendRunning)
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.openLocalSend()
+                        onToggled: function() { if (backend) backend.openLocalSend() }
                         onMenuClicked: {
                             if (backend) backend.refreshLocalSend()
                             root.activeView = "localsend"
@@ -1519,6 +1550,8 @@ Rectangle {
                     PillToggle {
                         id: toggleDark
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowDarkTheme : true
                         title: "Dark Style"
                         subtitle: root.isDarkTheme ? "Dark Mode" : "Light Mode"
@@ -1527,13 +1560,15 @@ Rectangle {
                         checked: root.isDarkTheme
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleDarkMode(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleDarkMode(newState) }
                     }
 
                     // 8. Night Light (Color Temp)
                     PillToggle {
                         id: toggleNight
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowNightLight : true
                         title: "Night Light"
                         subtitle: (backend && backend.nightLightEnabled) ? ((backend.nightLightTemp || 4500) + " K") : i18n("Off")
@@ -1542,13 +1577,15 @@ Rectangle {
                         checked: Boolean(backend && backend.nightLightEnabled)
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleNightLight(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleNightLight(newState) }
                     }
 
                     // 9. Airplane Mode
                     PillToggle {
                         id: toggleAir
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowAirplane : true
                         title: "Airplane Mode"
                         subtitle: (backend && backend.airplaneMode) ? "Enabled" : "Off"
@@ -1557,13 +1594,15 @@ Rectangle {
                         checked: backend ? backend.airplaneMode : false
                         hasMenu: false
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleAirplaneMode(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleAirplaneMode(newState) }
                     }
 
                     // 10. Do Not Disturb (DND)
                     PillToggle {
                         id: toggleDnd
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowDnd : true
                         title: "Do Not Disturb"
                         subtitle: {
@@ -1575,7 +1614,7 @@ Rectangle {
                         checked: backend ? backend.dndEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleDnd(newState)
+                        onToggled: function(newState) { if (backend) backend.toggleDnd(newState) }
                         onMenuClicked: {
                             root.activeView = "dnd"
                         }
@@ -1585,6 +1624,8 @@ Rectangle {
                     PillToggle {
                         id: toggleHotspot
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowHotspot : true
                         title: "Hotspot"
                         subtitle: (backend && backend.hotspotEnabled) ? (backend.hotspotSsid || "Active") : "Off"
@@ -1593,7 +1634,7 @@ Rectangle {
                         checked: backend ? backend.hotspotEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: if (backend) backend.toggleHotspot(!backend.hotspotEnabled)
+                        onToggled: function() { if (backend) backend.toggleHotspot(!backend.hotspotEnabled) }
                         onMenuClicked: {
                             if (backend) backend.refreshHotspot()
                             root.activeView = "hotspot"
@@ -1604,6 +1645,8 @@ Rectangle {
                     PillToggle {
                         id: togglePower
                         width: root.tileWidth()
+                        height: root.tileHeight()
+                        toggleShape: root.toggleShape
                         visible: backend ? backend.tileShowPowerSaver : true
                         title: "Power"
                         subtitle: {
@@ -1617,7 +1660,7 @@ Rectangle {
                         checked: backend ? (backend.powerProfile !== "balanced") : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme
-                        onToggled: {
+                        onToggled: function() {
                             if (backend) {
                                 if (backend.powerProfile === "balanced") {
                                     backend.setPowerProfile("power-saver")

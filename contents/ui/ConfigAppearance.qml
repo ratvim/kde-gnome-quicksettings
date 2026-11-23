@@ -11,6 +11,7 @@ KCM.SimpleKCM {
 
     readonly property string defaultOrder: "wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power"
     property string cfg_tilesOrder: defaultOrder
+    property string cfg_toggleShape: "pill"
     property alias cfg_toggleRowsPerPage: rowsSpinBox.value
     property string cfg_panelBackgroundMode: "follow_panel"
     property real cfg_customOpacity: 0.75
@@ -145,7 +146,7 @@ KCM.SimpleKCM {
         delegate: Item {
             id: delegateRoot
             readonly property int visualIndex: DelegateModel.itemsIndex
-            readonly property int itemsPerPage: rowsSpinBox.value * 2
+            readonly property int itemsPerPage: rowsSpinBox.value * (root.cfg_toggleShape !== "pill" ? 4 : 2)
             readonly property int pageNum: Math.floor(visualIndex / itemsPerPage) + 1
             readonly property bool isNotInstalled: (model.key === "kdeconnect" && !root.hasKdeConnect) || (model.key === "localsend" && !root.hasLocalSend)
 
@@ -309,6 +310,40 @@ KCM.SimpleKCM {
             spacing: Kirigami.Units.largeSpacing
 
             Label {
+                text: i18n("Toggle Shape:")
+                font.bold: true
+            }
+
+            ComboBox {
+                id: shapeCombo
+                textRole: "text"
+                valueRole: "value"
+                model: [
+                    { text: i18n("Pill (Capsule • 2 Columns)"), value: "pill" },
+                    { text: i18n("Circle (Compact • 4 Columns)"), value: "circle" },
+                    { text: i18n("Rounded Square (Compact • 4 Columns)"), value: "rounded_square" },
+                    { text: i18n("Water Drop (Compact • 4 Columns)"), value: "water_drop" },
+                    { text: i18n("Squircle (Compact • 4 Columns)"), value: "squircle" }
+                ]
+                currentIndex: {
+                    for (var i = 0; i < model.length; i++) {
+                        if (model[i].value === root.cfg_toggleShape) return i
+                    }
+                    return 0
+                }
+                onActivated: {
+                    root.cfg_toggleShape = currentValue
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.largeSpacing
+
+            Label {
                 text: i18n("Toggle Rows per Page:")
                 font.bold: true
             }
@@ -322,7 +357,7 @@ KCM.SimpleKCM {
             }
 
             Label {
-                text: i18n("(%1 toggles per page)", rowsSpinBox.value * 2)
+                text: i18n("(%1 toggles per page)", rowsSpinBox.value * (root.cfg_toggleShape !== "pill" ? 4 : 2))
                 color: Kirigami.Theme.disabledTextColor
             }
 
@@ -332,7 +367,7 @@ KCM.SimpleKCM {
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Information
-            text: i18n("Drag toggles up or down to rearrange their order. You can drag by grabbing anywhere on a row. The Page badges dynamically show which page each toggle will appear on based on your chosen rows per page.")
+            text: i18n("Choose between the classic wide Pill layout (2 columns with text and submenu chevrons) or compact icon shapes (Circle, Rounded Square, Water Drop, Squircle with 4 icons per row). In compact shape mode, single click changes status or opens the submenu if available. Drag toggles to rearrange their order.")
             visible: true
         }
 

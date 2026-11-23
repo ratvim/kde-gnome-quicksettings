@@ -184,6 +184,7 @@ PlasmoidItem {
     property bool tileShowSendLocal: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileShowSendLocal !== undefined) ? plasmoid.configuration.tileShowSendLocal : true
     property string connectivityApp: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.connectivityApp !== undefined) ? plasmoid.configuration.connectivityApp : "kdeconnect"
     property string tilesOrder: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tilesOrder !== undefined && plasmoid.configuration.tilesOrder.length > 0) ? plasmoid.configuration.tilesOrder : "wifi,bluetooth,location,mic,camera,kdeconnect,localsend,dark,night,airplane,dnd,hotspot,power"
+    property string toggleShape: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleShape !== undefined && plasmoid.configuration.toggleShape !== "") ? plasmoid.configuration.toggleShape : "pill"
     property int toggleRowsPerPage: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleRowsPerPage !== undefined) ? Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) : 4
 
     // Keep visibility properties synced when configuration changes
@@ -203,6 +204,7 @@ PlasmoidItem {
         function onTileShowKdeConnectChanged() { mainItem.tileShowKdeConnect = plasmoid.configuration.tileShowKdeConnect }
         function onTileShowSendLocalChanged() { mainItem.tileShowSendLocal = plasmoid.configuration.tileShowSendLocal }
         function onTilesOrderChanged() { mainItem.tilesOrder = plasmoid.configuration.tilesOrder }
+        function onToggleShapeChanged() { mainItem.toggleShape = plasmoid.configuration.toggleShape }
         function onToggleRowsPerPageChanged() { mainItem.toggleRowsPerPage = Math.max(3, Math.min(8, plasmoid.configuration.toggleRowsPerPage)) }
 
         function onPanelShowWifiChanged() { mainItem.panelShowWifi = plasmoid.configuration.panelShowWifi }

@@ -1,16 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Shapes
 import org.kde.kirigami as Kirigami
 
 /**
- * PillToggle.qml - GNOME-style curved-edge capsule toggle button
- * Features:
- *   - Capsule/pill button shape with rounded corners (radius: 18..22px)
- *   - Glassmorphic inactive state / Dynamic KDE system accent or GNOME blue active state
- *   - Native system icon via Kirigami.Icon with bundled SVG fallback
- *   - Independent chevron button for sub-menus (e.g. Wi-Fi / Bluetooth)
- *   - Press scale micro-interaction and smooth color transitions
+ * PillToggle.qml - GNOME Quick Settings Toggle Button
+ * Supports standard GNOME capsule pill (2 columns, icon + text + chevron)
+ * as well as customizable compact icon shapes (Circle, Rounded Square, Water Drop, Squircle - 4 columns).
  */
 Rectangle {
     id: root
@@ -34,17 +31,33 @@ Rectangle {
     property real pillRadius: 20
     property int iconSize: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.tileIconSize !== undefined) ? plasmoid.configuration.tileIconSize : 20
 
+    property string toggleShape: (typeof plasmoid !== "undefined" && plasmoid.configuration && plasmoid.configuration.toggleShape !== undefined && plasmoid.configuration.toggleShape !== "") ? plasmoid.configuration.toggleShape : "pill"
+    readonly property bool isCompactShape: toggleShape !== "pill"
+
     signal toggled(bool newState)
     signal menuClicked()
 
     implicitWidth: 180
-    implicitHeight: Math.max(56, root.iconSize + 36)
-    radius: pillRadius
+    implicitHeight: isCompactShape ? width : Math.max(56, root.iconSize + 36)
+    height: implicitHeight
 
-    // Smooth color & scale animations
-    color: checked ? activeColor : (mouseArea.containsMouse ? (isDarkTheme ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.09)) : inactiveColor)
-    border.color: checked ? Qt.rgba(1, 1, 1, 0.15) : (isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.08))
-    border.width: 1
+    radius: {
+        if (root.toggleShape === "circle") return width / 2
+        if (root.toggleShape === "rounded_square") return Math.round(width * 0.26)
+        if (root.toggleShape === "water_drop") return 0
+        return root.pillRadius
+    }
+    topLeftRadius: (root.toggleShape === "water_drop") ? (width / 2) : radius
+    bottomLeftRadius: (root.toggleShape === "water_drop") ? (width / 2) : radius
+    bottomRightRadius: (root.toggleShape === "water_drop") ? (width / 2) : radius
+    topRightRadius: (root.toggleShape === "water_drop") ? Math.max(6, Math.round(width * 0.12)) : radius
+
+    readonly property color effectiveBgColor: checked ? activeColor : (mouseArea.containsMouse ? (isDarkTheme ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.09)) : inactiveColor)
+    readonly property color effectiveBorderColor: checked ? Qt.rgba(1, 1, 1, 0.15) : (isDarkTheme ? Qt.rgba(255, 255, 255, 0.06) : Qt.rgba(0, 0, 0, 0.08))
+
+    color: (root.toggleShape === "squircle") ? "transparent" : root.effectiveBgColor
+    border.color: (root.toggleShape === "squircle") ? "transparent" : root.effectiveBorderColor
+    border.width: (root.toggleShape === "squircle") ? 0 : 1
 
     scale: mouseArea.pressed ? 0.97 : (mouseArea.containsMouse ? 1.01 : 1.0)
 
@@ -55,13 +68,89 @@ Rectangle {
         NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
     }
 
+    // Continuous Curvature Squircle Shape
+    Shape {
+        id: squircleShape
+        anchors.fill: parent
+        visible: root.isCompactShape && root.toggleShape === "squircle"
+        layer.enabled: true
+        layer.samples: 4
+        ShapePath {
+            strokeColor: root.effectiveBorderColor
+            strokeWidth: 1
+            fillColor: root.effectiveBgColor
+            joinStyle: ShapePath.RoundJoin
+            startX: root.width * 0.5
+            startY: 1
+            PathCubic {
+                control1X: root.width * 0.72; control1Y: 1
+                control2X: root.width - 1; control2Y: root.height * 0.28
+                x: root.width - 1; y: root.height * 0.5
+            }
+            PathCubic {
+                control1X: root.width - 1; control1Y: root.height * 0.72
+                control2X: root.width * 0.72; control2Y: root.height - 1
+                x: root.width * 0.5; y: root.height - 1
+            }
+            PathCubic {
+                control1X: root.width * 0.28; control1Y: root.height - 1
+                control2X: 1; control2Y: root.height * 0.72
+                x: 1; y: root.height * 0.5
+            }
+            PathCubic {
+                control1X: 1; control1Y: root.height * 0.28
+                control2X: root.width * 0.28; control2Y: 1
+                x: root.width * 0.5; y: 1
+            }
+        }
+    }
+
+    // Compact View (Icon-only, no text)
+    Item {
+        id: compactView
+        anchors.fill: parent
+        visible: root.isCompactShape
+
+        Kirigami.Icon {
+            id: compactIcon
+            anchors.centerIn: parent
+            anchors.horizontalCenterOffset: (root.toggleShape === "water_drop") ? -1 : 0
+            anchors.verticalCenterOffset: (root.toggleShape === "water_drop") ? 1 : 0
+            implicitWidth: Math.max(22, Math.round(root.iconSize * 1.25))
+            implicitHeight: implicitWidth
+            source: root.iconName
+            fallback: root.iconFallback
+            color: root.checked ? root.activeTextColor : (mouseArea.containsMouse ? root.inactiveTextColor : root.inactiveIconColor)
+            isMask: true
+        }
+
+        // Subtle menu indicator dot at bottom center if hasMenu is true
+        Rectangle {
+            visible: root.hasMenu
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Math.max(4, Math.round(root.height * 0.08))
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 4
+            height: 4
+            radius: 2
+            color: root.checked ? Qt.rgba(root.activeTextColor.r, root.activeTextColor.g, root.activeTextColor.b, 0.7) : (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.35) : Qt.rgba(0, 0, 0, 0.3))
+        }
+    }
+
+    ToolTip {
+        visible: root.isCompactShape && mouseArea.containsMouse
+        delay: 350
+        text: root.title + ((root.subtitle && root.subtitle !== "") ? (" • " + root.subtitle) : "")
+    }
+
+    // Standard Pill View (Icon badge, Title & Subtitle, optional Chevron)
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 10
         anchors.rightMargin: root.hasMenu ? 4 : 14
         spacing: 10
+        visible: !root.isCompactShape
 
-        // Circular Icon Badge
         Rectangle {
             id: iconBadge
             Layout.preferredWidth: Math.max(36, root.iconSize + 16)
@@ -86,7 +175,6 @@ Rectangle {
             }
         }
 
-        // Title and Subtitle Text Column
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
@@ -111,7 +199,6 @@ Rectangle {
             }
         }
 
-        // Optional Chevron Split-Button for opening Sub-Menus (Wi-Fi, Bluetooth)
         Item {
             id: chevronContainer
             visible: root.hasMenu
@@ -119,7 +206,6 @@ Rectangle {
             Layout.preferredHeight: parent.height - 12
             Layout.alignment: Qt.AlignVCenter
 
-            // Vertical divider line
             Rectangle {
                 width: 1
                 height: 20
@@ -157,15 +243,27 @@ Rectangle {
         }
     }
 
-    // Main Toggle MouseArea (covers the pill except the chevron button)
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        anchors.rightMargin: root.hasMenu ? chevronContainer.width + 4 : 0
+        anchors.rightMargin: (!root.isCompactShape && root.hasMenu) ? (chevronContainer.width + 4) : 0
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            root.toggled(!root.checked)
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: function(mouse) {
+            if (mouse.button === Qt.RightButton) {
+                root.toggled(!root.checked)
+                return
+            }
+            if (root.isCompactShape) {
+                if (root.hasMenu) {
+                    root.menuClicked()
+                } else {
+                    root.toggled(!root.checked)
+                }
+            } else {
+                root.toggled(!root.checked)
+            }
         }
     }
 }
