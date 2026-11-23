@@ -1382,8 +1382,8 @@ Rectangle {
                         visible: backend ? backend.tileShowBluetooth : true
                         title: "Bluetooth"
                         subtitle: (backend && backend.btConnected) ? ((backend.btDeviceName || "Connected") + (backend.btBattery > 0 ? " • " + backend.btBattery + "%" : "")) : ((backend && backend.btEnabled) ? "On" : "Off")
-                        iconName: (backend && backend.btIconName) ? backend.btIconName : "preferences-system-bluetooth"
-                        iconFallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
+                        iconName: (backend && backend.btIconName) ? backend.btIconName : "network-bluetooth-symbolic"
+                        iconFallback: Qt.resolvedUrl("../icons/network-bluetooth-symbolic.svg")
                         checked: backend ? backend.btEnabled : false
                         hasMenu: true
                         isDarkTheme: root.isDarkTheme

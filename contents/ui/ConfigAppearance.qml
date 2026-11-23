@@ -41,7 +41,7 @@ KCM.SimpleKCM {
     function getMeta(key) {
         switch (key) {
         case "wifi": return { name: i18n("Wi-Fi"), icon: "network-wireless-symbolic" }
-        case "bluetooth": return { name: i18n("Bluetooth"), icon: "preferences-system-bluetooth" }
+        case "bluetooth": return { name: i18n("Bluetooth"), icon: "network-bluetooth-symbolic" }
         case "location": return { name: i18n("Location Access"), icon: "find-location-symbolic" }
         case "mic": return { name: i18n("Microphone Access"), icon: "audio-input-microphone-symbolic" }
         case "camera": return { name: i18n("Camera Access"), icon: "camera-photo-symbolic" }

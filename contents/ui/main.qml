@@ -257,9 +257,12 @@ PlasmoidItem {
     // Dynamic Bluetooth icon matching KDE Plasma System Tray
     readonly property string btIconName: {
         if (mainItem.btConnected) {
-            return "network-bluetooth"
+            return "network-bluetooth-activated-symbolic"
         }
-        return "preferences-system-bluetooth"
+        if (mainItem.btEnabled) {
+            return "network-bluetooth-symbolic"
+        }
+        return "network-bluetooth-inactive-symbolic"
     }
 
     // Dynamic Battery icon matching KDE Plasma System Tray

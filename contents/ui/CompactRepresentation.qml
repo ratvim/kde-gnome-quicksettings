@@ -305,9 +305,12 @@ Item {
             return backend.btIconName
         }
         if (root.btConnected) {
-            return "network-bluetooth"
+            return "network-bluetooth-activated-symbolic"
         }
-        return "preferences-system-bluetooth"
+        if (root.btEnabled) {
+            return "network-bluetooth-symbolic"
+        }
+        return "network-bluetooth-inactive-symbolic"
     }
 
     // Dynamic Battery icon matching KDE Plasma System Tray
@@ -966,7 +969,7 @@ Item {
                 Kirigami.Icon {
                     anchors.fill: parent
                     source: root.btIconName
-                    fallback: Qt.resolvedUrl("../icons/preferences-system-bluetooth-symbolic.svg")
+                    fallback: Qt.resolvedUrl("../icons/network-bluetooth-symbolic.svg")
                     isMask: true
                     color: root.btConnected ? root.activeIndicatorColor : root.inactiveIndicatorColor
                 }
